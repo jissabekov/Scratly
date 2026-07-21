@@ -1,9 +1,12 @@
 # Scratly
 
-Explainable student discovery and project matching. See
-[`docs/architecture.md`](docs/architecture.md) for hard boundaries and
-[`docs/local-development.md`](docs/local-development.md) for the complete
-implementation inventory, readiness limitations, and local testing guide.
+Explainable student discovery and project matching.
+
+Start here for how the system works:
+
+- [`docs/README.md`](docs/README.md) — documentation index and mental model
+- [`docs/architecture.md`](docs/architecture.md) — hard rules, turn path, tracing
+- [`docs/local-development.md`](docs/local-development.md) — run Compose/host API, Azure Entra, tests, sims
 
 ## Quick local start
 

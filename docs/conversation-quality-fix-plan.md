@@ -1,9 +1,12 @@
 # Conversation quality fix plan
 
-**Status:** implemented (proven with live Azure traces)  
+**Status:** implemented (proven with live Azure traces) — **living behavior docs are now** [README.md](README.md), [architecture.md](architecture.md), [scoring-rules.md](scoring-rules.md), [conversation-policy.md](conversation-policy.md), and [conversation-quality.md](conversation-quality.md).
+
 **Based on:** live 5-turn Azure sim `18b70c75-64c8-4d85-ae7c-cda74b04b2f3` (`sim-conversation-dump.json`)  
 **Latest proof:** `sim-final-proof.json` (14-turn Maya + conflict probe, 2026-07-21)  
-**Goal:** Keep the frozen architecture (LLM proposes; reducer owns state; raw messages are source of truth) while making assessment conversations *technically correct* and *qualitatively good* over long sessions.
+**Goal (achieved):** Keep the frozen architecture (LLM proposes; reducer owns state; raw messages are source of truth) while making assessment conversations *technically correct* and *qualitatively good* over long sessions.
+
+This file remains the design/acceptance record for workstreams W1–W8. Prefer the living docs above for day-to-day “how it works.”
 
 ---
 

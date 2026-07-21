@@ -1,6 +1,8 @@
 # Scratly implementation guide and local testing
 
-This document describes what exists in the repository, the architectural boundaries it enforces, and how to run every currently runnable component on a local workstation. It is intentionally candid about scaffolding that is not yet wired end to end.
+How to run Scratly locally and verify the assessment path. For *how the product works*, start at [README.md](README.md) (architecture, student model, scoring, policy).
+
+This guide stays candid about what is local-ready versus Azure-production scaffolding.
 
 ## 1. Current implementation
 
@@ -10,7 +12,8 @@ This document describes what exists in the repository, the architectural boundar
 - `apps/web/` is a Node.js 22 / Next.js 15 teacher inspection console with a production standalone container image.
 - `migrations/` contains ordered PostgreSQL 16 migrations. PostgreSQL is the only state database.
 - `infra/bicep/` describes the future Azure topology.
-- `docs/` freezes the architecture, student model, scoring rules, conversation policy, and this local workflow.
+- `docs/` explains architecture, student model, scoring, conversation policy/quality, and this local workflow ([index](README.md)).
+- `scripts/sim_assessment_conversation.py` runs live Maya-style Azure sims with assertion reports.
 
 ### API contracts and deterministic assessment
 
@@ -18,15 +21,16 @@ Strict Pydantic models describe proposed and validated evidence, question output
 
 The service boundaries are:
 
-1. `evidence_extractor.py` may propose evidence but cannot mutate profile state.
-2. `grounding_validator.py` checks session ownership and exact quote containment and keeps rejection reasons.
-3. `profile_reducer.py` reads accepted evidence only and records a reducer version.
-4. `contradiction_engine.py` exposes conflicts rather than averaging them away.
-5. `question_policy.py` deterministically chooses the next intent and derives the conversation stage.
-6. `context_builder.py` supplies task-specific, bounded contexts and prevents the writer from receiving an uncontrolled transcript.
-7. `memory_compactor.py` regenerates from bounded raw messages and treats model failure as non-fatal.
-8. `project_matcher.py` applies 40% topic, 40% work-mode, and 20% motivation scoring; hard constraints gate eligibility while capability gaps produce scaffolding.
-9. `turn_processor.py` is designed as the sole normal transaction path and records a correlated decision trace.
+1. `evidence_extractor.py` may propose evidence (prompt v2) but cannot mutate profile state.
+2. `grounding_validator.py` checks session ownership, exact quotes, proposal caps, and motivation taxonomy.
+3. `profile_reducer.py` reads accepted evidence only and records a reducer version (0.70 → established).
+4. `contradiction_engine.py` (v2) opens only true conflicts; resolution never averages strengths.
+5. `question_policy.py` deterministically chooses the next intent and derives stage from established coverage.
+6. `question_quality.py` overrides generic/duplicate assistant questions before persist.
+7. `context_builder.py` supplies task-specific, bounded contexts (writer ≈ last 8 messages + memory).
+8. `memory_compactor.py` regenerates from bounded raw messages; scheduled from the turn path when due.
+9. `project_matcher.py` applies 40% topic, 40% work-mode, and 20% motivation scoring; hard constraints gate eligibility while capability gaps produce scaffolding.
+10. `turn_processor.py` is the sole normal transaction path: extract → ground → reduce → resolve → stage → write → gate → compact → decision trace.
 
 Azure OpenAI uses Microsoft Entra tokens (service principal or `az login` via Azure CLI credential) and structured outputs. With `AZURE_OPENAI_API_VERSION=2024-12-01-preview` the client uses chat.completions structured parse; at `2025-03-01-preview` or later it uses the Responses API. Deployment names are configuration. It does not use the Assistants API or ordinary free-form JSON mode.
 
@@ -44,6 +48,8 @@ The database uniqueness constraint on `(session_id, idempotency_key)` is the con
 
 `002_decision_tracing.sql` adds an append-only decision-event ledger. A trace contains correlation and sequence IDs, component/version, stable reason code, safe inputs/outputs, entity references, optional LLM-run linkage, and timing. A database trigger blocks updates and deletes. Raw student text remains in `conversation.messages` and is not duplicated into audit events.
 
+`003_contradiction_resolution.sql` adds `contradiction_resolved` and `question_quality_gate` event types plus `clarification_attempts` on contradictions. After editing migrations on an existing volume, run `make local-reset` (wipes local data).
+
 ### Teacher UI and infrastructure
 
 The teacher page loads live admin data: profile, evidence ledger, conversation, timeline, contradictions, question history, next-question rationale, project ranking, and decision trace. It can create sessions and submit turns against the local API (`NEXT_PUBLIC_API_BASE_URL`).
@@ -52,22 +58,22 @@ The Bicep file sketches two Container Apps, PostgreSQL Flexible Server, Blob Sto
 
 ## 2. Honest readiness status
 
-Session/turn persistence, admin inspection queries, and the teacher console are wired for a local end-to-end assessment journey:
+Session/turn persistence, admin inspection, teacher console, contradiction v2, stage pacing, LLM audit linkage, and memory compaction are wired for a local end-to-end assessment journey:
 
 1. `POST /v1/sessions` creates a student + session in PostgreSQL.
-2. `POST /v1/sessions/{id}/turns` runs `process_student_turn()` (evidence → grounding → reduce → stage → question → decision trace).
+2. `POST /v1/sessions/{id}/turns` runs `process_student_turn()` (evidence → grounding → reduce → resolve → stage → question → quality gate → memory → decision trace).
 3. Teacher UI at `:3000` lists sessions, submits turns, and loads live admin views + decision trace.
+4. `scripts/sim_assessment_conversation.py` can run multi-turn Azure sims with assertions.
 
-Azure OpenAI is optional: with `AZURE_OPENAI_ENDPOINT` set and `az login` (host) or SP env vars (container), the extractor/writer use the Responses API. Without it, the extractor returns no evidence and the writer uses seeded fallback question templates — the persistence path still works.
+Azure OpenAI is optional: with `AZURE_OPENAI_ENDPOINT` set and `az login` (host) or SP env vars (container), the extractor/writer/compactor use structured Azure calls and record `audit.llm_runs` linked from extract/write events. Without it, the extractor returns no evidence and the writer uses seeded fallback question templates — the persistence path still works.
 
 Azure Blob Storage and Application Insights are **not** part of the local path (Bicep sketches only).
 
 ### Remaining gaps
 
-- `audit.llm_runs` is not yet linked from every Azure call inside the turn transaction.
-- Project-fit ranking is not computed on each turn (admin shows archetypes until fits exist).
-- Memory compaction is not yet scheduled inside the turn path.
+- Project-fit ranking is not computed on every turn (admin shows archetypes until fits exist).
 - Production Bicep (networking, OpenAI RBAC, secrets) remains incomplete.
+- Broader integration tests against Postgres (rollback / history reproduction) can still be expanded.
 
 ## 3. Prerequisites
 
@@ -307,6 +313,19 @@ curl --fail "http://127.0.0.1:8000/v1/admin/sessions"
 4. Confirm Conversation, Question history, and Decision trace panels populate
 
 Idempotent retries: repeat the same `idempotency_key` and you get the same completed turn.
+
+### Live conversation sim
+
+With Postgres up and a host API using Azure credentials:
+
+```bash
+# from repo root, with API on :8000
+.venv/Scripts/python scripts/sim_assessment_conversation.py --turns 5 --out sim-p0-5turn.json
+.venv/Scripts/python scripts/sim_assessment_conversation.py --turns 12 --conflict-probe --out sim-final-proof.json
+```
+
+The script creates a session, posts Maya-like turns, dumps admin views + decision-trace, enriches `llm_runs` / memory counts via Compose Postgres when available, and prints an assertions report.
+
 ## 10. Inspect and reset local state
 
 Open a SQL shell:
@@ -371,10 +390,8 @@ Activate `.venv` or use the explicit `.venv/bin/python` commands. Python 3.12 is
 
 ## 12. Next implementation work
 
-1. Link `audit.llm_runs` from Azure calls inside the turn transaction and attach `llm_run_id` on decision events.
-2. Schedule memory compaction from the turn path using `MemoryCompactor.due`.
-3. Compute and persist `matching.project_fits` when stage reaches project matching.
-4. Integration tests against PostgreSQL for migrations, rollback, history reproduction, and immutable tracing.
-5. Production Bicep networking, secrets, database URL construction, registry access, Azure OpenAI RBAC, health probes, and outputs.
+1. Compute and persist `matching.project_fits` when stage reaches project matching.
+2. Expand integration tests against PostgreSQL for migrations, rollback, history reproduction, and immutable tracing.
+3. Production Bicep networking, secrets, database URL construction, registry access, Azure OpenAI RBAC, health probes, and outputs.
 
 The architecture remains intentionally strict: models may propose or phrase, but deterministic application code owns evidence acceptance, profile state, stage transitions, question target selection, and project eligibility.
