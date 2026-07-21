@@ -1,0 +1,53 @@
+name: scratly-local
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-scratly}
+      POSTGRES_USER: ${POSTGRES_USER:-scratly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scratly_local_only}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - scratly-postgres:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-scratly} -d ${POSTGRES_DB:-scratly}"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    profiles: ["full"]
+    build:
+      context: ./apps/api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-scratly}:${POSTGRES_PASSWORD:-scratly_local_only}@postgres:5432/${POSTGRES_DB:-scratly}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_ANALYZER_DEPLOYMENT: ${AZURE_OPENAI_ANALYZER_DEPLOYMENT:-analyzer}
+      AZURE_OPENAI_WRITER_DEPLOYMENT: ${AZURE_OPENAI_WRITER_DEPLOYMENT:-writer}
+      AZURE_OPENAI_SUMMARY_DEPLOYMENT: ${AZURE_OPENAI_SUMMARY_DEPLOYMENT:-summary}
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    profiles: ["full"]
+    build:
+      context: ./apps/web
+    environment:
+      API_BASE_URL: http://api:8000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:${API_PORT:-8000}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  scratly-postgres:
