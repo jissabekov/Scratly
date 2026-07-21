@@ -52,8 +52,9 @@ function summarize(item: Record<string, unknown>): { title: string; body: string
     };
   }
   if ('role' in item && 'content' in item) {
+    const kind = item.message_kind ? ` · ${item.message_kind}` : '';
     return {
-      title: `${item.role} · seq ${item.sequence ?? ''}`,
+      title: `${item.role}${kind} · seq ${item.sequence ?? ''}`,
       body: String(item.content),
     };
   }
@@ -75,10 +76,13 @@ function summarize(item: Record<string, unknown>): { title: string; body: string
       body: String(item.decision_summary),
     };
   }
-  if ('archetype_key' in item || 'title' in item) {
+  if ('archetype_key' in item || 'opportunity_key' in item || 'title' in item) {
+    const failed = Array.isArray(item.failed_constraints)
+      ? item.failed_constraints.join(',')
+      : '';
     return {
-      title: String(item.title ?? item.archetype_key ?? item.key),
-      body: `eligible=${item.eligible ?? '—'} score=${item.total_score ?? '—'}`,
+      title: String(item.title ?? item.opportunity_key ?? item.archetype_key ?? item.key),
+      body: `eligible=${item.eligible ?? '—'} score=${item.total_score ?? '—'} failed=[${failed}] ${item.source_url ?? ''}`,
     };
   }
   if ('version' in item) {

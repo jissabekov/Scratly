@@ -18,3 +18,9 @@ Rules:
 6. exact_source_quote must be a verbatim substring of an allowed source message.
 7. strength is 0–1 confidence in the mapping, not importance.
 8. Do not propose duplicate (dimension_key, value_key, polarity) rows.
+9. Location / geography belongs on dimension_key=constraints:
+   - geo_region value_keys: seattle_metro, bay_area, austin_metro, nyc_metro, remote_ok
+   - geo_place value_keys: seattle, bellevue, san_francisco, oakland, san_jose, berkeley,
+     austin, new_york, brooklyn (or closest; omit if unknown)
+   When the student states a city/region or remote preference, emit constraints evidence
+   with those value_keys (strength >= 0.7 when explicit).

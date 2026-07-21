@@ -833,6 +833,15 @@ class TurnTransaction:
             if row["required"] and row["status"] == "unknown":
                 add("required_hard_variable", row["key"])
 
+        if not await self.location_established():
+            loc_intent = intent_map.get("location_constraint")
+            loc_fallback = (
+                loc_intent["fallback_template"]
+                if loc_intent
+                else "Where are you based (city or region), or is remote work fine?"
+            )
+            add("required_hard_variable", "constraints:geo", loc_fallback)
+
         for row in coverage_rows:
             if row["key"] in {"topics", "work_mode"} and row["status"] == "unknown":
                 add("project_critical_unknown", row["key"])
@@ -928,22 +937,35 @@ class TurnTransaction:
             {"session_id": self._session_id},
         )
         validation_count = int(validation_asked.scalar_one())
-        # Enter matching only after a profile_validation ask. Do not auto-complete
-        # from project_matching; completion is an explicit later latch.
-        if current_stage == "complete":
+        flags = await self.session.execute(
+            text(
+                """
+                SELECT profile_reviewed, matching_completed
+                  FROM core.sessions WHERE id = :session_id
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        flag_row = flags.mappings().one()
+        profile_reviewed = bool(flag_row["profile_reviewed"])
+        matching_completed = bool(flag_row["matching_completed"])
+        # Enter matching after explicit profile_reviewed latch (or legacy validation ask).
+        if current_stage == "complete" or matching_completed:
             reviewed, projects_ready = True, True
-        elif current_stage == "project_matching":
+        elif profile_reviewed or current_stage == "project_matching":
             reviewed, projects_ready = True, False
         elif current_stage == "profile_review" and validation_count > 0:
             reviewed, projects_ready = True, False
         else:
             reviewed, projects_ready = False, False
+        location_ready = await self.location_established()
         return {
             "coverage_established": established / total,
             "coverage_touched": touched / total,
             "contradictions": int(open_c.scalar_one()),
             "reviewed": reviewed,
             "projects_ready": projects_ready,
+            "location_ready": location_ready,
         }
 
     async def contradiction_sides(
@@ -1340,18 +1362,37 @@ class TurnTransaction:
         transition: dict[str, Any],
         *,
         used_fallback: bool = False,
+        message_kind: str | None = None,
+        assistant_prefix: str | None = None,
     ) -> TurnOutcome:
         assert self._session_id is not None
+        intent_key = target.kind
         intent = await self.session.execute(
             text("SELECT id FROM assessment.question_intents WHERE key = :key"),
-            {"key": target.kind},
+            {"key": intent_key},
         )
-        intent_id = intent.scalar_one()
+        intent_row = intent.scalar_one_or_none()
+        if intent_row is None:
+            # Map elicitation / location keys to closest seeded intent if missing.
+            fallback_key = (
+                "provisional_dimension"
+                if intent_key == "elicitation"
+                else "required_hard_variable"
+            )
+            intent = await self.session.execute(
+                text("SELECT id FROM assessment.question_intents WHERE key = :key"),
+                {"key": fallback_key},
+            )
+            intent_id = intent.scalar_one()
+            intent_key = fallback_key
+        else:
+            intent_id = intent_row
         question_id = uuid4()
         rationale = {
             "target_kind": target.kind,
             "target_key": target.key,
             "used_fallback": used_fallback,
+            "message_kind": message_kind,
             "transition": {
                 k: transition.get(k)
                 for k in ("version", "contradiction_count", "snapshot_id")
@@ -1390,13 +1431,20 @@ class TurnTransaction:
         )
         sequence = int(seq_result.scalar_one())
         assistant_id = uuid4()
+        content = question
+        if assistant_prefix:
+            content = f"{assistant_prefix.rstrip()}\n\n{question}"
+        kind = message_kind or (
+            "elicitation" if target.kind == "elicitation" else "assessment_question"
+        )
         await self.session.execute(
             text(
                 """
                 INSERT INTO conversation.messages
-                    (id, session_id, turn_id, sequence, role, content)
+                    (id, session_id, turn_id, sequence, role, content, message_kind)
                 VALUES
-                    (:id, :session_id, :turn_id, :sequence, 'assistant', :content)
+                    (:id, :session_id, :turn_id, :sequence, 'assistant', :content,
+                     CAST(:message_kind AS conversation.assistant_message_kind))
                 """
             ),
             {
@@ -1404,7 +1452,8 @@ class TurnTransaction:
                 "session_id": self._session_id,
                 "turn_id": turn.id,
                 "sequence": sequence,
-                "content": question,
+                "content": content,
+                "message_kind": kind,
             },
         )
         await self.session.execute(
@@ -1435,7 +1484,7 @@ class TurnTransaction:
             {"stage": stage, "session_id": self._session_id},
         )
         return TurnOutcome(
-            id=assistant_id, turn_id=turn.id, content=question, stage=stage
+            id=assistant_id, turn_id=turn.id, content=content, stage=stage
         )
 
     async def record_decision_event(
@@ -1545,3 +1594,448 @@ class TurnTransaction:
             text("SELECT id, key FROM assessment.dimensions")
         )
         return {row["key"]: row["id"] for row in result.mappings()}
+
+    async def location_established(self) -> bool:
+        assert self._session_id is not None
+        from app.services.location_policy import GEO_VALUE_KEYS, is_geo_value_key
+
+        result = await self.session.execute(
+            text(
+                """
+                SELECT e.value_key
+                  FROM assessment.evidence e
+                  JOIN assessment.dimensions d ON d.id = e.dimension_id
+                 WHERE e.session_id = :session_id
+                   AND e.status = 'accepted'
+                   AND d.key = 'constraints'
+                   AND e.value_key IS NOT NULL
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        values = [row["value_key"] for row in result.mappings()]
+        return any(is_geo_value_key(v) or v in GEO_VALUE_KEYS for v in values)
+
+    async def session_counters(self) -> dict[str, Any]:
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT consecutive_student_questions,
+                       elicitation_attempts_for_target,
+                       elicitation_target_key,
+                       profile_reviewed,
+                       matching_completed
+                  FROM core.sessions
+                 WHERE id = :session_id
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        return dict(result.mappings().one())
+
+    async def update_session_counters(
+        self,
+        *,
+        consecutive_student_questions: int | None = None,
+        elicitation_attempts_for_target: int | None = None,
+        elicitation_target_key: str | None = None,
+        clear_elicitation_target: bool = False,
+        profile_reviewed: bool | None = None,
+        matching_completed: bool | None = None,
+    ) -> None:
+        assert self._session_id is not None
+        sets: list[str] = ["updated_at = now()"]
+        params: dict[str, Any] = {"session_id": self._session_id}
+        if consecutive_student_questions is not None:
+            sets.append("consecutive_student_questions = :csq")
+            params["csq"] = consecutive_student_questions
+        if elicitation_attempts_for_target is not None:
+            sets.append("elicitation_attempts_for_target = :eat")
+            params["eat"] = elicitation_attempts_for_target
+        if clear_elicitation_target:
+            sets.append("elicitation_target_key = NULL")
+        elif elicitation_target_key is not None:
+            sets.append("elicitation_target_key = :etk")
+            params["etk"] = elicitation_target_key
+        if profile_reviewed is not None:
+            sets.append("profile_reviewed = :pr")
+            params["pr"] = profile_reviewed
+        if matching_completed is not None:
+            sets.append("matching_completed = :mc")
+            params["mc"] = matching_completed
+        await self.session.execute(
+            text(f"UPDATE core.sessions SET {', '.join(sets)} WHERE id = :session_id"),
+            params,
+        )
+
+    async def last_question_target(self) -> dict[str, Any] | None:
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT q.target_key, qi.key AS intent_key
+                  FROM assessment.questions q
+                  JOIN assessment.question_intents qi ON qi.id = q.intent_id
+                 WHERE q.session_id = :session_id
+                 ORDER BY q.created_at DESC
+                 LIMIT 1
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        row = result.mappings().first()
+        return dict(row) if row else None
+
+    async def accepted_evidence_summaries(self, limit: int = 40) -> list[dict[str, Any]]:
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT e.id::text AS id, d.key AS dimension_key, e.value_key,
+                       e.polarity, e.strength
+                  FROM assessment.evidence e
+                  JOIN assessment.dimensions d ON d.id = e.dimension_id
+                 WHERE e.session_id = :session_id AND e.status = 'accepted'
+                 ORDER BY e.created_at DESC
+                 LIMIT :limit
+                """
+            ),
+            {"session_id": self._session_id, "limit": limit},
+        )
+        return [dict(row) for row in result.mappings()]
+
+    async def matching_profile(self) -> dict[str, Any]:
+        """Build matcher-shaped profile from accepted evidence."""
+        assert self._session_id is not None
+        from app.services.location_policy import (
+            GEO_PLACE_KEYS,
+            GEO_REGION_KEYS,
+            extract_geo_from_profile,
+        )
+
+        rows = await self.accepted_evidence_summaries(limit=200)
+        topics: set[str] = set()
+        work_modes: set[str] = set()
+        motivations: set[str] = set()
+        capability_gaps: set[str] = set()
+        constraints: dict[str, str] = {}
+        geo_regions: set[str] = set()
+        geo_places: set[str] = set()
+        for row in rows:
+            if row.get("polarity") == "oppose":
+                if row.get("dimension_key") == "capability" and row.get("value_key"):
+                    capability_gaps.add(row["value_key"])
+                continue
+            key = row.get("dimension_key")
+            value = row.get("value_key")
+            if not value:
+                continue
+            if key == "topics":
+                topics.add(value)
+            elif key == "work_mode":
+                work_modes.add(value)
+            elif key == "motivation":
+                motivations.add(value)
+            elif key == "constraints":
+                constraints[value] = "yes"
+                if value in GEO_REGION_KEYS:
+                    geo_regions.add(value)
+                if value in GEO_PLACE_KEYS:
+                    geo_places.add(value)
+        public = await self.public_profile()
+        geo = extract_geo_from_profile(
+            {
+                **public,
+                "geo_regions": sorted(geo_regions),
+                "geo_places": sorted(geo_places),
+                "constraints": constraints,
+            }
+        )
+        return {
+            "topics": sorted(topics),
+            "work_modes": sorted(work_modes),
+            "motivations": sorted(motivations),
+            "constraints": constraints,
+            "capability_gaps": sorted(capability_gaps),
+            "geo_regions": geo["geo_regions"] or sorted(geo_regions),
+            "geo_places": geo["geo_places"] or sorted(geo_places),
+            "dimensions": public.get("dimensions") or [],
+        }
+
+    async def list_active_opportunities(self) -> list[dict[str, Any]]:
+        result = await self.session.execute(
+            text(
+                """
+                SELECT id::text AS id, key, title, summary, topics, work_modes,
+                       motivations, geo_regions, geo_places, hard_constraints,
+                       source_url
+                  FROM matching.opportunities
+                 WHERE active
+                 ORDER BY key
+                """
+            )
+        )
+        return [dict(row) for row in result.mappings()]
+
+    async def latest_snapshot_id(self) -> UUID | None:
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT id FROM assessment.profile_snapshots
+                 WHERE session_id = :session_id
+                 ORDER BY version DESC LIMIT 1
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        return result.scalar_one_or_none()
+
+    async def persist_opportunity_fits(
+        self,
+        matches: list[Any],
+        *,
+        algorithm_version: str = "opp_v1",
+    ) -> list[UUID]:
+        assert self._session_id is not None
+        snapshot_id = await self.latest_snapshot_id()
+        await self.session.execute(
+            text(
+                """
+                DELETE FROM matching.project_fits
+                 WHERE session_id = :session_id AND opportunity_id IS NOT NULL
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        ids: list[UUID] = []
+        for match in matches:
+            fit_id = uuid4()
+            await self.session.execute(
+                text(
+                    """
+                    INSERT INTO matching.project_fits
+                        (id, session_id, opportunity_id, profile_snapshot_id,
+                         eligible, topic_score, work_mode_score, motivation_score,
+                         total_score, failed_constraints, scope_adjustments,
+                         algorithm_version)
+                    VALUES
+                        (:id, :session_id, CAST(:opportunity_id AS uuid), :snapshot_id,
+                         :eligible, :topic, :work_mode, :motivation, :total,
+                         :failed, :scope, :algorithm_version)
+                    """
+                ),
+                {
+                    "id": fit_id,
+                    "session_id": self._session_id,
+                    "opportunity_id": match.opportunity_id,
+                    "snapshot_id": snapshot_id,
+                    "eligible": match.eligible,
+                    "topic": match.topic,
+                    "work_mode": match.work_mode,
+                    "motivation": match.motivation,
+                    "total": match.score,
+                    "failed": list(match.failed_constraints),
+                    "scope": list(match.scope_adjustments),
+                    "algorithm_version": algorithm_version,
+                },
+            )
+            ids.append(fit_id)
+        return ids
+
+    async def create_research_run(
+        self,
+        *,
+        query: str,
+        user_location: dict[str, Any],
+        status: str = "pending",
+        llm_run_id: UUID | None = None,
+        error_type: str | None = None,
+    ) -> UUID:
+        assert self._session_id is not None
+        run_id = uuid4()
+        await self.session.execute(
+            text(
+                """
+                INSERT INTO matching.research_runs
+                    (id, session_id, query, user_location, status, llm_run_id,
+                     error_type, completed_at)
+                VALUES
+                    (:id, :session_id, :query, CAST(:user_location AS jsonb),
+                     CAST(:status AS matching.research_status), :llm_run_id,
+                     :error_type,
+                     CASE WHEN :status IN ('succeeded','failed','skipped')
+                          THEN now() ELSE NULL END)
+                """
+            ),
+            {
+                "id": run_id,
+                "session_id": self._session_id,
+                "query": query,
+                "user_location": json.dumps(user_location),
+                "status": status,
+                "llm_run_id": llm_run_id,
+                "error_type": error_type,
+            },
+        )
+        return run_id
+
+    async def persist_research_findings(
+        self, research_run_id: UUID, findings: list[Any]
+    ) -> list[dict[str, Any]]:
+        stored: list[dict[str, Any]] = []
+        for finding in findings:
+            fid = uuid4()
+            url = getattr(finding, "url", None) or finding.get("url")
+            if not url:
+                continue
+            await self.session.execute(
+                text(
+                    """
+                    INSERT INTO matching.research_findings
+                        (id, research_run_id, url, title, snippet, publisher, rank)
+                    VALUES
+                        (:id, :run_id, :url, :title, :snippet, :publisher, :rank)
+                    ON CONFLICT (research_run_id, url) DO NOTHING
+                    """
+                ),
+                {
+                    "id": fid,
+                    "run_id": research_run_id,
+                    "url": url,
+                    "title": getattr(finding, "title", None)
+                    or (finding.get("title") if isinstance(finding, dict) else "")
+                    or "",
+                    "snippet": getattr(finding, "snippet", None)
+                    or (finding.get("snippet") if isinstance(finding, dict) else "")
+                    or "",
+                    "publisher": getattr(finding, "publisher", None)
+                    if not isinstance(finding, dict)
+                    else finding.get("publisher"),
+                    "rank": getattr(finding, "rank", 0)
+                    if not isinstance(finding, dict)
+                    else finding.get("rank", 0),
+                },
+            )
+            stored.append({"id": str(fid), "url": url})
+        return stored
+
+    async def list_research_findings(self) -> list[dict[str, Any]]:
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT f.id::text AS id, f.url, f.title, f.snippet, f.publisher, f.rank,
+                       r.query, r.status::text AS run_status
+                  FROM matching.research_findings f
+                  JOIN matching.research_runs r ON r.id = f.research_run_id
+                 WHERE r.session_id = :session_id
+                 ORDER BY f.created_at DESC
+                 LIMIT 50
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        return [dict(row) for row in result.mappings()]
+
+    async def persist_generated_projects(
+        self,
+        projects: list[Any],
+        *,
+        composer_version: str = "v1",
+    ) -> list[dict[str, Any]]:
+        assert self._session_id is not None
+        stored: list[dict[str, Any]] = []
+        for project in projects:
+            pid = uuid4()
+            payload = project.model_dump() if hasattr(project, "model_dump") else dict(project)
+            citations = payload.pop("citations", [])
+            await self.session.execute(
+                text(
+                    """
+                    INSERT INTO matching.generated_projects
+                        (id, session_id, title, summary, payload, composer_version)
+                    VALUES
+                        (:id, :session_id, :title, :summary, CAST(:payload AS jsonb),
+                         :composer_version)
+                    """
+                ),
+                {
+                    "id": pid,
+                    "session_id": self._session_id,
+                    "title": payload.get("title"),
+                    "summary": payload.get("summary"),
+                    "payload": json.dumps(payload, default=str),
+                    "composer_version": composer_version,
+                },
+            )
+            for cite in citations:
+                kind = cite.get("kind") if isinstance(cite, dict) else cite.kind
+                ref = cite.get("id") if isinstance(cite, dict) else cite.id
+                await self.session.execute(
+                    text(
+                        """
+                        INSERT INTO matching.generated_project_citations
+                            (project_id, kind, ref_id)
+                        VALUES
+                            (:project_id, CAST(:kind AS matching.citation_kind),
+                             CAST(:ref_id AS uuid))
+                        """
+                    ),
+                    {"project_id": pid, "kind": kind, "ref_id": str(ref)},
+                )
+            stored.append({"id": str(pid), "title": payload.get("title")})
+        return stored
+
+    async def list_generated_projects(self) -> list[dict[str, Any]]:
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT p.id::text AS id, p.title, p.summary, p.payload, p.composer_version,
+                       p.created_at,
+                       COALESCE(
+                         json_agg(
+                           json_build_object('kind', c.kind, 'ref_id', c.ref_id::text)
+                         ) FILTER (WHERE c.ref_id IS NOT NULL),
+                         '[]'
+                       ) AS citations
+                  FROM matching.generated_projects p
+             LEFT JOIN matching.generated_project_citations c ON c.project_id = p.id
+                 WHERE p.session_id = :session_id
+                 GROUP BY p.id
+                 ORDER BY p.created_at DESC
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        rows = []
+        for row in result.mappings():
+            item = dict(row)
+            if isinstance(item.get("payload"), str):
+                item["payload"] = json.loads(item["payload"])
+            if isinstance(item.get("citations"), str):
+                item["citations"] = json.loads(item["citations"])
+            rows.append(item)
+        return rows
+
+    async def list_opportunity_fits(self) -> list[dict[str, Any]]:
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT pf.id::text AS id, o.key AS opportunity_key, o.title,
+                       pf.eligible, pf.topic_score, pf.work_mode_score,
+                       pf.motivation_score, pf.total_score, pf.failed_constraints,
+                       pf.scope_adjustments, pf.algorithm_version, pf.created_at,
+                       o.geo_regions, o.geo_places, o.source_url
+                  FROM matching.project_fits pf
+                  JOIN matching.opportunities o ON o.id = pf.opportunity_id
+                 WHERE pf.session_id = :session_id
+                 ORDER BY pf.eligible DESC, pf.total_score DESC, o.key
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        return [dict(row) for row in result.mappings()]

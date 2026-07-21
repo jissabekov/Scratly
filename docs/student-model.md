@@ -24,6 +24,8 @@ Seeded in `assessment.dimensions` (ordinal order):
 **Required dimensions (4):** `topics`, `work_mode`, `motivation`, `constraints`.  
 Coverage math uses this denominator — see [conversation-policy.md](conversation-policy.md).
 
+Location for project matching is expressed as **constraint value keys** (not a separate dimension): geo regions such as `seattle_metro` / `bay_area` / `remote_ok`, and places such as `seattle` / `austin`. Matching will not enter `project_matching` until at least one geo value is established.
+
 ### Cardinality modes
 
 | Mode | Meaning |

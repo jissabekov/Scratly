@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import re
 
+from app.services.elicitation_policy import (
+    build_elicitation_spec,
+    elicitation_options_present,
+)
 from app.services.question_policy import Target, contradiction_fallback
 
 _GENERIC_CONTRADICTION = re.compile(
@@ -39,13 +43,20 @@ def apply_question_quality_gate(
         outcome = "seeded_override"
         reason = "generic_contradiction_fallback"
 
+    if target.kind == "elicitation":
+        spec = build_elicitation_spec(target.key)
+        if not elicitation_options_present(text, spec):
+            text = spec.fallback_template
+            outcome = "seeded_override"
+            reason = "elicitation_missing_options"
+
     if _MULTI_QUESTION.search(text):
-        # Keep the first question only.
-        first = text.split("?")[0].strip() + "?"
-        text = first
-        if outcome == "passed":
-            outcome = "regenerated"
-        reason = "stacked_questions_trimmed"
+        if target.kind != "elicitation":
+            first = text.split("?")[0].strip() + "?"
+            text = first
+            if outcome == "passed":
+                outcome = "regenerated"
+            reason = "stacked_questions_trimmed"
 
     if (
         azure_succeeded
@@ -70,6 +81,8 @@ def apply_question_quality_gate(
 def _seeded_for(target: Target, value_a: str | None, value_b: str | None) -> str:
     if target.kind == "contradiction":
         return contradiction_fallback(target.key, value_a, value_b)
+    if target.kind == "elicitation":
+        return build_elicitation_spec(target.key).fallback_template
     label = target.key.replace("_", " ")
     alternates = {
         "provisional_dimension": (
@@ -87,6 +100,9 @@ def _seeded_for(target: Target, value_a: str | None, value_b: str | None) -> str
         "profile_validation": (
             "Looking at what we've covered so far, what feels most accurate — and what would you change?"
         ),
+        "location_constraint": (
+            "Where are you based (city or region), or is remote work fine?"
+        ),
     }
     return alternates.get(target.kind, target.fallback_template)
 
@@ -98,7 +114,6 @@ def _near_duplicate(a: str, b: str) -> bool:
         return False
     if na == nb:
         return True
-    # High overlap on token sets catches minor rephrases of the same ask.
     ta, tb = set(na.split()), set(nb.split())
     if not ta or not tb:
         return False

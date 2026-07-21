@@ -13,7 +13,9 @@ A teacher reading the transcript should always understand **why** the next quest
 3. **Acknowledge and advance** — each student answer fills an unknown, strengthens a provisional, or closes an open contradiction.
 4. **Preserve nuance** — “small group for brainstorming, alone for coding” is enrichment, not a fight.
 5. **Stay coherent over time** — later questions use profile + memory + recent messages so early context is not forgotten.
-6. **Exit stages deliberately** — reach `profile_review` / `project_matching` when coverage is real and conflicts are resolved or dismissed with reason.
+6. **Exit stages deliberately** — reach `profile_review` / `project_matching` when coverage is real, location is established, and conflicts are resolved or dismissed with reason.
+7. **Answer only in-scope student questions** — process / profile / project; refuse homework; resume assessment on the same turn.
+8. **Elicit when answers are thin** — offer concrete “this or this” options instead of writing negative evidence for “idk”.
 
 ---
 

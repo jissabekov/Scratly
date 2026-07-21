@@ -166,7 +166,8 @@ async def _transcript(db: AsyncSession, session_id: UUID) -> list[dict]:
     result = await db.execute(
         text(
             """
-            SELECT id, turn_id, sequence, role::text AS role, content, created_at
+            SELECT id, turn_id, sequence, role::text AS role, content,
+                   message_kind::text AS message_kind, created_at
               FROM conversation.messages
              WHERE session_id = :session_id
              ORDER BY sequence
@@ -254,30 +255,87 @@ async def _why_next_question(db: AsyncSession, session_id: UUID) -> list[dict]:
 
 
 async def _project_fit(db: AsyncSession, session_id: UUID) -> list[dict]:
-    result = await db.execute(
+    opp_fits = await db.execute(
         text(
             """
-            SELECT pf.id, pa.key AS archetype_key, pa.title, pf.eligible,
+            SELECT pf.id::text AS id, o.key AS opportunity_key, o.title, pf.eligible,
                    pf.topic_score, pf.work_mode_score, pf.motivation_score,
                    pf.total_score, pf.failed_constraints, pf.scope_adjustments,
-                   pf.created_at
+                   pf.algorithm_version, pf.created_at, o.geo_regions, o.geo_places,
+                   o.source_url, 'opportunity' AS fit_kind
               FROM matching.project_fits pf
-              JOIN matching.project_archetypes pa ON pa.id = pf.archetype_id
+              JOIN matching.opportunities o ON o.id = pf.opportunity_id
              WHERE pf.session_id = :session_id
-             ORDER BY pf.eligible DESC, pf.total_score DESC, pa.key
+             ORDER BY pf.eligible DESC, pf.total_score DESC, o.key
             """
         ),
         {"session_id": session_id},
     )
-    items = [dict(row) for row in result.mappings()]
-    if items:
-        return items
-    # No fits computed yet — show seeded archetypes as reference.
-    archetypes = await db.execute(
+    items = [dict(row) for row in opp_fits.mappings()]
+
+    generated = await db.execute(
         text(
             """
-            SELECT key, title, topics, work_modes, motivations, hard_constraints
-              FROM matching.project_archetypes
+            SELECT p.id::text AS id, p.title, p.summary, p.composer_version,
+                   p.created_at,
+                   COALESCE(
+                     json_agg(
+                       json_build_object('kind', c.kind::text, 'ref_id', c.ref_id::text)
+                     ) FILTER (WHERE c.ref_id IS NOT NULL),
+                     '[]'
+                   ) AS citations
+              FROM matching.generated_projects p
+         LEFT JOIN matching.generated_project_citations c ON c.project_id = p.id
+             WHERE p.session_id = :session_id
+             GROUP BY p.id
+             ORDER BY p.created_at DESC
+            """
+        ),
+        {"session_id": session_id},
+    )
+    for row in generated.mappings():
+        item = dict(row)
+        if isinstance(item.get("citations"), str):
+            import json as _json
+
+            item["citations"] = _json.loads(item["citations"])
+        item["fit_kind"] = "generated_project"
+        item["eligible"] = True
+        item["total_score"] = None
+        items.append(item)
+
+    findings = await db.execute(
+        text(
+            """
+            SELECT f.id::text AS id, f.url AS source_url, f.title, f.snippet,
+                   f.publisher, f.rank, r.query, r.status::text AS run_status,
+                   r.created_at, 'research_finding' AS fit_kind
+              FROM matching.research_findings f
+              JOIN matching.research_runs r ON r.id = f.research_run_id
+             WHERE r.session_id = :session_id
+             ORDER BY f.created_at DESC
+             LIMIT 30
+            """
+        ),
+        {"session_id": session_id},
+    )
+    for row in findings.mappings():
+        item = dict(row)
+        item["eligible"] = None
+        item["total_score"] = None
+        item["failed_constraints"] = []
+        items.append(item)
+
+    if items:
+        return items
+
+    opportunities = await db.execute(
+        text(
+            """
+            SELECT key AS opportunity_key, title, topics, work_modes, motivations,
+                   geo_regions, geo_places, hard_constraints, source_url,
+                   'catalog' AS fit_kind
+              FROM matching.opportunities
              WHERE active
              ORDER BY key
             """
@@ -288,7 +346,7 @@ async def _project_fit(db: AsyncSession, session_id: UUID) -> list[dict]:
             **dict(row),
             "eligible": None,
             "total_score": None,
-            "note": "No project-fit computation yet for this session",
+            "note": "No project-fit computation yet for this session; showing catalog",
         }
-        for row in archetypes.mappings()
+        for row in opportunities.mappings()
     ]

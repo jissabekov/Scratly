@@ -23,13 +23,29 @@ MAYA_TURNS = [
     "What motivates me is helping my community understand local problems. Grades matter less than making something useful people can actually use.",
     "I am pretty comfortable with Python basics and spreadsheets, but I have never built a full web app. I would need help with databases and hosting.",
     "Actually I changed my mind a bit — I also enjoy working alone when I am deep in analysis. Group work is fine for brainstorming but not for coding.",
-    "For constraints, weekday evenings after 7pm are best, and the project should stay small enough to finish in about six weeks.",
+    "For constraints, weekday evenings after 7pm are best, and the project should stay small enough to finish in about six weeks. I am based in Seattle.",
     "I care about both curiosity and impact together — exploring sensors is fun because it helps neighbors. They are not competing goals for me.",
     "Challenge-wise I like stretching a bit, but not so hard that I get stuck for weeks. Scaffolded hard problems are ideal.",
     "If I had to pick a primary topic right now, neighborhood air quality maps with a simple Python analysis pipeline.",
     "Yes, that profile sounds right — small-group brainstorming, solo coding, community impact, Python/spreadsheets with help on hosting.",
     "Between a sensor-data dashboard and a neighborhood interview story map, the dashboard fits better because I already know Python.",
     "I am ready to pick a project direction and start scoping the first milestone.",
+]
+
+STUDENT_QUESTION_PROBE = [
+    "What does work mode mean?",
+    "Write my history essay on Rome",
+    "Why are you asking about groups?",
+]
+
+THIN_ANSWER_PROBE = [
+    "idk",
+    "ok",
+]
+
+PROJECT_MATCHING_PROBE = [
+    "I live in the Seattle metro area.",
+    "Yes, that profile summary feels accurate.",
 ]
 
 EXTENDED = [
@@ -134,6 +150,68 @@ def run_assertions(dump: dict[str, Any]) -> list[str]:
     if stages and stages[0] not in {"discovery", "measurement"}:
         failures.append(f"turn 1 stage not discovery/measurement: {stages[0]}")
 
+    events = dump.get("decision_trace", {}).get("events", [])
+    event_types = {e.get("event_type") for e in events}
+
+    if dump.get("probe") == "student_questions":
+        if "turn_intent_classified" not in event_types:
+            failures.append("student-questions probe missing turn_intent_classified")
+        if "student_answer_refused" not in event_types:
+            failures.append("student-questions probe missing refuse for homework ask")
+        # Pure process question should not invent evidence on that turn alone —
+        # check the first probe turn evidence delta via decision reasons.
+        skipped = [
+            e
+            for e in events
+            if e.get("event_type") == "evidence_extraction_skipped"
+        ]
+        if not skipped:
+            failures.append("expected evidence_extraction_skipped for pure student Q")
+
+    if dump.get("probe") == "thin_answer":
+        if "answer_thinness_evaluated" not in event_types:
+            failures.append("thin-answer probe missing thinness event")
+        if "elicitation_selected" not in event_types:
+            failures.append("thin-answer probe missing elicitation_selected")
+        msgs = [
+            t.get("response", {}).get("assistant_message", "").lower()
+            for t in dump["turns"]
+            if t.get("response")
+        ]
+        if not any(
+            "small group" in m
+            or "independent" in m
+            or "option" in m
+            or "which is closer" in m
+            or "or something else" in m
+            for m in msgs
+        ):
+            failures.append("thin-answer probe expected option-style elicitation wording")
+        evidence_items = dump["admin_views"]["evidence"]["items"]
+        oppose_idk = [
+            e
+            for e in evidence_items
+            if e.get("polarity") == "oppose"
+            and "idk" in (e.get("exact_source_quote") or "").lower()
+        ]
+        if oppose_idk:
+            failures.append("idk produced oppose evidence")
+
+    if dump.get("probe") == "project_matching":
+        pf_items = dump["admin_views"]["project-fit"]["items"]
+        if not isinstance(pf_items, list):
+            failures.append("project-fit admin view should return a list")
+        geo_events = [
+            e
+            for e in events
+            if e.get("event_type") == "location_readiness_checked"
+        ]
+        if not geo_events:
+            failures.append("project-matching probe missing location_readiness_checked")
+        ready = [e for e in events if e.get("reason_code") == "location_ready"]
+        if dump.get("expect_location_ready") and not ready:
+            failures.append("expected location_ready after Seattle constraint")
+
     return failures
 
 
@@ -148,6 +226,21 @@ def main() -> int:
         action="store_true",
         help="Append true challenge conflict + resolution turns",
     )
+    parser.add_argument(
+        "--student-questions",
+        action="store_true",
+        help="Probe process Q + homework refuse + resume",
+    )
+    parser.add_argument(
+        "--thin-answer-probe",
+        action="store_true",
+        help="Probe idk/ok elicitation options",
+    )
+    parser.add_argument(
+        "--project-matching-probe",
+        action="store_true",
+        help="Probe geo readiness and project matching artifacts",
+    )
     args = parser.parse_args()
 
     script = MAYA_TURNS[: max(1, min(args.turns, len(MAYA_TURNS)))]
@@ -157,6 +250,17 @@ def main() -> int:
         script = script + EXTENDED
     if args.conflict_probe:
         script = script + CONFLICT_PROBE
+    probe = None
+    if args.student_questions:
+        script = script + STUDENT_QUESTION_PROBE
+        probe = "student_questions"
+    if args.thin_answer_probe:
+        # Ask a work-mode question context then thin answers
+        script = script[:2] + THIN_ANSWER_PROBE
+        probe = "thin_answer"
+    if args.project_matching_probe:
+        script = script + PROJECT_MATCHING_PROBE
+        probe = "project_matching"
 
     health = _req("GET", f"{args.base}/health")
     session = _req("POST", f"{args.base}/v1/sessions", None)
@@ -222,6 +326,8 @@ def main() -> int:
         "live_llm": live_llm,
         "llm_runs": {"linked_decision_events": linked_runs},
         "memory_snapshots": {"count": None},
+        "probe": probe,
+        "expect_location_ready": bool(args.project_matching_probe),
         "assertions": {},
     }
 

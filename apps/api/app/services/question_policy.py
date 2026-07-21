@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from app.services.location_policy import location_established_from_profile
+
 PRIORITY = (
     "contradiction",
     "required_hard_variable",
@@ -46,12 +48,15 @@ def derive_stage(
     coverage_established: float | None = None,
     coverage_touched: float | None = None,
     coverage: float | None = None,
+    location_ready: bool | None = None,
 ) -> str:
     """Derive stage from established coverage and open true contradictions.
 
     Legacy callers may pass ``coverage`` (treated as established). Contested
     dims contribute only to ``coverage_touched``, so early false conflicts no
     longer force ``gap_resolution``.
+
+    ``project_matching`` requires reviewed + location_ready (when provided).
     """
     established = (
         coverage
@@ -67,6 +72,9 @@ def derive_stage(
     if projects_ready and reviewed:
         return "complete"
     if reviewed:
+        if location_ready is False:
+            # Stay in profile_review until geo is established.
+            return "profile_review"
         return "project_matching"
     if established >= PROFILE_REVIEW_ESTABLISHED and contradictions == 0:
         return "profile_review"
@@ -75,6 +83,10 @@ def derive_stage(
     if touched >= MEASUREMENT_TOUCHED:
         return "measurement"
     return "discovery"
+
+
+def location_ready(profile: dict) -> bool:
+    return location_established_from_profile(profile)
 
 
 def contradiction_fallback(

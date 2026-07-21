@@ -79,7 +79,25 @@ Even outside `gap_resolution`, open true contradictions remain the highest *ques
 
 ---
 
-## Memory compaction
+## Location readiness
+
+Project matching requires established geography on `constraints` via value keys such as
+`seattle_metro`, `bay_area`, `austin_metro`, `nyc_metro`, `remote_ok`, or place keys
+(`seattle`, `austin`, …). Missing location surfaces as `required_hard_variable` with
+key `constraints:geo`. `derive_stage(..., location_ready=False)` keeps the session in
+`profile_review` even when `reviewed` is true.
+
+## Thin-answer elicitation
+
+When an assessment contribution is thin (`idk`, ≤2–4 tokens, or zero accepted evidence),
+policy may override the next target to `elicitation` with 2–3 concrete options (max 2
+attempts per target). Exhaustion soft-skips without writing oppose evidence.
+
+## Student questions
+
+`turn_intent` may classify `student_question` / `mixed`. In-scope topics: process,
+profile, project. Out-of-scope (homework/general) is refused; assessment always resumes
+with one policy-selected question on the same turn.
 
 Wired at the end of a successful turn (`MemoryCompactor`):
 

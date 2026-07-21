@@ -71,9 +71,21 @@ Azure Blob Storage and Application Insights are **not** part of the local path (
 
 ### Remaining gaps
 
-- Project-fit ranking is not computed on every turn (admin shows archetypes until fits exist).
 - Production Bicep (networking, OpenAI RBAC, secrets) remains incomplete.
 - Broader integration tests against Postgres (rollback / history reproduction) can still be expanded.
+- Live Azure `web_search` requires Responses API version + tool entitlement; without it, matching uses the curated opportunity catalog only (`research_failed` / `web_search_unconfigured`).
+
+Student questions, thin-answer elicitation, location gates, and citation-grounded project
+composition are implemented on the sole turn path. Verify with:
+
+```bash
+.venv/Scripts/python -m pytest apps/api/tests/test_student_ux.py apps/api/tests/test_determinism.py -q
+.venv/Scripts/python scripts/sim_assessment_conversation.py --turns 5 --student-questions --out sim-student-q.json
+.venv/Scripts/python scripts/sim_assessment_conversation.py --thin-answer-probe --out sim-thin.json
+.venv/Scripts/python scripts/sim_assessment_conversation.py --turns 12 --project-matching-probe --out sim-projects.json
+```
+
+After pulling migration `004_student_ux_and_projects.sql`, run `make local-reset` (or recreate the Postgres volume) so new enums/tables exist.
 
 ## 3. Prerequisites
 

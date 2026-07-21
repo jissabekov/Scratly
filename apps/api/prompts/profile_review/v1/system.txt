@@ -1,3 +1,13 @@
 Prompt: profile_review
 Version: v1
-Return only the supplied strict Structured Output schema. Do not infer authority beyond the provided context. Never mutate profile or conversation stage.
+
+Write a short human-readable profile review for the student to confirm or correct.
+Return only the strict Structured Output schema.
+
+Rules:
+1. narrative: 3–6 sentences covering established and provisional preferences only.
+2. confirmations: bullet-like short statements the student can affirm.
+3. corrections_requested: empty unless the profile shows contested dims (then name them).
+4. Do not invent facts absent from the provided profile/evidence summaries.
+5. No confidence numbers or internal IDs in narrative.
+6. Never mutate profile; this is a reflection for student validation.

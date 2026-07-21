@@ -195,6 +195,38 @@ class AzureOpenAIService:
             "summary", "memory_compactor", "v1", MemorySnapshotOutput, context
         )
 
+    async def web_search(self, query: str, user_location: dict | None = None):
+        """Bounded web search via Responses API web_search tool."""
+        if not self.use_responses:
+            raise RuntimeError("web_search_requires_responses_api")
+        deployment_name = self.deployments["analyzer"]
+        tools = [{"type": "web_search"}]
+        # user_location improves geo relevance when provided by the application.
+        tool_cfg: dict[str, Any] = {"type": "web_search"}
+        if user_location:
+            tool_cfg["user_location"] = user_location
+            tools = [tool_cfg]
+        response = await self.client.responses.create(
+            model=deployment_name,
+            tools=tools,
+            include=["web_search_call.action.sources"],
+            input=f"Find public opportunities relevant to: {query}. Cite sources.",
+        )
+        self.last_llm_run_id = None
+        if self.audit is not None:
+            run_id = await self.audit(
+                prompt_name="web_research",
+                prompt_version="v1",
+                deployment=deployment_name,
+                response_id=getattr(response, "id", None),
+                usage=getattr(response, "usage", None),
+                session_id=self._session_id,
+                turn_id=self._turn_id,
+            )
+            if run_id is not None:
+                self.last_llm_run_id = run_id
+        return response
+
 
 class LocalFallbackLLM:
     """Used when Azure OpenAI is not configured. Triggers seeded question fallbacks."""
@@ -207,16 +239,60 @@ class LocalFallbackLLM:
         return None
 
     async def structured(self, deployment, prompt_name, prompt_version, model, context):
-        from app.contracts import EvidencePacket
+        from app.contracts import (
+            EvidencePacket,
+            ProfileReviewOutput,
+            ProjectComposeOutput,
+            StudentAnswerOutput,
+            TurnIntentPacket,
+        )
 
-        if model is EvidencePacket or getattr(model, "__name__", "") == "EvidencePacket":
+        name = getattr(model, "__name__", "")
+        if model is EvidencePacket or name == "EvidencePacket":
             return EvidencePacket(
                 items=[], no_evidence_reason="azure_openai_not_configured"
             )
+        if model is TurnIntentPacket or name == "TurnIntentPacket":
+            text = ""
+            msg = (context or {}).get("student_message") or {}
+            if isinstance(msg, dict):
+                text = msg.get("content") or ""
+            from app.services.turn_intent_classifier import heuristic_classify
+
+            return heuristic_classify(text)
+        if model is StudentAnswerOutput or name == "StudentAnswerOutput":
+            from app.contracts import TurnIntentPacket as TIP
+            from app.services.student_answerer import seeded_student_answer
+
+            intent = (context or {}).get("intent")
+            if isinstance(intent, dict):
+                intent = TIP.model_validate(intent)
+            elif not isinstance(intent, TIP):
+                intent = TIP(
+                    primary_intent="student_question", question_topic="process"
+                )
+            return seeded_student_answer(
+                intent,
+                public_profile=(context or {}).get("public_profile_summary"),
+                last_target_key=(context or {}).get("last_target_key"),
+            )
+        if model is ProfileReviewOutput or name == "ProfileReviewOutput":
+            return ProfileReviewOutput(
+                narrative="Here is a short summary of what we have so far.",
+                confirmations=["Preferences captured so far look right"],
+                corrections_requested=[],
+            )
+        if model is ProjectComposeOutput or name == "ProjectComposeOutput":
+            from app.services.project_composer import _seeded_compose
+
+            return _seeded_compose(context or {})
         raise RuntimeError("azure_openai_not_configured")
 
     async def memory(self, context):
         raise RuntimeError("azure_openai_not_configured")
+
+    async def web_search(self, query: str, user_location: dict | None = None):
+        raise RuntimeError("web_search_unconfigured")
 
 
 class QuestionWriter:

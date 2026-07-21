@@ -8,7 +8,24 @@ Explainable student discovery and project matching. Models propose; the applicat
 >
 > **HARD RULE 3 — Complete backward explainability.** Every profile transition has a versioned snapshot, change record, reducer version, and accepted evidence linked to exact quotes in owned raw messages.
 
-Related: [student-model.md](student-model.md) · [scoring-rules.md](scoring-rules.md) · [conversation-policy.md](conversation-policy.md) · [docs index](README.md)
+Hard rule additions:
+
+4. **Student answers never write profile state.** They may only quote already-accepted evidence / public profile fields.
+5. **Research findings are derived artifacts** (like memory): useful for matching, never override evidence.
+6. **Project text without citation links** to stored opportunities/findings is rejected like ungrounded evidence.
+
+Related turn branches (still inside `process_student_turn`):
+
+| Branch | Decision events |
+|---|---|
+| Intent | `turn_intent_classified` |
+| Student Q | `student_answer_written` / `student_answer_refused` / `evidence_extraction_skipped` |
+| Thin answer | `answer_thinness_evaluated` → `elicitation_selected` / `elicitation_exhausted` |
+| Location | `location_readiness_checked` |
+| Profile review latch | `profile_review_completed` |
+| Matching | `research_*`, `opportunities_matched`, `project_composed`, `project_citation_rejected`, `project_fits_persisted` |
+
+Truth hierarchy placement: research findings sit with conversation summaries — below profile snapshots. Curated `matching.opportunities` are application catalog data, not student truth.
 
 ---
 
@@ -103,6 +120,7 @@ Migrations (lexical apply on first Postgres volume):
 1. `001_initial.sql` — core model + seeds
 2. `002_decision_tracing.sql` — decision events + immutability trigger
 3. `003_contradiction_resolution.sql` — `contradiction_resolved` / `question_quality_gate` enums, `clarification_attempts`
+4. `004_student_ux_and_projects.sql` — student Q&A / elicitation events, opportunities, research, generated projects, location intents
 
 ---
 

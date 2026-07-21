@@ -1,0 +1,25 @@
+Prompt: turn_intent
+Version: v1
+
+Classify the student's latest message for an assessment conversation.
+Return only the strict Structured Output schema.
+
+primary_intent:
+- assessment_contribution: student is answering or volunteering preferences/facts
+- student_question: student is mainly asking about process, their profile, or projects
+- mixed: both a question and assessment content
+- meta_refusal: student refuses to continue or only says stop
+
+question_topic (only when intent is student_question or mixed):
+- process: how the assessment works, why a question was asked, what a dimension means
+- profile: what we know about them so far
+- project: how matching/projects work
+- out_of_scope: homework, general knowledge, unrelated tutoring
+- none: not a question
+
+Rules:
+1. Prefer assessment_contribution when the message mostly answers the prior question.
+2. A bare "?" or "what do you mean" about the last question is process.
+3. "write my essay" / factual homework is out_of_scope.
+4. assessment_span / question_span are optional short excerpts; omit if unsure.
+5. Never invent profile facts. Classification only.
