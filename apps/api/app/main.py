@@ -1,20 +1,37 @@
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db import get_db
 from .routes.public import router as public_router
 from .routes.admin import router as admin_router
-app = FastAPI(title='Scratly API', version='0.1.0')
-@app.get('/health', tags=['system'])
-async def health(): return {'status':'ok'}
+
+app = FastAPI(title="Scratly API", version="0.1.0")
+
+# Local teacher console (Next.js) calls the API from the browser.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.get('/health/ready', tags=['system'])
+@app.get("/health", tags=["system"])
+async def health():
+    return {"status": "ok"}
+
+
+@app.get("/health/ready", tags=["system"])
 async def readiness(db: AsyncSession = Depends(get_db)):
-    await db.execute(text('SELECT 1'))
-    return {'status': 'ready', 'database': 'reachable'}
+    await db.execute(text("SELECT 1"))
+    return {"status": "ready", "database": "reachable"}
 
 
-app.include_router(public_router, prefix='/v1')
-app.include_router(admin_router, prefix='/v1/admin')
+app.include_router(public_router, prefix="/v1")
+app.include_router(admin_router, prefix="/v1/admin")

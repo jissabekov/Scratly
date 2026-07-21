@@ -28,7 +28,7 @@ The service boundaries are:
 8. `project_matcher.py` applies 40% topic, 40% work-mode, and 20% motivation scoring; hard constraints gate eligibility while capability gaps produce scaffolding.
 9. `turn_processor.py` is designed as the sole normal transaction path and records a correlated decision trace.
 
-Azure OpenAI uses Microsoft Entra tokens from `DefaultAzureCredential` and the Responses API structured-output parser. Deployment names are configuration. It does not use the Assistants API or ordinary JSON mode.
+Azure OpenAI uses Microsoft Entra tokens (service principal or `az login` via Azure CLI credential) and structured outputs. With `AZURE_OPENAI_API_VERSION=2024-12-01-preview` the client uses chat.completions structured parse; at `2025-03-01-preview` or later it uses the Responses API. Deployment names are configuration. It does not use the Assistants API or ordinary free-form JSON mode.
 
 ### PostgreSQL model
 
@@ -46,15 +46,28 @@ The database uniqueness constraint on `(session_id, idempotency_key)` is the con
 
 ### Teacher UI and infrastructure
 
-The current teacher page lays out profile, evidence ledger, conversation, timeline, contradictions, question history, next-question rationale, and project ranking panels. These are presentation placeholders; they are not yet connected to live admin data.
+The teacher page loads live admin data: profile, evidence ledger, conversation, timeline, contradictions, question history, next-question rationale, project ranking, and decision trace. It can create sessions and submit turns against the local API (`NEXT_PUBLIC_API_BASE_URL`).
 
-The Bicep file sketches two Container Apps, PostgreSQL Flexible Server, Blob Storage for files, Application Insights, Log Analytics, managed identities, and Blob RBAC. It is not required for local testing and should not be deployed as production infrastructure until its database connection, networking, registry access, Azure OpenAI RBAC, and secret references are completed.
+The Bicep file sketches two Container Apps, PostgreSQL Flexible Server, Blob Storage for files, Application Insights, Log Analytics, managed identities, and Blob RBAC. It is not required for local testing and should not be deployed as production infrastructure until its database connection, networking, registry access, Azure OpenAI RBAC, and secret references are completed. Blob and App Insights stay out of the local compose path.
 
 ## 2. Honest readiness status
 
-The deterministic functions, contracts, migrations, trace recorder, trace query, health endpoints, UI build, and containers can be tested locally.
+Session/turn persistence, admin inspection queries, and the teacher console are wired for a local end-to-end assessment journey:
 
-The public routes are still scaffolds. Session start does not persist a student/session, resume returns a fixed stage, and turn submission does not yet construct a repository or invoke `process_student_turn()`. Most teacher inspection views also return placeholders. Therefore, local HTTP smoke testing is available, but a full browser-to-database assessment journey is **not yet implemented**. Do not treat an `accepted` response from the turn endpoint as proof that evidence or profile state was persisted.
+1. `POST /v1/sessions` creates a student + session in PostgreSQL.
+2. `POST /v1/sessions/{id}/turns` runs `process_student_turn()` (evidence → grounding → reduce → stage → question → decision trace).
+3. Teacher UI at `:3000` lists sessions, submits turns, and loads live admin views + decision trace.
+
+Azure OpenAI is optional: with `AZURE_OPENAI_ENDPOINT` set and `az login` (host) or SP env vars (container), the extractor/writer use the Responses API. Without it, the extractor returns no evidence and the writer uses seeded fallback question templates — the persistence path still works.
+
+Azure Blob Storage and Application Insights are **not** part of the local path (Bicep sketches only).
+
+### Remaining gaps
+
+- `audit.llm_runs` is not yet linked from every Azure call inside the turn transaction.
+- Project-fit ranking is not computed on each turn (admin shows archetypes until fits exist).
+- Memory compaction is not yet scheduled inside the turn path.
+- Production Bicep (networking, OpenAI RBAC, secrets) remains incomplete.
 
 ## 3. Prerequisites
 
@@ -87,20 +100,30 @@ There are two different database hostnames by design:
 
 The root `.env` controls Compose ports and PostgreSQL initialization. The API `.env` controls a host-run Uvicorn process. Both files are ignored by Git.
 
-### Azure OpenAI is optional locally
+### Azure OpenAI (Entra)
 
-Leave `AZURE_OPENAI_ENDPOINT` empty for compilation, unit tests, database tests, UI work, and health checks. A real extractor/writer/compactor call requires an Azure OpenAI resource, compatible deployments, and authentication via `az login` or standard service-principal environment variables.
-
-If enabled, set in the shell or both relevant `.env` files:
+Set in the shell or both relevant `.env` files:
 
 ```dotenv
-AZURE_OPENAI_ENDPOINT=https://YOUR-RESOURCE.openai.azure.com/
-AZURE_OPENAI_ANALYZER_DEPLOYMENT=YOUR-ANALYZER-DEPLOYMENT
-AZURE_OPENAI_WRITER_DEPLOYMENT=YOUR-WRITER-DEPLOYMENT
-AZURE_OPENAI_SUMMARY_DEPLOYMENT=YOUR-SUMMARY-DEPLOYMENT
+AZURE_OPENAI_ENDPOINT=https://pcoding.cognitiveservices.azure.com/
+AZURE_OPENAI_API_VERSION=2024-12-01-preview
+AZURE_OPENAI_ANALYZER_DEPLOYMENT=gpt-5.4-mini
+AZURE_OPENAI_WRITER_DEPLOYMENT=gpt-5.4-mini
+AZURE_OPENAI_SUMMARY_DEPLOYMENT=gpt-5.4-mini
 ```
 
-Do not add an API key to the repository. The implementation uses Entra authentication.
+Leave `AZURE_OPENAI_ENDPOINT` empty to exercise DB/UI without LLM calls (seeded question fallbacks).
+
+Do not add an API key. Auth is Entra via service principal (containers) or Azure CLI (`az login` on the host):
+
+| How you run the API | Auth |
+|---------------------|------|
+| Host (`make api-run` / uvicorn) | `az login` on the host |
+| Compose `api` container | Set `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` — containers cannot use the host `az login` cache |
+
+`2024-12-01-preview` uses chat.completions structured outputs. Set `AZURE_OPENAI_API_VERSION` to `2025-03-01-preview` or later to use the Responses API instead.
+
+Blob Storage and Application Insights are intentionally absent from local compose.
 
 ## 5. Fastest start: local PostgreSQL only
 
@@ -180,6 +203,13 @@ docker compose --profile full config
 make local-up
 ```
 
+On Windows without GNU Make, use Compose directly:
+
+```bash
+cp .env.example .env
+docker compose --profile full up -d --build --wait
+```
+
 Then open:
 
 - Web: `http://127.0.0.1:3000`
@@ -187,14 +217,21 @@ Then open:
 - API health: `http://127.0.0.1:8000/health`
 - API database readiness: `http://127.0.0.1:8000/health/ready`
 
-Follow logs or stop the stack:
+Compose waits on service healthchecks (`postgres` via `pg_isready`, `api` via `/health`, `web` via HTTP). Follow logs or stop the stack:
 
 ```bash
 make local-logs
 make local-down
 ```
 
-The services bind to `127.0.0.1`, not all network interfaces, to keep the disposable local database and applications off the LAN by default.
+Or:
+
+```bash
+docker compose --profile full logs -f
+docker compose --profile full down
+```
+
+The services bind to `127.0.0.1`, not all network interfaces, to keep the disposable local database and applications off the LAN by default. Optional LAN-publish overrides live in `compose.override.example.yaml`.
 
 ## 8. Run checks
 
@@ -221,28 +258,55 @@ docker build -t scratly-api:local apps/api
 docker build -t scratly-web:local apps/web
 ```
 
-## 9. API smoke tests
+## 9. End-to-end assessment smoke test
 
-These endpoints currently exercise routing, not a complete workflow:
+Prefer host-run API when using `az login` (containers need a service principal).
+
+```bash
+# Terminal A: Postgres
+docker compose up -d --wait postgres
+
+# Terminal B: API (from repo root, venv active)
+cd apps/api && ../../.venv/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+# Terminal C: Web
+npm --prefix apps/web install
+npm --prefix apps/web run dev
+```
+
+Or full compose (LLM only if SP env vars are set):
+
+```bash
+docker compose --profile full up -d --build --wait
+```
+
+### curl path
 
 ```bash
 curl --fail -X POST http://127.0.0.1:8000/v1/sessions
+# → {"session_id":"...","student_id":"...","stage":"discovery"}
 
-curl --fail http://127.0.0.1:8000/v1/sessions/00000000-0000-0000-0000-000000000001
+SESSION_ID=<paste session_id>
 
 curl --fail -X POST \
-  http://127.0.0.1:8000/v1/sessions/00000000-0000-0000-0000-000000000001/turns \
+  "http://127.0.0.1:8000/v1/sessions/$SESSION_ID/turns" \
   -H 'content-type: application/json' \
-  -d '{"idempotency_key":"local-test-0001","text":"I like building small science projects."}'
+  -d '{"idempotency_key":"local-test-0001","text":"I like building small science projects with neighborhood data."}'
+# → turn_id, assistant_message, stage
+
+curl --fail "http://127.0.0.1:8000/v1/admin/sessions/$SESSION_ID/transcript"
+curl --fail "http://127.0.0.1:8000/v1/admin/sessions/$SESSION_ID/decision-trace"
+curl --fail "http://127.0.0.1:8000/v1/admin/sessions"
 ```
 
-The decision-trace endpoint is backed by PostgreSQL, but it will return an empty list until a wired transaction processor records events:
+### UI path
 
-```bash
-curl --fail \
-  http://127.0.0.1:8000/v1/admin/sessions/00000000-0000-0000-0000-000000000001/decision-trace
-```
+1. Open `http://127.0.0.1:3000`
+2. Click **New session**
+3. Edit the student turn text and click **Submit turn**
+4. Confirm Conversation, Question history, and Decision trace panels populate
 
+Idempotent retries: repeat the same `idempotency_key` and you get the same completed turn.
 ## 10. Inspect and reset local state
 
 Open a SQL shell:
@@ -307,15 +371,10 @@ Activate `.venv` or use the explicit `.venv/bin/python` commands. Python 3.12 is
 
 ## 12. Next implementation work
 
-Before claiming an end-to-end pilot, implement and test:
-
-1. A concrete async PostgreSQL repository for every operation expected by `process_student_turn()`.
-2. Public route wiring so session and turn HTTP requests use that repository and transaction path.
-3. Durable failure-state handling for interrupted turns and concurrent idempotent retries.
-4. Real admin queries for every teacher inspection view.
-5. Web data fetching, authentication, authorization, loading/error states, and session selection.
-6. Integration tests against PostgreSQL for migrations, rollback, history reproduction, and immutable tracing.
-7. Azure OpenAI audit wiring that links each run to its session, turn, and decision event.
-8. Production Bicep networking, secrets, database URL construction, registry access, Azure OpenAI RBAC, health probes, and outputs.
+1. Link `audit.llm_runs` from Azure calls inside the turn transaction and attach `llm_run_id` on decision events.
+2. Schedule memory compaction from the turn path using `MemoryCompactor.due`.
+3. Compute and persist `matching.project_fits` when stage reaches project matching.
+4. Integration tests against PostgreSQL for migrations, rollback, history reproduction, and immutable tracing.
+5. Production Bicep networking, secrets, database URL construction, registry access, Azure OpenAI RBAC, health probes, and outputs.
 
 The architecture remains intentionally strict: models may propose or phrase, but deterministic application code owns evidence acceptance, profile state, stage transitions, question target selection, and project eligibility.

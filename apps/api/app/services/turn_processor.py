@@ -1,5 +1,11 @@
 from app.services.decision_trace import DecisionTraceRecorder
-from app.services.question_policy import derive_stage, select_next
+from app.services.question_policy import Target, derive_stage, select_next
+
+_FALLBACK_TARGET = Target(
+    "profile_validation",
+    "profile",
+    "Does this description of your preferences feel accurate?",
+)
 
 
 async def process_student_turn(repo, extractor, writer, context_builder, session_id, request):
@@ -84,7 +90,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         )
 
         candidates = await tx.question_candidates()
-        target = select_next(candidates)
+        target = select_next(candidates) or _FALLBACK_TARGET
         await trace.record(
             "question_target_selected",
             "question_policy",
@@ -138,7 +144,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             )
 
         assistant = await tx.persist_question_and_complete(
-            turn, target, question, stage, transition
+            turn, target, question, stage, transition, used_fallback=used_fallback
         )
         await trace.record(
             "turn_completed",

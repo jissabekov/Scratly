@@ -1,4 +1,17 @@
+# Scratly local stack.
+#   DB only:     docker compose up -d --wait postgres
+#   Full stack:  docker compose --profile full up -d --build --wait
+#
+# Services bind to 127.0.0.1 by default (see .env.example).
 name: scratly-local
+
+networks:
+  scratly:
+    driver: bridge
+
+volumes:
+  scratly-postgres:
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -10,44 +23,94 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - scratly-postgres:/var/lib/postgresql/data
+      # Lexical order: 001_initial.sql, 002_decision_tracing.sql
       - ./migrations:/docker-entrypoint-initdb.d:ro
+    networks: [scratly]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-scratly} -d ${POSTGRES_DB:-scratly}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-scratly} -d ${POSTGRES_DB:-scratly}",
+        ]
       interval: 2s
       timeout: 5s
       retries: 20
+      start_period: 5s
     restart: unless-stopped
 
   api:
     profiles: ["full"]
     build:
       context: ./apps/api
+      dockerfile: Dockerfile
     environment:
+      # Inside Compose the DB host is the service name, not localhost.
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-scratly}:${POSTGRES_PASSWORD:-scratly_local_only}@postgres:5432/${POSTGRES_DB:-scratly}
       AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
-      AZURE_OPENAI_ANALYZER_DEPLOYMENT: ${AZURE_OPENAI_ANALYZER_DEPLOYMENT:-analyzer}
-      AZURE_OPENAI_WRITER_DEPLOYMENT: ${AZURE_OPENAI_WRITER_DEPLOYMENT:-writer}
-      AZURE_OPENAI_SUMMARY_DEPLOYMENT: ${AZURE_OPENAI_SUMMARY_DEPLOYMENT:-summary}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-12-01-preview}
+      AZURE_OPENAI_ANALYZER_DEPLOYMENT: ${AZURE_OPENAI_ANALYZER_DEPLOYMENT:-gpt-5.4-mini}
+      AZURE_OPENAI_WRITER_DEPLOYMENT: ${AZURE_OPENAI_WRITER_DEPLOYMENT:-gpt-5.4-mini}
+      AZURE_OPENAI_SUMMARY_DEPLOYMENT: ${AZURE_OPENAI_SUMMARY_DEPLOYMENT:-gpt-5.4-mini}
+      # Optional Entra service principal for DefaultAzureCredential in containers.
+      # Host-run API can use `az login` instead; leave these blank locally.
+      # Containers cannot use the host's `az login` cache — set SP vars or run
+      # the API on the host against Compose Postgres.
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-}
+      MEMORY_RESPONSE_INTERVAL: ${MEMORY_RESPONSE_INTERVAL:-8}
+      MEMORY_TOKEN_THRESHOLD: ${MEMORY_TOKEN_THRESHOLD:-6000}
+      REDUCER_VERSION: ${REDUCER_VERSION:-v1}
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
+    networks: [scratly]
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     restart: unless-stopped
 
   web:
     profiles: ["full"]
     build:
       context: ./apps/web
+      dockerfile: Dockerfile
     environment:
+      # Next.js standalone binds to HOSTNAME; Docker sets it to the container
+      # id by default, which breaks loopback healthchecks and some proxies.
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      # Server-side fetch target (service DNS inside the Compose network).
       API_BASE_URL: http://api:8000
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:${API_PORT:-8000}
+      # Browser-facing API origin (host loopback, published API port).
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:${API_PORT:-8000}
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    networks: [scratly]
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3000/',(r)=>process.exit(r.statusCode&&r.statusCode<500?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
-
-volumes:
-  scratly-postgres:

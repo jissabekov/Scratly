@@ -12,10 +12,18 @@ cp .env.example .env
 make local-db
 ```
 
+Without Make (for example on Windows):
+
+```bash
+cp .env.example .env
+docker compose up -d --wait postgres
+```
+
 For a production-style local build of PostgreSQL, API, and web:
 
 ```bash
 make local-up
+# or: docker compose --profile full up -d --build --wait
 ```
 
 The default local URLs are:

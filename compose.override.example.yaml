@@ -1,0 +1,15 @@
+# Optional local overrides. Copy to compose.override.yaml (gitignored) to apply.
+# Docker Compose auto-merges compose.override.yaml with compose.yaml.
+#
+# Example: publish on all interfaces (default stack is 127.0.0.1-only).
+#
+# services:
+#   postgres:
+#     ports:
+#       - "${POSTGRES_PORT:-5432}:5432"
+#   api:
+#     ports:
+#       - "${API_PORT:-8000}:8000"
+#   web:
+#     ports:
+#       - "${WEB_PORT:-3000}:3000"
