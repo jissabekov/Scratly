@@ -1,7 +1,8 @@
 # Conversation quality fix plan
 
-**Status:** proposed  
+**Status:** implemented (proven with live Azure traces)  
 **Based on:** live 5-turn Azure sim `18b70c75-64c8-4d85-ae7c-cda74b04b2f3` (`sim-conversation-dump.json`)  
+**Latest proof:** `sim-final-proof.json` (14-turn Maya + conflict probe, 2026-07-21)  
 **Goal:** Keep the frozen architecture (LLM proposes; reducer owns state; raw messages are source of truth) while making assessment conversations *technically correct* and *qualitatively good* over long sessions.
 
 ---

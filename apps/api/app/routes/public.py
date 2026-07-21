@@ -57,13 +57,13 @@ async def submit_turn(
         outcome = await process_student_turn(
             repo, extractor, writer, context_builder, session_id, body
         )
-    except IntegrityError:
+    except IntegrityError as err:
         # Concurrent idempotent retry lost the insert race; return the winner.
         outcome = await repo.completed_turn(session_id, body.idempotency_key)
         if outcome is None:
             raise HTTPException(
                 status_code=409,
-                detail="Turn conflict; retry with the same idempotency key",
+                detail=f"Turn conflict; retry with the same idempotency key ({err.orig})",
             ) from None
     if isinstance(outcome, TurnOutcome):
         return outcome.as_response()

@@ -14,10 +14,12 @@ class DecisionEventType(StrEnum):
     EVIDENCE_VALIDATED = "evidence_validated"
     PROFILE_REDUCED = "profile_reduced"
     CONTRADICTION_EVALUATED = "contradiction_evaluated"
+    CONTRADICTION_RESOLVED = "contradiction_resolved"
     STAGE_DERIVED = "stage_derived"
     QUESTION_TARGET_SELECTED = "question_target_selected"
     QUESTION_WRITTEN = "question_written"
     QUESTION_FALLBACK_USED = "question_fallback_used"
+    QUESTION_QUALITY_GATE = "question_quality_gate"
     TURN_COMPLETED = "turn_completed"
 
 

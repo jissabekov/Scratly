@@ -10,7 +10,7 @@ class EvidenceExtractor:
     async def propose(self, context: dict) -> EvidencePacket:
         try:
             return await self.llm.structured(
-                "analyzer", "evidence_extractor", "v1", EvidencePacket, context
+                "analyzer", "evidence_extractor", "v2", EvidencePacket, context
             )
         except Exception:
             # Local/dev without usable Entra credentials still completes the turn.

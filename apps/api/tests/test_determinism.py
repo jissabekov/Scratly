@@ -18,10 +18,12 @@ def test_reducer_accepted_only_and_threshold():
  profile=reduce_profile(accepted); assert profile.reducer_version=='v1' and profile.dimensions[0].value=='a' and profile.dimensions[0].status=='established'
 def test_question_priority_and_stages():
  targets=[Target('profile_validation','z','z'),Target('contradiction','a','a')]
- assert select_next(targets).kind=='contradiction'; assert derive_stage(coverage=.95,contradictions=0,reviewed=False,projects_ready=False)=='profile_review'
+ assert select_next(targets).kind=='contradiction'
+ assert derive_stage(coverage=.95,contradictions=0,reviewed=False,projects_ready=False)=='profile_review'
+ assert derive_stage(coverage_established=0.0,coverage_touched=1.0,contradictions=2,reviewed=False,projects_ready=False)=='measurement'
 def test_contexts_are_independent_and_writer_bounded():
  c=ContextBuilder(); transcript=list(range(20)); q=c.question_writer('x',transcript,'memory','profile'); m=c.memory(transcript,20)
- assert q['recent_messages']==list(range(14,20)) and 'raw_transcript' not in q and 'profile' not in m
+ assert q['recent_messages']==list(range(12,20)) and 'raw_transcript' not in q and 'profile' not in m
 def test_project_weights_constraints_and_capability_not_eligibility():
  profile={'topics':['x'],'work_modes':['y'],'motivations':['z'],'constraints':{'age':'ok'},'capability_gaps':['code']}
  result=rank_projects(profile,[{'id':'p','topics':['x'],'work_modes':['y'],'motivations':[],'hard_constraints':{'age':'ok'}}])[0]

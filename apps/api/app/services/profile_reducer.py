@@ -13,7 +13,13 @@ def reduce_profile(evidence:list[ValidatedEvidence], version='v1')->ReducedProfi
     states=[]
     for key, items in sorted(grouped.items()):
         scores=defaultdict(float)
-        for e in items: scores[e.value_key] += e.strength * (1 if e.polarity.value=='support' else -1)
+        for e in items:
+            if not e.value_key:
+                continue
+            scores[e.value_key] += e.strength * (1 if e.polarity.value=='support' else -1)
+        if not scores:
+            states.append(DimensionState(key,'provisional',None,0.0))
+            continue
         value,score=max(scores.items(),key=lambda x:x[1])
         confidence=max(0,min(1,score))
         states.append(DimensionState(key,'established' if confidence>=.7 else 'provisional',value,confidence))

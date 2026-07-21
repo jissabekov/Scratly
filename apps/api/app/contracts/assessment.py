@@ -21,6 +21,7 @@ class EvidencePacket(StrictModel):
 class ValidatedEvidence(ProposedEvidence):
     accepted: bool
     rejection_reason: str | None = None
+    evidence_id: UUID | None = None
 class QuestionResponse(StrictModel):
     question: Annotated[str, StringConstraints(min_length=1, max_length=500)]
 class MemorySnapshotOutput(StrictModel):

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import date, datetime
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Awaitable, Callable
@@ -88,6 +89,8 @@ class _ContextEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Any:
         if isinstance(o, UUID):
             return str(o)
+        if isinstance(o, (datetime, date)):
+            return o.isoformat()
         if is_dataclass(o) and not isinstance(o, type):
             return asdict(o)
         if hasattr(o, "model_dump"):
@@ -124,6 +127,7 @@ class AzureOpenAIService:
         self.audit = audit_writer
         self._session_id: UUID | None = None
         self._turn_id: UUID | None = None
+        self.last_llm_run_id: UUID | None = None
 
     def set_turn_context(self, session_id: UUID | None, turn_id: UUID | None) -> None:
         self._session_id = session_id
@@ -171,8 +175,9 @@ class AzureOpenAIService:
                 )
             response_id = response.id
             usage = response.usage
+        self.last_llm_run_id = None
         if self.audit is not None:
-            await self.audit(
+            run_id = await self.audit(
                 prompt_name=prompt_name,
                 prompt_version=prompt_version,
                 deployment=deployment_name,
@@ -181,6 +186,8 @@ class AzureOpenAIService:
                 session_id=self._session_id,
                 turn_id=self._turn_id,
             )
+            if run_id is not None:
+                self.last_llm_run_id = run_id
         return parsed
 
     async def memory(self, context):
@@ -191,6 +198,10 @@ class AzureOpenAIService:
 
 class LocalFallbackLLM:
     """Used when Azure OpenAI is not configured. Triggers seeded question fallbacks."""
+
+    def __init__(self):
+        self.last_llm_run_id = None
+        self.audit = None
 
     def set_turn_context(self, session_id: UUID | None, turn_id: UUID | None) -> None:
         return None
@@ -214,7 +225,7 @@ class QuestionWriter:
 
     async def write(self, context) -> str:
         result = await self.llm.structured(
-            "writer", "question_writer", "v1", QuestionResponse, context
+            "writer", "question_writer", "v2", QuestionResponse, context
         )
         return result.question
 

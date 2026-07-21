@@ -33,17 +33,35 @@ class ContextBuilder:
             "taxonomy": taxonomy,
         }
 
-    def question_writer(self, target, recent_messages, memory_snapshot, public_profile_summary):
-        recent = recent_messages[-6:] if recent_messages else []
-        return {
+    def question_writer(
+        self,
+        target,
+        recent_messages,
+        memory_snapshot,
+        public_profile_summary,
+        contradiction_sides=None,
+        previous_assistant_question=None,
+    ):
+        recent = recent_messages[-8:] if recent_messages else []
+        payload = {
             "selected_target": _target(target),
+            "target_kind": getattr(target, "kind", None)
+            if not isinstance(target, dict)
+            else target.get("kind"),
+            "target_key": getattr(target, "key", None)
+            if not isinstance(target, dict)
+            else target.get("key"),
             "recent_messages": [
                 m if isinstance(m, dict) or not hasattr(m, "id") else _msg(m)
                 for m in recent
             ],
             "memory": memory_snapshot,
             "public_profile_summary": public_profile_summary,
+            "previous_assistant_question": previous_assistant_question,
         }
+        if contradiction_sides:
+            payload["contradiction_sides"] = contradiction_sides
+        return payload
 
     def memory(self, complete_raw_transcript, boundary_sequence):
         return {
