@@ -1,0 +1,2 @@
+# Student model
+The eight dimensions are topics, work mode, motivation, capability, constraints, collaboration, challenge appetite, and desired impact. Each dimension is unknown, provisional, established, or contested. Evidence retains polarity, strength, exact quote, source messages, acceptance decision, and rejection reason. Capabilities change project scope and scaffolding—not eligibility. Numeric internal state is teacher-only.

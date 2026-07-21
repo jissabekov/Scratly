@@ -1,0 +1,2 @@
+# Scoring rules
+The reducer consumes accepted evidence only. At confidence 0.70 a dimension becomes established; below that it remains provisional. Conflicts remain explicit and are resolved by newer explicit evidence, never by averaging. Project fit is `0.40 × topic + 0.40 × work mode + 0.20 × motivation`. Hard constraints are independent pass/fail gates. Capability gaps produce scope and scaffold suggestions.
