@@ -24,7 +24,18 @@ Seeded in `assessment.dimensions` (ordinal order):
 **Required dimensions (4):** `topics`, `work_mode`, `motivation`, `constraints`.  
 Coverage math uses this denominator — see [conversation-policy.md](conversation-policy.md).
 
-Location for project matching is expressed as **constraint value keys** (not a separate dimension): geo regions such as `seattle_metro` / `bay_area` / `remote_ok`, and places such as `seattle` / `austin`. Matching will not enter `project_matching` until at least one geo value is established.
+### Location (geo) vocabulary
+
+Location for project matching is expressed as **constraint value keys** (not a separate dimension).
+The extractor maps place talk onto `dimension_key=constraints` with these preferred keys:
+
+| Kind | Example value keys |
+|---|---|
+| Region | `seattle_metro`, `bay_area`, `austin_metro`, `nyc_metro`, `remote_ok` |
+| Place | `seattle`, `bellevue`, `san_francisco`, `oakland`, `san_jose`, `berkeley`, `austin`, `new_york`, `brooklyn` |
+
+Matching will not enter `project_matching` until at least one geo value is established
+(`location_ready`). Missing geo surfaces as question target `constraints:geo`.
 
 ### Cardinality modes
 

@@ -93,13 +93,30 @@ Decision event: `contradiction_resolved` with the resolution as `reason_code`, p
 
 ## Project fit
 
-When ranking archetypes (`project_matcher.py`):
+### Curated opportunities (primary path)
+
+When the session reaches `project_matching` with location established, `opportunity_matcher.py` ranks
+seeded `matching.opportunities`:
 
 ```text
 score = 0.40 × topic_overlap + 0.40 × work_mode_overlap + 0.20 × motivation_overlap
 ```
 
-- **Hard constraints** are independent pass/fail gates (ineligible if failed).
-- **Capability gaps** do not block eligibility; they produce scope/scaffold suggestions (e.g. `scaffold:code`).
+- **Geo** is a hard eligibility gate: student `geo_regions` / `geo_places` must intersect the
+  opportunity’s regions/places, **or** the opportunity (or student) allows `remote_ok`.
+- Other **hard_constraints** on the opportunity are independent pass/fail gates.
+- **Capability gaps** do not block eligibility; they produce scope/scaffold suggestions
+  (e.g. `scaffold:code`).
+- Results persist in `matching.project_fits` with `opportunity_id` and `algorithm_version`.
 
-Project-fit rows may be empty until ranking is invoked; admin `project-fit` can still show seeded archetypes.
+Bounded web research may add URL-grounded rows in `matching.research_findings`.
+`project_composer` may then draft 1–3 student-facing offers; each must cite at least one
+existing opportunity ID and/or research finding ID or it is rejected (`project_citation_rejected`).
+
+Admin `project-fit` shows opportunity ranks, generated projects + citations, research URLs,
+or the catalog when no fits have been computed yet.
+
+### Legacy archetypes
+
+`project_matcher.py` still scores older `matching.project_archetypes` with the same 40/40/20
+weights for unit tests and backward compatibility. Live matching prefers opportunities.

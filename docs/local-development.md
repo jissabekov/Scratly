@@ -25,14 +25,17 @@ The service boundaries are:
 2. `grounding_validator.py` checks session ownership, exact quotes, proposal caps, and motivation taxonomy.
 3. `profile_reducer.py` reads accepted evidence only and records a reducer version (0.70 → established).
 4. `contradiction_engine.py` (v2) opens only true conflicts; resolution never averages strengths.
-5. `question_policy.py` deterministically chooses the next intent and derives stage from established coverage.
-6. `question_quality.py` overrides generic/duplicate assistant questions before persist.
-7. `context_builder.py` supplies task-specific, bounded contexts (writer ≈ last 8 messages + memory).
-8. `memory_compactor.py` regenerates from bounded raw messages; scheduled from the turn path when due.
-9. `project_matcher.py` applies 40% topic, 40% work-mode, and 20% motivation scoring; hard constraints gate eligibility while capability gaps produce scaffolding.
-10. `turn_processor.py` is the sole normal transaction path: extract → ground → reduce → resolve → stage → write → gate → compact → decision trace.
+5. `turn_intent_classifier.py` / `student_answerer.py` handle process/profile/project Q&A (refuse homework).
+6. `thin_answer.py` / `elicitation_policy.py` switch thin assessment replies to option-style questions.
+7. `question_policy.py` deterministically chooses the next intent and derives stage (incl. `location_ready`).
+8. `question_quality.py` overrides generic/duplicate/elicitation-missing assistant questions before persist.
+9. `context_builder.py` supplies task-specific, bounded contexts (writer ≈ last 8 messages + memory).
+10. `memory_compactor.py` regenerates from bounded raw messages; scheduled from the turn path when due.
+11. `opportunity_matcher.py` geo-gates and ranks curated opportunities (40/40/20); capability gaps → scaffolding.
+12. `web_research_client.py` / `project_composer.py` / `project_citation_gate.py` add optional URL research and citation-grounded offers.
+13. `turn_processor.py` is the sole normal transaction path (intent → answer/extract → reduce → elicit → stage → write → match → compact → decision trace).
 
-Azure OpenAI uses Microsoft Entra tokens (service principal or `az login` via Azure CLI credential) and structured outputs. With `AZURE_OPENAI_API_VERSION=2024-12-01-preview` the client uses chat.completions structured parse; at `2025-03-01-preview` or later it uses the Responses API. Deployment names are configuration. It does not use the Assistants API or ordinary free-form JSON mode.
+Azure OpenAI uses Microsoft Entra tokens (service principal or `az login` via Azure CLI credential) and structured outputs. With `AZURE_OPENAI_API_VERSION=2024-12-01-preview` the client uses chat.completions structured parse; at `2025-03-01-preview` or later it uses the Responses API (also required for optional `web_search`). Deployment names are configuration. It does not use the Assistants API or ordinary free-form JSON mode.
 
 ### PostgreSQL model
 
@@ -48,7 +51,9 @@ The database uniqueness constraint on `(session_id, idempotency_key)` is the con
 
 `002_decision_tracing.sql` adds an append-only decision-event ledger. A trace contains correlation and sequence IDs, component/version, stable reason code, safe inputs/outputs, entity references, optional LLM-run linkage, and timing. A database trigger blocks updates and deletes. Raw student text remains in `conversation.messages` and is not duplicated into audit events.
 
-`003_contradiction_resolution.sql` adds `contradiction_resolved` and `question_quality_gate` event types plus `clarification_attempts` on contradictions. After editing migrations on an existing volume, run `make local-reset` (wipes local data).
+`003_contradiction_resolution.sql` adds `contradiction_resolved` and `question_quality_gate` event types plus `clarification_attempts` on contradictions.
+
+`004_student_ux_and_projects.sql` adds student Q&A / elicitation / location / research / project decision events, `matching.opportunities` (+ seeds), research runs/findings, generated projects + citations, session counters (`consecutive_student_questions`, elicitation attempts, `profile_reviewed`), and assistant `message_kind`. After editing migrations on an existing volume, run `make local-reset` (wipes local data).
 
 ### Teacher UI and infrastructure
 
@@ -61,7 +66,7 @@ The Bicep file sketches two Container Apps, PostgreSQL Flexible Server, Blob Sto
 Session/turn persistence, admin inspection, teacher console, contradiction v2, stage pacing, LLM audit linkage, and memory compaction are wired for a local end-to-end assessment journey:
 
 1. `POST /v1/sessions` creates a student + session in PostgreSQL.
-2. `POST /v1/sessions/{id}/turns` runs `process_student_turn()` (evidence → grounding → reduce → resolve → stage → question → quality gate → memory → decision trace).
+2. `POST /v1/sessions/{id}/turns` runs `process_student_turn()` (intent → optional student answer → evidence → grounding → reduce → resolve → thin/elicitation → stage → question → quality gate → optional project match → memory → decision trace).
 3. Teacher UI at `:3000` lists sessions, submits turns, and loads live admin views + decision trace.
 4. `scripts/sim_assessment_conversation.py` can run multi-turn Azure sims with assertions.
 

@@ -16,6 +16,7 @@ A teacher reading the transcript should always understand **why** the next quest
 6. **Exit stages deliberately** — reach `profile_review` / `project_matching` when coverage is real, location is established, and conflicts are resolved or dismissed with reason.
 7. **Answer only in-scope student questions** — process / profile / project; refuse homework; resume assessment on the same turn.
 8. **Elicit when answers are thin** — offer concrete “this or this” options instead of writing negative evidence for “idk”.
+9. **Ground project offers** — every suggested project cites a curated opportunity and/or a stored research URL; never invent uncited orgs.
 
 ---
 
@@ -23,11 +24,11 @@ A teacher reading the transcript should always understand **why** the next quest
 
 | Stage | Student experience | System behavior |
 |---|---|---|
-| `discovery` | Warm, concrete, one topic at a time | Prefer required unknowns / project-critical; only true incompatibilities as contradictions |
-| `measurement` | Deepen provisional dims with examples | Provisional + discrimination targets |
+| `discovery` | Warm, concrete, one topic at a time | Prefer required unknowns / project-critical / location; only true incompatibilities as contradictions |
+| `measurement` | Deepen provisional dims with examples | Provisional + discrimination targets; elicitation on thin answers |
 | `gap_resolution` | Explicit choices; allow “both, differently” | Resolve or dismiss; max **2** clarifications per contradiction |
-| `profile_review` | Reflect a short accurate summary | Validation intent; corrections become new evidence |
-| `project_matching` | Compare fits with tradeoffs | Discrimination + constraints gates |
+| `profile_review` | Reflect a short accurate summary | Validation intent; corrections become new evidence; hold here until location ready |
+| `project_matching` | Compare grounded fits with tradeoffs | Opportunity rank + optional research + citation-gated offers |
 | `complete` | Session finished | Explicit completion latch |
 
 ---
@@ -38,6 +39,8 @@ A teacher reading the transcript should always understand **why** the next quest
 - One question only; teen-appropriate; specific.
 - Lightly acknowledge the last answer, then advance.
 - For discovery: open but concrete (“What’s a recent project you enjoyed and why?”).
+- For thin answers: named options (“which is closer: A, B, or C — or something else?”).
+- For location: city/region or remote.
 
 Writer prompt version: `apps/api/prompts/question_writer/v2/`.
 
@@ -51,8 +54,10 @@ Enforced by prompts **and** the application quality gate where possible:
 - Generic “I heard two different preferences”
 - Ignoring the student’s last answer
 - Repeating the previous assistant question verbatim
-- Jumping to projects before required dims are established and conflicts cleared
-- Multiple questions in one assistant message
+- Jumping to projects before required dims, conflicts, **and location** are ready
+- Multiple stacked assessment questions in one assistant message
+- Doing homework / general tutoring mid-assessment
+- Inventing project sponsors or URLs without citations
 
 ---
 
@@ -65,6 +70,7 @@ Extractor prompt version: `apps/api/prompts/evidence_extractor/v2/`.
 - Multi-value supports without implying conflict.
 - `oppose` only when the student explicitly negates something.
 - Map to taxonomy keys; omit inventing keys.
+- Map explicit place/region talk to `constraints` geo value keys.
 
 ---
 
@@ -74,6 +80,9 @@ Use the harness:
 
 ```bash
 .venv/Scripts/python scripts/sim_assessment_conversation.py --turns 12 --conflict-probe --out sim-final-proof.json
+.venv/Scripts/python scripts/sim_assessment_conversation.py --turns 2 --student-questions --out sim-student-q.json
+.venv/Scripts/python scripts/sim_assessment_conversation.py --thin-answer-probe --out sim-thin.json
+.venv/Scripts/python scripts/sim_assessment_conversation.py --turns 12 --project-matching-probe --out sim-projects.json
 ```
 
-Asserts (among others): no turn-1 `gap_resolution` from false multi-value opens, no generic contradiction fallback leak, linked `llm_run_id` when Azure is live, memory snapshot after ≥8 responses, contradictions resolve instead of stalling.
+Asserts (among others): no turn-1 `gap_resolution` from false multi-value opens, no generic contradiction fallback leak, linked `llm_run_id` when Azure is live, memory snapshot after ≥8 responses, contradictions resolve instead of stalling, student homework refused, thin answers elicit options, location readiness events present for matching probes.
