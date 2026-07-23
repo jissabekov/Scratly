@@ -14,6 +14,7 @@ from app.services.elicitation_policy import (
     build_elicitation_spec,
     elicitation_options_present,
     elicitation_target,
+    should_offer_options,
 )
 from app.services.location_policy import (
     location_established_from_profile,
@@ -91,7 +92,8 @@ def test_seeded_process_answer_states_course_project_purpose():
         last_target_key="topics",
         student_text="why are you asking this?",
     )
-    assert "spend time" in why_topics.text.lower() or "interest" in why_topics.text.lower() or "into" in why_topics.text.lower()
+    assert "spend your time" in why_topics.text.lower()
+    assert "games absolutely count" in why_topics.text.lower()
 
 
 def test_heuristic_student_question_and_homework_refusal():
@@ -108,7 +110,7 @@ def test_heuristic_student_question_and_homework_refusal():
     assert assessment.primary_intent == PrimaryIntent.ASSESSMENT_CONTRIBUTION
 
 
-def test_answer_scope_gate_out_of_scope_and_cap():
+def test_answer_scope_gate_out_of_scope_without_default_question_cap():
     intent = TurnIntentPacket(
         primary_intent=PrimaryIntent.STUDENT_QUESTION,
         question_topic=QuestionTopic.OUT_OF_SCOPE,
@@ -120,13 +122,16 @@ def test_answer_scope_gate_out_of_scope_and_cap():
         primary_intent=PrimaryIntent.STUDENT_QUESTION,
         question_topic=QuestionTopic.PROCESS,
     )
-    capped = answer_scope_gate(process, consecutive_student_questions=2)
+    assert answer_scope_gate(process, consecutive_student_questions=20) is None
+    capped = answer_scope_gate(
+        process, consecutive_student_questions=2, max_consecutive=2
+    )
     assert capped is not None and capped.refusal_reason_code == "consecutive_question_cap"
 
     seeded = seeded_student_answer(process, last_target_key="work_mode")
     assert seeded.mode.value == "answer"
     lowered = seeded.text.lower()
-    assert "energiz" in lowered or "figuring" in lowered or "work" in lowered
+    assert "activity" in lowered and "enjoy" in lowered
     assert "investigate" not in lowered
     assert "curated opportunities" not in lowered
 
@@ -176,6 +181,13 @@ def test_elicitation_options_and_quality_gate():
     )
     assert gate["outcome"] == "seeded_override"
     assert elicitation_options_present(gate["question"], spec)
+
+
+def test_options_are_only_a_second_insufficient_answer_recovery():
+    assert not should_offer_options(reply_signal="insufficient", attempts=1)
+    assert should_offer_options(reply_signal="insufficient", attempts=2)
+    assert not should_offer_options(reply_signal="insufficient", attempts=3)
+    assert not should_offer_options(reply_signal="thin_answer", attempts=2)
 
 
 def test_location_established_and_stage_gate():

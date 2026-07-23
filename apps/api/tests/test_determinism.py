@@ -34,6 +34,23 @@ def test_dialogue_signals_and_question_tiebreaks():
  weak=Target('required_hard_variable','weak','x',value=QuestionValue(uncertainty_reduction=.1))
  assert select_next([weak,valuable]).key == 'valuable'
  assert derive_phase(anchors_observed=2,strong_evidence=4,contradictions=1,project_modes=3,reviewed=False) == InterviewPhase.UNCERTAINTY_RESOLUTION
+
+
+def test_question_selection_rewards_continuity_but_penalizes_repetition():
+ connected = Target(
+  'project_critical_unknown', 'topics', 'x', continuity=1,
+  value=QuestionValue(uncertainty_reduction=.8, conversational_relevance=1, novelty=1),
+ )
+ unrelated = Target(
+  'project_critical_unknown', 'motivation', 'x', continuity=0,
+  value=QuestionValue(uncertainty_reduction=.8, conversational_relevance=0, novelty=1),
+ )
+ assert select_next([unrelated, connected]).key == 'topics'
+ repeated = Target(
+  'project_critical_unknown', 'topics', 'x', continuity=1, asked_count=2,
+  value=connected.value,
+ )
+ assert select_next([unrelated, repeated]).key == 'motivation'
 def test_contexts_are_independent_and_writer_bounded():
  c=ContextBuilder(); transcript=list(range(20)); q=c.question_writer('x',transcript,'memory','profile'); m=c.memory(transcript,20)
  assert q['recent_messages']==list(range(12,20)) and 'raw_transcript' not in q and 'profile' not in m

@@ -41,22 +41,33 @@ Until interest depth is ready, **do not emit** other required dims (`work_mode`,
 Depth is ready when `topics` is `supported`/`contradicted`, or the top interest
 has score ≥ 2 with ≥ 2 evidence rows (a single mention never unlocks work-mode).
 
-### Seven anchors
+### Conversation path and seven assessment anchors
 
-1. Warm interests open (greetings are **not** thin; no chips on turn 1; acknowledge hello)
-2. Interest depth (behavioral 0–4) — **before** work-mode
-3. Contextual work-mode A/B/C/D in the student’s activity language (not “project” by default)
-4. Behavioral proof for strong self-claims
-5. Motivation primary + secondary tradeoff
-6. Persistence + ambiguity
-7. Hard outreach / visibility / geo must-haves
+1. Human introduction: ask the student's name, then city/region and country (greetings are
+   **not** thin; no chips; these social turns are not assessment dimensions)
+2. Warm interests open, followed by concrete curiosity about the detail they volunteered
+3. Interest depth (behavioral 0–4) — **before** work-mode
+4. Contextual work-mode in the student’s activity language (not “project” by default)
+5. Behavioral proof for strong self-claims
+6. Motivation primary + secondary tradeoff
+7. Persistence + ambiguity
+8. Hard outreach / visibility / geo must-haves
 
 After anchors: ask the unknown that **changes leading project options**.
 
 ### Thin answers
 
-`idk` / ultra-short mid-assessment answers may switch to elicitation chips.
+`idk` first receives a smaller open rephrase on the same subject. Only a repeated explicit
+insufficient answer may switch to optional elicitation choices; ordinary short answers never
+trigger a forced-choice menu. A third failed attempt advances rather than badgering.
 Social openers (`hello`, name intros) before any assistant question are **never** thin.
+
+### Next-question decisions
+
+Candidates are scored from uncertainty, evidence weakness, project discrimination,
+continuity with the latest accepted evidence, novelty, and prior asks. The selected score and
+its factors are stored with the question rationale and decision trace. Contradiction repair
+still takes precedence, but questionnaire order alone does not decide ordinary turns.
 
 ---
 

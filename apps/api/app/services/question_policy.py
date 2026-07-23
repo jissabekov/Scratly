@@ -7,6 +7,7 @@ value scoring, and interview-phase derivation.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -345,14 +346,10 @@ _REQUIRED_FALLBACKS = {
         "actually been spending it on?"
     ),
     "work_mode": (
-        "When you're into something you care about, what usually pulls you in most — "
-        "figuring out how it works, making or fixing things, getting people organized, "
-        "or explaining it so others get it?"
+        "Thinking about what you just described, which part do you enjoy doing most?"
     ),
     "motivation": (
-        "If something you care about went really well, which outcome would matter most — "
-        "mastering something hard, beating a target, helping someone, being noticed, "
-        "or people counting on you?"
+        "What usually makes something feel worth the time you put into it?"
     ),
     "execution": (
         "What's something difficult you kept working at after it became frustrating "
@@ -388,17 +385,49 @@ _REQUIRED_FALLBACKS = {
 
 
 def interest_depth_fallback(topic: str | None = None) -> str:
-    """Behavioral depth ask — not a work-mode / project-framed question."""
+    """Natural follow-up to an interest — not a survey about engagement levels."""
     if topic:
         label = str(topic).replace("_", " ").strip()
-        return (
-            f"Got it — {label}. Is that more occasional, something you do a lot, "
-            f"or something you get pretty deep into?"
+        if any(word in label.lower() for word in ("game", "gaming")):
+            return f"Nice — what games have you been playing lately?"
+        return f"Nice — what do you enjoy most about {label}?"
+    return "Nice — what do you enjoy most about it?"
+
+
+def social_intro_target(
+    last_target_key: str | None, student_text: str | None
+) -> Target | None:
+    """Return the next low-pressure introduction turn, if one is due.
+
+    Introductions are deliberately outside the assessment dimensions. This makes
+    the first exchange feel like meeting a person rather than starting a form.
+    """
+    lowered = " ".join((student_text or "").lower().strip().split())
+    if last_target_key is None:
+        supplied_name = bool(
+            re.search(r"\b(?:i(?:'m| am)|my name is)\s+[a-z]", lowered)
         )
-    return (
-        "Got it. Is that more occasional, something you do a lot, "
-        "or something you get pretty deep into?"
-    )
+        if supplied_name:
+            return Target(
+                "social_intro",
+                "social_location",
+                "Nice to meet you. Where are you from — just your city or region and country?",
+                continuity=1.0,
+            )
+        return Target(
+            "social_intro",
+            "social_name",
+            "Hey! Nice to meet you — what's your name?",
+            continuity=1.0,
+        )
+    if last_target_key == "social_name":
+        return Target(
+            "social_intro",
+            "social_location",
+            "Nice to meet you. Where are you from — just your city or region and country?",
+            continuity=1.0,
+        )
+    return None
 
 
 def required_fallback(key: str) -> str:

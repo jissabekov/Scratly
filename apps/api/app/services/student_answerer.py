@@ -20,16 +20,15 @@ _PURPOSE = (
 
 _PROCESS_TEMPLATES = {
     "topics": (
-        "I start with what you actually spend time on, so any project idea later "
-        "feels like something you'd care about — not a random assignment."
+        "I just mean how you choose to spend your time when nobody is assigning you anything. "
+        "Games absolutely count."
     ),
     "motivation": (
         "I'm trying to learn what kind of win matters most to you — mastering something, "
         "beating a target, helping people, being noticed, or people counting on you."
     ),
     "work_mode": (
-        "I'm asking what kind of work energizes you — figuring things out, making things, "
-        "organizing people, or explaining ideas — so suggestions fit how you like to work."
+        "I mean the part of an activity you naturally enjoy doing. I worded that badly."
     ),
     "execution": (
         "I'm checking practical fit — like sticking with hard stuff, unclear goals, "
@@ -86,7 +85,7 @@ def answer_scope_gate(
     intent: TurnIntentPacket,
     *,
     consecutive_student_questions: int = 0,
-    max_consecutive: int = 2,
+    max_consecutive: int | None = None,
 ) -> StudentAnswerOutput | None:
     """Return a forced refusal/redirect when scope or caps require it.
 
@@ -99,7 +98,7 @@ def answer_scope_gate(
             text=_REFUSAL_HOMEWORK,
             refusal_reason_code="out_of_scope_homework_or_general",
         )
-    if consecutive_student_questions >= max_consecutive:
+    if max_consecutive is not None and consecutive_student_questions >= max_consecutive:
         return StudentAnswerOutput(
             mode=StudentAnswerMode.REFUSE,
             text=(
