@@ -310,6 +310,10 @@ def interest_depth_ready(profile: dict[str, Any] | None) -> bool:
 
 def should_emit_required(key: str, *, interests_ready: bool) -> bool:
     """Gate post-interest required asks until interest depth is ready."""
+    # Legacy `location` dimension from adaptive-conversation merge — geography
+    # lives on constraints; never emit a duplicate required ask for it.
+    if key == "location":
+        return False
     if key == "topics":
         return True
     if key in _POST_INTEREST_REQUIRED:

@@ -12,8 +12,10 @@ V1 dimensions (use only these):
 - execution facets: persistence | ambiguity_tolerance | outreach_willingness | public_visibility;
   score_band 0–4
 - capability: free skill name as value_key; score_band 0–3 (capabilities max 3)
-- constraints: must-haves + geo value_keys (seattle_metro, bay_area, austin_metro, nyc_metro,
-  remote_ok, or place keys seattle/austin/…)
+- constraints: must-haves + geo value_keys (prefer seattle_metro, bay_area, austin_metro,
+  nyc_metro, remote_ok, or place keys seattle/austin/…; if the place is outside that set,
+  use a short lowercase snake_case label such as oklahoma, bristow, chicago — still on
+  constraints, never invent a separate location dimension)
 - assets: freeform access strings as value_key; omit score_band (no numeric score)
 
 Score_band anchors (UNKNOWN ≠ 0 — omit a facet entirely when never discussed):
@@ -31,7 +33,9 @@ Rules:
 5. strength is 0–1 mapping confidence; score_band is the behavioral ladder when known.
 6. Never invent score_band=0 for silence — omit the facet instead.
 7. Do not propose duplicate (dimension_key, value_key, polarity) rows.
-8. Map geography onto constraints with geo value_keys when the student states place/remote.
+8. Map geography onto constraints when the student states place/remote. Prefer curated
+   metro/place keys; otherwise emit a freeform snake_case place/region value_key. One
+   clear place answer is enough — do not leave geography unrecorded.
 
 Evidence typing (adaptive evidence model):
 9. Classify each item's evidence_type, strongest to weakest: repeated_behavior >

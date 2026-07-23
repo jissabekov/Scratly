@@ -181,12 +181,29 @@ def test_elicitation_options_and_quality_gate():
 def test_location_established_and_stage_gate():
     assert location_established_from_values(["seattle_metro"])
     assert not location_established_from_values(["evening_only"])
+    assert not location_established_from_values(["time_limited"])
+    # Freeform city/state labels must count — otherwise we re-ask after answers
+    # like "Bristow, Oklahoma" stored as constraints/oklahoma.
+    assert location_established_from_values(["oklahoma"])
+    assert location_established_from_values(["bristow"])
     profile = {
         "dimensions": [
             {"key": "constraints", "status": "supported", "value": "seattle_metro"}
         ]
     }
     assert location_established_from_profile(profile)
+    freeform = {
+        "dimensions": [
+            {
+                "key": "constraints",
+                "status": "supported",
+                "value": "oklahoma",
+                "values": ["oklahoma"],
+            }
+        ],
+        "constraints": {"geo": [], "details": ["oklahoma"], "status": "supported"},
+    }
+    assert location_established_from_profile(freeform)
     assert (
         derive_stage(
             coverage_established=0.95,
@@ -207,6 +224,14 @@ def test_location_established_and_stage_gate():
         )
         == "project_matching"
     )
+
+
+def test_should_not_emit_legacy_location_dimension():
+    from app.services.question_policy import should_emit_required
+
+    assert should_emit_required("location", interests_ready=True) is False
+    assert should_emit_required("location", interests_ready=False) is False
+    assert should_emit_required("topics", interests_ready=False) is True
 
 
 def test_opportunity_geo_filter():

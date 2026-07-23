@@ -3,10 +3,14 @@ BEGIN;
 -- Reply-signal routing is audited as a first-class decision event.
 ALTER TYPE audit.decision_event_type ADD VALUE IF NOT EXISTS 'reply_signal_classified';
 
--- Location is opportunity-critical but deliberately broad: exact addresses are never needed.
+-- Optional legacy location dimension (not required). V1 stores geography on
+-- assessment.constraints; a required duplicate caused re-asks after answers like
+-- "Bristow, Oklahoma". See 009_demote_location_dimension.sql for existing DBs.
 INSERT INTO assessment.dimensions(key, label, required, ordinal)
-VALUES ('location', 'Broad location', true, 9)
-ON CONFLICT (key) DO NOTHING;
+VALUES ('location', 'Broad location (legacy; use constraints)', false, 9)
+ON CONFLICT (key) DO UPDATE
+SET required = false,
+    label = EXCLUDED.label;
 
 INSERT INTO assessment.question_intents(key, priority, fallback_template)
 VALUES
