@@ -25,9 +25,11 @@ from app.services.question_policy import (
     classify_reply,
     derive_stage,
     interest_depth_fallback,
+    plan_next,
     question_value,
     select_next,
     social_intro_target,
+    is_topic_rejection,
 )
 from app.services.question_quality import apply_question_quality_gate
 from app.services.student_answerer import (
@@ -418,20 +420,53 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         social_target = social_intro_target(
             (last_q or {}).get("target_key"), request.text
         )
-        same_subject = None
-        if reply_signal == ReplySignal.INSUFFICIENT and last_q:
-            same_subject = next(
-                (
-                    candidate
-                    for candidate in candidates
-                    if candidate.key == last_q.get("target_key")
-                ),
-                None,
+        planner_decision = None
+        if social_target is None:
+            # The policy owns subject selection. The writer receives this decision
+            # later and is never allowed to continue a topic on conversational instinct.
+            blocked_topics: tuple[str, ...] = ()
+            load_blocked = getattr(tx, "rejected_topics", None)
+            if load_blocked:
+                blocked_topics = tuple(await load_blocked())
+            if is_topic_rejection(request.text) and (last_q or {}).get("target_key"):
+                block_topic = getattr(tx, "reject_topic", None)
+                if block_topic:
+                    await block_topic((last_q or {})["target_key"])
+                blocked_topics = tuple(
+                    sorted(set(blocked_topics) | {(last_q or {})["target_key"]})
+                )
+            planner_decision = plan_next(
+                candidates,
+                last_target_key=(last_q or {}).get("target_key"),
+                student_text=request.text,
+                breadth_complete=bool(stage_inputs.get("coverage_touched", 0) >= 0.8),
+                blocked_topics=blocked_topics,
             )
-        target = social_target or same_subject or select_next(candidates) or _FALLBACK_TARGET
+        target = (
+            social_target
+            or (planner_decision.target if planner_decision else None)
+            or _FALLBACK_TARGET
+        )
+        if planner_decision:
+            await trace.record(
+                "question_target_selected",
+                "conversation_planner",
+                "v1",
+                f"Planner chose {planner_decision.action.value} toward {target.key}.",
+                planner_decision.reason,
+                outputs={
+                    "action": planner_decision.action.value,
+                    "phase": planner_decision.phase.value,
+                    "target_key": target.key,
+                    "avoid_topics": list(planner_decision.avoid_topics),
+                },
+            )
 
         # Framing pushback ("I just play — why a project?") → stay on interest depth.
-        if is_framing_pushback(request.text):
+        if is_framing_pushback(request.text) and not (
+            planner_decision
+            and planner_decision.reason in {"friction_detected", "topic_rejected"}
+        ):
             topics_status = next(
                 (
                     d.get("status")
@@ -710,6 +745,14 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     else None,
                     previous_assistant_question=previous_assistant,
                 )
+                if planner_decision:
+                    writer_context["planner_decision"] = {
+                        "action": planner_decision.action.value,
+                        "target": target.key,
+                        "reason": planner_decision.reason,
+                        "avoid_topics": list(planner_decision.avoid_topics),
+                        "phase": planner_decision.phase.value,
+                    }
                 if opening_mode:
                     writer_context["opening_mode"] = opening_mode
                 if target.kind == "elicitation":

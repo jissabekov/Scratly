@@ -76,7 +76,9 @@ class ContextBuilder:
             "previous_assistant_question": previous_assistant_question,
             "conversation_rules": {
                 "one_question_only": True,
-                "acknowledge_before_probe": True,
+                "acknowledgment_optional": True,
+                "never_mechanically_repeat_student_answer": True,
+                "writer_must_not_change_planner_target": True,
                 "never_expand_playing_into_building_or_projects": True,
                 "prefer_concrete_past_behavior_over_hypotheticals": True,
                 "repair_corrections_before_continuing": True,

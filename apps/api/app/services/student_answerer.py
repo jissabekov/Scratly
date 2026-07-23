@@ -219,7 +219,12 @@ def seeded_student_answer(
         if last_target_key and last_target_key not in {"default", "profile"}:
             text = f"{_PURPOSE} {dim_text}"
     elif asks_why:
-        text = dim_text
+        text = (
+            "Fair question. I’m not trying to analyze that one subject or turn one "
+            "answer into a personality label. I look for small patterns across different "
+            "parts of your life so the eventual project suggestions fit. One answer won't "
+            "decide anything—we've gotten enough from this topic, so let's switch."
+        )
     elif last_target_key in {None, "default", "profile"}:
         text = _PROCESS_TEMPLATES["default"]
     else:

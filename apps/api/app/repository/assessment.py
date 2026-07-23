@@ -1906,6 +1906,30 @@ class TurnTransaction:
         row = result.mappings().first()
         return dict(row) if row else None
 
+    async def rejected_topics(self) -> list[str]:
+        """Hard conversation boundaries set by explicit student requests."""
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text("SELECT rejected_topic_keys FROM core.sessions WHERE id = :session_id"),
+            {"session_id": self._session_id},
+        )
+        return list(result.scalar_one() or [])
+
+    async def reject_topic(self, target_key: str) -> None:
+        assert self._session_id is not None
+        await self.session.execute(
+            text(
+                """
+                UPDATE core.sessions
+                   SET rejected_topic_keys = (
+                       SELECT ARRAY(SELECT DISTINCT unnest(rejected_topic_keys || ARRAY[:key]))
+                   ), updated_at = now()
+                 WHERE id = :session_id
+                """
+            ),
+            {"session_id": self._session_id, "key": target_key},
+        )
+
     async def accepted_evidence_summaries(self, limit: int = 40) -> list[dict[str, Any]]:
         assert self._session_id is not None
         result = await self.session.execute(

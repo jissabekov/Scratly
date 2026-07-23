@@ -214,24 +214,21 @@ def test_interest_depth_gates_work_mode():
     assert "project" not in depth_q
 
 
-def test_social_intro_asks_name_then_location_before_assessment():
+def test_social_intro_establishes_contract_without_intake_questions():
     first = social_intro_target(None, "hello")
     assert first is not None
-    assert first.key == "social_name"
-    assert "name" in first.fallback_template.lower()
+    assert first.key == "conversation_contract"
+    assert "bounce" in first.fallback_template.lower()
+    assert "name" not in first.fallback_template.lower()
 
-    second = social_intro_target("social_name", "Sam")
-    assert second is not None
-    assert second.key == "social_location"
-    assert "city or region" in second.fallback_template.lower()
-
-    assert social_intro_target("social_location", "Leeds, UK") is None
+    assert social_intro_target("conversation_contract", "video games") is None
 
 
 def test_social_intro_does_not_reask_a_volunteered_name():
     target = social_intro_target(None, "Hi, my name is Maya")
     assert target is not None
-    assert target.key == "social_location"
+    assert target.key == "conversation_contract"
+    assert "name" not in target.fallback_template.lower()
 
 
 def test_framing_pushback_answer_is_conversational():
