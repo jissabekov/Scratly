@@ -7,7 +7,6 @@ value scoring, and interview-phase derivation.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -98,6 +97,132 @@ class InterviewPhase(StrEnum):
     REFLECTIVE_VALIDATION = "reflective_validation"
 
 
+class PlannerAction(StrEnum):
+    """The planner's intention; the question writer may not change it."""
+
+    FOLLOW_UP = "follow_up"
+    SWITCH = "switch"
+    BRIDGE = "bridge"
+    CLARIFY = "clarify"
+    VERIFY = "verify"
+    GATE = "gate"
+
+
+class DiscoveryPhase(StrEnum):
+    CONTRACT = "conversation_contract"
+    BREADTH = "breadth_scan"
+    VERIFY = "selective_verification"
+    FEASIBILITY = "hard_feasibility"
+    REFLECTION = "reflection"
+
+
+DEFAULT_MAX_TOPIC_DEPTH = 2
+ABSOLUTE_MAX_TOPIC_DEPTH = 3
+
+
+@dataclass(frozen=True)
+class PlannerDecision:
+    target: Target
+    action: PlannerAction
+    phase: DiscoveryPhase
+    reason: str
+    avoid_topics: tuple[str, ...] = ()
+
+
+def is_topic_rejection(text: str) -> bool:
+    normalized = " ".join((text or "").lower().split())
+    return any(cue in normalized for cue in (
+        "talk about something else", "change the subject", "different topic",
+        "move on", "stop asking about", "don't want to talk about",
+        "dont want to talk about",
+    ))
+
+
+def is_frustration(text: str) -> bool:
+    normalized = " ".join((text or "").lower().split())
+    return is_topic_rejection(normalized) or any(cue in normalized for cue in (
+        "why are you asking", "why do you keep asking", "this is annoying",
+        "are you analyzing me", "personality test",
+    ))
+
+
+def plan_next(
+    candidates: list[Target],
+    *,
+    last_target_key: str | None,
+    student_text: str,
+    breadth_complete: bool = False,
+    blocked_topics: tuple[str, ...] = (),
+) -> PlannerDecision | None:
+    """Choose *what* happens next with hard breadth and saturation controls.
+
+    Candidate ``key`` is the persisted topic identifier. A rejected topic is
+    excluded immediately; the caller can persist that boundary in its trace.
+    During breadth, an exhausted branch can never beat a major unasked area.
+    """
+    if not candidates:
+        return None
+    rejected = is_topic_rejection(student_text)
+    frustrated = is_frustration(student_text)
+    blocked = set(blocked_topics)
+    if rejected and last_target_key:
+        blocked.add(last_target_key)
+    pool = [c for c in candidates if c.key not in blocked]
+    if not pool:
+        pool = candidates
+
+    major_uncovered = [c for c in pool if c.asked_count == 0]
+    current = [c for c in pool if c.key == last_target_key]
+    current_depth = max((c.asked_count for c in current), default=0)
+
+    if rejected or frustrated:
+        target = select_next(major_uncovered or [c for c in pool if c.key != last_target_key] or pool)
+        return PlannerDecision(
+            target=target,
+            action=PlannerAction.SWITCH,
+            phase=DiscoveryPhase.BREADTH,
+            reason="topic_rejected" if rejected else "friction_detected",
+            avoid_topics=tuple(sorted(blocked)),
+        )
+
+    if classify_reply(student_text) == ReplySignal.INSUFFICIENT and major_uncovered:
+        target = select_next([c for c in major_uncovered if c.key != last_target_key] or major_uncovered)
+        return PlannerDecision(target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "branch_yield_collapsed")
+
+    if not breadth_complete and major_uncovered and current_depth >= DEFAULT_MAX_TOPIC_DEPTH:
+        target = select_next([c for c in major_uncovered if c.key != last_target_key] or major_uncovered)
+        return PlannerDecision(target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "topic_budget_reached")
+
+    # A fourth ask is invalid before breadth completes, regardless of score.
+    eligible = [
+        c for c in pool
+        if breadth_complete or c.asked_count < ABSOLUTE_MAX_TOPIC_DEPTH
+    ] or pool
+    target = select_next(eligible)
+    if target is None:
+        return None
+    if target.key == last_target_key:
+        action = PlannerAction.FOLLOW_UP
+        reason = "one_high_value_behavioral_follow_up"
+    else:
+        action = PlannerAction.BRIDGE if last_target_key else PlannerAction.SWITCH
+        reason = "largest_coverage_gap"
+    if target.kind == "contradiction":
+        action, reason = PlannerAction.CLARIFY, "resolve_contradiction"
+    elif target.kind == "required_hard_variable" and target.key in {
+        "constraints", "constraints:geo", "execution:outreach_willingness",
+        "execution:public_visibility",
+    }:
+        action, reason = PlannerAction.GATE, "hard_feasibility"
+    return PlannerDecision(
+        target,
+        action,
+        DiscoveryPhase.VERIFY if breadth_complete else DiscoveryPhase.BREADTH,
+        reason,
+        tuple(sorted(blocked)),
+    )
+
+
 @dataclass(frozen=True)
 class QuestionValue:
     project_discrimination: float = 0.0
@@ -152,6 +277,8 @@ def classify_reply(text: str) -> ReplySignal:
         "no idea",
         "nothing",
         "nothin",
+        "no",
+        "not really",
     }:
         return ReplySignal.INSUFFICIENT
     if len(normalized.split()) <= 4:
@@ -402,29 +529,13 @@ def social_intro_target(
     Introductions are deliberately outside the assessment dimensions. This makes
     the first exchange feel like meeting a person rather than starting a form.
     """
-    lowered = " ".join((student_text or "").lower().strip().split())
     if last_target_key is None:
-        supplied_name = bool(
-            re.search(r"\b(?:i(?:'m| am)|my name is)\s+[a-z]", lowered)
-        )
-        if supplied_name:
-            return Target(
-                "social_intro",
-                "social_location",
-                "Nice to meet you. Where are you from — just your city or region and country?",
-                continuity=1.0,
-            )
         return Target(
             "social_intro",
-            "social_name",
-            "Hey! Nice to meet you — what's your name?",
-            continuity=1.0,
-        )
-    if last_target_key == "social_name":
-        return Target(
-            "social_intro",
-            "social_location",
-            "Nice to meet you. Where are you from — just your city or region and country?",
+            "conversation_contract",
+            "I’m here to help find a course project you’d actually enjoy. I’ll bounce "
+            "around between what you like, what you’re good at, and what feels doable—"
+            "there are no right answers. What have you been into lately, even outside school?",
             continuity=1.0,
         )
     return None

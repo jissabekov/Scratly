@@ -92,8 +92,8 @@ def test_seeded_process_answer_states_course_project_purpose():
         last_target_key="topics",
         student_text="why are you asking this?",
     )
-    assert "spend your time" in why_topics.text.lower()
-    assert "games absolutely count" in why_topics.text.lower()
+    assert "personality label" in why_topics.text.lower()
+    assert "let's switch" in why_topics.text.lower()
 
 
 def test_heuristic_student_question_and_homework_refusal():

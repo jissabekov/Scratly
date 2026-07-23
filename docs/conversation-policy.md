@@ -1,12 +1,60 @@
-# Conversation policy (V1)
+# Conversation policy (V2: planner-controlled interview)
 
-The goal is minimum sufficient behavioral evidence, not a personality inventory. Priority is: repair a conversational rupture; resolve contradictions; establish a concrete behavioral anchor; gather required hard variables (including broad location); resolve project-critical unknowns; strengthen only decision-changing provisional dimensions; discriminate projects; validate the profile. Within a priority, the deterministic policy favors an unasked, continuous, high-information probe. Application state advances through discovery, measurement, gap-resolution, profile-review, project-matching, and complete. The model only personalizes the selected seeded intent; failures use its fallback template.
+## Control boundary
 
-Every student-facing turn acknowledges or repairs before it probes, stays literal to volunteered facts, and asks one question. Recent concrete behavior is preferred to trait labels, hypotheticals, or forced-choice menus. Corrections must discard the rejected premise. Internal state and policy are never narrated to the student. Location means city/region and country at most—never an address—and is requested with a plain explanation that it keeps opportunities realistic.
+The system has two separate responsibilities and only one owns subject selection:
 
-Internally the orchestration is a non-rigid six-phase loop: broad discovery, behavioral evidence, preference discrimination, uncertainty/contradiction resolution, project-fit probing, and reflective validation. Curated intents define purpose, target signals, prerequisites, allowed format, avoidance rules, and whether a behavioral follow-up is required. The LLM personalizes only the selected intent.
+`answer → evidence extractor → student/coverage/evidence maps → deterministic planner → question writer`
 
-Candidate value is a deterministic V1 proxy: 30% project discrimination, 25% uncertainty reduction, 15% evidence weakness, 15% contradiction resolution, 10% conversational relevance, and 5% novelty, minus repetition, leading, sensitivity, and fatigue penalties. Repair and open contradictions take precedence. All other questions compete on value to the project decision—not on questionnaire order. The system stops when required constraints are known, contradictions that could change the decision are resolved, and one project mode reaches the configured confidence threshold.
+The planner emits `{action, target, reason, avoid_topics, phase}`. Its actions are
+`FOLLOW_UP`, `SWITCH`, `BRIDGE`, `CLARIFY`, `VERIFY`, and `GATE`. The writer decides only
+how to express that intention naturally. It must not replace the target, add another probe,
+or remain on the prior subject for continuity. The decision and its factors are traced.
+
+## Five phases
+
+1. **Conversation contract** (1–2 turns): explain the project-matching purpose, say the
+   conversation will bounce around, and do not request account data already known.
+2. **Breadth scan** (about 10–15 questions): touch interests, social context, natural
+   competence, friction, school/work behavior, online attention, outside activities, and
+   local exposure. Ask one or two questions per area; breadth outranks continuity.
+3. **Selective verification** (about 4–7 questions): test only useful tentative patterns
+   in an unrelated context, or use a balanced project tradeoff. A behavior is tentative;
+   corroboration across contexts makes it supported; repeated behavior plus an explicit
+   preference can make it strong. Never infer a personality verdict from one behavior.
+4. **Hard feasibility**: directly collect time, tools, transportation, privacy, outreach,
+   visibility, skills, people/organization access, and location/community access.
+5. **Reflection**: summarize supported evidence, clearly label tentative and unknown areas,
+   and ask the student what is wrong before matching projects.
+
+## Coverage and evidence maps
+
+Coverage tracks interests; investigate/build/organize/communicate; rewards; persistence;
+ambiguity; outreach; visibility; social/community context; capabilities; local exposure;
+assets/access; and constraints. Each is `unknown`, `provisional`, `supported`, or
+`contradicted`. **Unknown is never low or zero.** Evidence stores its concrete behavior,
+context, source, count, and status rather than a personality probability. Cross-context
+evidence is required to promote a behavioral pattern.
+
+## Hard saturation and friction rules
+
+`DEFAULT_MAX_TOPIC_DEPTH = 2`; `ABSOLUTE_MAX_TOPIC_DEPTH = 3`. A branch normally receives
+one discovery question and one behavioral follow-up. A third question is allowed only for
+important clarification. A fourth is invalid until breadth is complete. High saturation
+plus a major uncovered area makes `FOLLOW_UP` invalid.
+
+`no`, `not really`, and `I don't know` collapse branch utility and cause a switch unless the
+field is an essential feasibility gate. Do not rephrase the same failed probe. An explicit
+topic-change request blocks the current topic, adds friction, and prevents return unless the
+student reopens it. Frustration or “why are you asking?” produces a transparent explanation,
+reassurance that one answer decides nothing, a lighter breadth question, and a switch.
+
+Candidate value is conceptually:
+
+`gap × project importance × discrimination × evidence quality − redundancy − fatigue − friction − sensitivity`.
+
+Repair and decision-changing contradictions may override ordinary scoring. In all other
+cases the largest important coverage gap wins; continuity is only a small writing concern.
 
 Machine rules for **what to ask next** and **which stage** the session is in.
 The model personalizes the selected intent; it does not choose priority or stage.

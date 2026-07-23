@@ -3,7 +3,7 @@ from uuid import uuid4
 from app.contracts import ProposedEvidence
 from app.services.grounding_validator import validate_grounding
 from app.services.profile_reducer import reduce_profile
-from app.services.question_policy import InterviewPhase, QuestionValue, ReplySignal, Target, classify_reply, derive_phase, select_next, derive_stage
+from app.services.question_policy import InterviewPhase, PlannerAction, QuestionValue, ReplySignal, Target, classify_reply, derive_phase, plan_next, select_next, derive_stage
 from app.services.project_matcher import decision_entropy, fit_distribution, rank_projects, recommendation_ready
 from app.services.question_quality import validate_question
 from app.services.azure_openai import _json_default
@@ -34,6 +34,32 @@ def test_dialogue_signals_and_question_tiebreaks():
  weak=Target('required_hard_variable','weak','x',value=QuestionValue(uncertainty_reduction=.1))
  assert select_next([weak,valuable]).key == 'valuable'
  assert derive_phase(anchors_observed=2,strong_evidence=4,contradictions=1,project_modes=3,reviewed=False) == InterviewPhase.UNCERTAINTY_RESOLUTION
+
+
+def test_planner_enforces_topic_budget_and_rejection():
+ current = Target('project_critical_unknown', 'topics', 'x', asked_count=2)
+ gap = Target('required_hard_variable', 'capability', 'y', asked_count=0)
+ decision = plan_next([current, gap], last_target_key='topics', student_text='more detail')
+ assert decision.action == PlannerAction.SWITCH
+ assert decision.target.key == 'capability'
+ assert decision.reason == 'topic_budget_reached'
+
+ rejected = plan_next(
+  [current, gap], last_target_key='topics',
+  student_text='Can we talk about something else?'
+ )
+ assert rejected.action == PlannerAction.SWITCH
+ assert rejected.target.key == 'capability'
+ assert rejected.avoid_topics == ('topics',)
+
+
+def test_no_and_unknown_kill_weak_branches():
+ assert classify_reply('no') == ReplySignal.INSUFFICIENT
+ assert classify_reply("I don't know") == ReplySignal.INSUFFICIENT
+ current = Target('project_critical_unknown', 'topics', 'x', asked_count=1)
+ gap = Target('required_hard_variable', 'assets', 'y', asked_count=0)
+ decision = plan_next([current, gap], last_target_key='topics', student_text='no')
+ assert decision.target.key == 'assets'
 
 
 def test_question_selection_rewards_continuity_but_penalizes_repetition():
