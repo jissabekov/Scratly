@@ -32,10 +32,12 @@ from app.services.contradiction_engine import (
 from app.services.grounding_validator import validate_grounding
 from app.services.profile_reducer import reduce_profile
 from app.services.question_policy import (
+    QuestionValue,
     Target,
     contradiction_fallback,
     interest_depth_fallback,
     interest_depth_ready,
+    question_value,
     required_fallback,
     should_emit_required,
 )
@@ -870,6 +872,37 @@ class TurnTransaction:
         )
         coverage_rows = list(coverage.mappings())
 
+        question_history = await self.session.execute(
+            text(
+                """
+                SELECT q.target_key, count(*)::int AS asked_count
+                  FROM assessment.questions q
+                 WHERE q.session_id = :session_id
+                 GROUP BY q.target_key
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        asked_by_key = {
+            row["target_key"]: int(row["asked_count"])
+            for row in question_history.mappings()
+        }
+        latest_evidence = await self.session.execute(
+            text(
+                """
+                SELECT d.key AS dimension_key
+                  FROM assessment.evidence e
+                  JOIN assessment.dimensions d ON d.id = e.dimension_id
+                 WHERE e.session_id = :session_id AND e.status = 'accepted'
+                   AND d.key <> 'constraints'
+                 ORDER BY e.created_at DESC
+                 LIMIT 1
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        latest_dimension = latest_evidence.scalar_one_or_none()
+
         # Load accepted evidence once for contradiction side labels.
         evidence_rows = await self.session.execute(
             text(
@@ -919,12 +952,40 @@ class TurnTransaction:
                     topic_label = str(dim["value"])
                     break
 
+        status_by_key = {row["key"]: row["status"] for row in coverage_rows}
+
         def add(kind: str, key: str, fallback: str | None = None) -> None:
             intent = intent_map.get(kind)
             if intent is None:
                 return
             template = fallback if fallback is not None else intent["fallback_template"]
-            candidates.append(Target(kind=kind, key=key, fallback_template=template))
+            status = status_by_key.get(key.split(":", 1)[0], "unknown")
+            uncertainty = {
+                "unknown": 1.0,
+                "provisional": 0.75,
+                "contradicted": 1.0,
+                "supported": 0.15,
+            }.get(status, 0.5)
+            continuity = 1.0 if key.split(":", 1)[0] == latest_dimension else 0.25
+            candidates.append(
+                Target(
+                    kind=kind,
+                    key=key,
+                    fallback_template=template,
+                    asked_count=asked_by_key.get(key, 0),
+                    continuity=continuity,
+                    value=QuestionValue(
+                        uncertainty_reduction=uncertainty,
+                        evidence_weakness=uncertainty,
+                        conversational_relevance=continuity,
+                        novelty=1.0 if asked_by_key.get(key, 0) == 0 else 0.0,
+                        contradiction_resolution=1.0 if kind == "contradiction" else 0.0,
+                        project_discrimination=0.8
+                        if kind in {"project_critical_unknown", "project_discrimination"}
+                        else 0.4,
+                    ),
+                )
+            )
 
         for row in open_contradictions.mappings():
             dim = row["dimension_key"]
@@ -1538,6 +1599,12 @@ class TurnTransaction:
             "target_key": target.key,
             "used_fallback": used_fallback,
             "message_kind": message_kind,
+            "asked_count_before": target.asked_count,
+            "decision_value": question_value(target),
+            "decision_factors": {
+                "continuity": target.continuity,
+                **target.value.__dict__,
+            },
             "transition": {
                 k: transition.get(k)
                 for k in ("version", "contradiction_count", "snapshot_id")

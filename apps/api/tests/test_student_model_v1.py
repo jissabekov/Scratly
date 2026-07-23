@@ -13,7 +13,12 @@ from app.contracts import (
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.profile_reducer import reduce_profile
 from app.services.project_matcher import rank_projects
-from app.services.question_policy import Target, required_fallback, select_next
+from app.services.question_policy import (
+    Target,
+    required_fallback,
+    select_next,
+    social_intro_target,
+)
 from app.services.thin_answer import evaluate_thin_answer
 from app.services.student_answerer import seeded_student_answer
 from app.services.turn_intent_classifier import heuristic_classify
@@ -205,8 +210,28 @@ def test_interest_depth_gates_work_mode():
     assert not interest_depth_ready(single_high)
 
     depth_q = interest_depth_fallback("videogames").lower()
-    assert "occasional" in depth_q or "deep" in depth_q
+    assert "what games" in depth_q
     assert "project" not in depth_q
+
+
+def test_social_intro_asks_name_then_location_before_assessment():
+    first = social_intro_target(None, "hello")
+    assert first is not None
+    assert first.key == "social_name"
+    assert "name" in first.fallback_template.lower()
+
+    second = social_intro_target("social_name", "Sam")
+    assert second is not None
+    assert second.key == "social_location"
+    assert "city or region" in second.fallback_template.lower()
+
+    assert social_intro_target("social_location", "Leeds, UK") is None
+
+
+def test_social_intro_does_not_reask_a_volunteered_name():
+    target = social_intro_target(None, "Hi, my name is Maya")
+    assert target is not None
+    assert target.key == "social_location"
 
 
 def test_framing_pushback_answer_is_conversational():

@@ -10,7 +10,11 @@ from app.contracts import (
     ValidatedEvidence,
 )
 from app.services.decision_trace import DecisionTraceRecorder
-from app.services.elicitation_policy import build_elicitation_spec, elicitation_target
+from app.services.elicitation_policy import (
+    build_elicitation_spec,
+    elicitation_target,
+    should_offer_options,
+)
 from app.services.location_policy import extract_geo_from_profile
 from app.services.memory_compactor import MemoryCompactor
 from app.services.opportunity_matcher import rank_opportunities
@@ -21,7 +25,9 @@ from app.services.question_policy import (
     classify_reply,
     derive_stage,
     interest_depth_fallback,
+    question_value,
     select_next,
+    social_intro_target,
 )
 from app.services.question_quality import apply_question_quality_gate
 from app.services.student_answerer import (
@@ -409,7 +415,20 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             outputs={"reply_signal": reply_signal.value},
         )
 
-        target = select_next(candidates) or _FALLBACK_TARGET
+        social_target = social_intro_target(
+            (last_q or {}).get("target_key"), request.text
+        )
+        same_subject = None
+        if reply_signal == ReplySignal.INSUFFICIENT and last_q:
+            same_subject = next(
+                (
+                    candidate
+                    for candidate in candidates
+                    if candidate.key == last_q.get("target_key")
+                ),
+                None,
+            )
+        target = social_target or same_subject or select_next(candidates) or _FALLBACK_TARGET
 
         # Framing pushback ("I just play — why a project?") → stay on interest depth.
         if is_framing_pushback(request.text):
@@ -485,14 +504,24 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 attempts += 1
             else:
                 attempts = 1
-            if attempts <= 2 and target.kind in {
+            can_recover = target.kind in {
                 "required_hard_variable",
                 "project_critical_unknown",
                 "provisional_dimension",
                 "project_discrimination",
                 "contradiction",
                 "elicitation",
-            }:
+            }
+            if can_recover and attempts == 1:
+                # First difficulty gets a smaller open question on the same topic.
+                # Persist the attempt so a repeated "idk" can unlock choices.
+                await tx.update_session_counters(
+                    elicitation_attempts_for_target=attempts,
+                    elicitation_target_key=elicit_key,
+                )
+            elif can_recover and should_offer_options(
+                reply_signal=reply_signal.value, attempts=attempts
+            ):
                 target = elicitation_target(elicit_key)
                 message_kind = "elicitation"
                 elicitation_spec = build_elicitation_spec(elicit_key)
@@ -511,7 +540,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                         "attempt": attempts,
                     },
                 )
-            else:
+            elif can_recover:
                 await trace.record(
                     "elicitation_exhausted",
                     "elicitation_policy",
@@ -545,8 +574,25 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             "v2",
             f"Selected {target.kind}:{target.key} from {len(candidates)} candidate(s).",
             f"priority_{target.kind}",
-            inputs={"candidate_kinds": [candidate.kind for candidate in candidates]},
-            outputs={"target_kind": target.kind, "target_key": target.key},
+            inputs={
+                "candidates": [
+                    {
+                        "kind": candidate.kind,
+                        "key": candidate.key,
+                        "decision_value": question_value(candidate),
+                        "asked_count": candidate.asked_count,
+                        "continuity": candidate.continuity,
+                    }
+                    for candidate in candidates
+                ]
+            },
+            outputs={
+                "target_kind": target.kind,
+                "target_key": target.key,
+                "decision_value": question_value(target),
+                "asked_count": target.asked_count,
+                "continuity": target.continuity,
+            },
         )
 
         stage = derive_stage(**stage_inputs)
@@ -639,6 +685,19 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     "Used seeded interest-depth ask after framing pushback.",
                     "framing_pushback_seeded_depth",
                     outputs={"target_kind": target.kind},
+                )
+            elif target.kind == "social_intro":
+                # Social introductions are deterministic: an assessment writer
+                # must not turn "what's your name?" into a scored survey item.
+                question = target.fallback_template
+                used_fallback = True
+                await trace.record(
+                    "question_fallback_used",
+                    "question_writer",
+                    "v2",
+                    "Used the seeded social introduction question.",
+                    "social_intro_seeded",
+                    outputs={"target_key": target.key},
                 )
             else:
                 writer_context = context_builder.question_writer(

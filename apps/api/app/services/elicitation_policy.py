@@ -13,9 +13,9 @@ _OPTION_BANKS: dict[str, list[tuple[str, str]]] = {
         ("communicate", "explain it so people pay attention"),
     ],
     "topics": [
-        ("sports_media", "sports / media / content"),
-        ("tech_build", "building tech / prototypes"),
-        ("community_civic", "community / civic impact"),
+        ("games_online", "games or online stuff"),
+        ("sports_active", "sports or being active"),
+        ("creative_media", "music, shows, or making things"),
     ],
     "motivation": [
         ("discovery_mastery", "getting really good / understanding it"),
@@ -78,7 +78,7 @@ def build_elicitation_spec(dimension_key: str) -> ElicitationSpec:
     labels = [o.label for o in options]
     if len(labels) >= 2:
         template = (
-            f"For {dimension_key.replace('_', ' ').replace(':', ' ')}, which is closer: "
+            "No pressure — would any of these be close: "
             f"{labels[0]}, {labels[1]}"
             + (f", or {labels[2]}" if len(labels) > 2 else "")
             + " — or something else?"
@@ -110,3 +110,8 @@ def elicitation_options_present(question: str, spec: ElicitationSpec) -> bool:
     text = (question or "").lower()
     hits = sum(1 for o in spec.options if o.label.lower() in text or o.key in text)
     return hits >= 2
+
+
+def should_offer_options(*, reply_signal: str, attempts: int) -> bool:
+    """Use choices as a recovery aid, never as the default interview format."""
+    return reply_signal == "insufficient" and attempts == 2
