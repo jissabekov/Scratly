@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from app.contracts import (
     PrimaryIntent,
     ProfileReviewOutput,
@@ -12,10 +14,11 @@ from app.contracts import (
 from app.services.decision_trace import DecisionTraceRecorder
 from app.services.elicitation_policy import (
     build_elicitation_spec,
+    elicitation_dimension_family,
     elicitation_target,
     should_offer_options,
 )
-from app.services.location_policy import extract_geo_from_profile
+from app.services.location_policy import extract_geo_from_profile, infer_geo_from_text
 from app.services.memory_compactor import MemoryCompactor
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.project_composer import ProjectComposer
@@ -25,6 +28,7 @@ from app.services.question_policy import (
     classify_reply,
     derive_stage,
     interest_depth_fallback,
+    is_repetition_blocked,
     plan_next,
     question_value,
     select_next,
@@ -241,6 +245,17 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     message, await tx.allowed_messages(session_id), await tx.taxonomy()
                 )
             )
+            allowed_messages = await tx.allowed_messages(session_id)
+            owned_message_ids = {m.id for m in allowed_messages}
+            pre_filter_dropped = 0
+            if packet.items:
+                filtered_items = []
+                for item in packet.items:
+                    if any(mid not in owned_message_ids for mid in item.source_message_ids):
+                        pre_filter_dropped += 1
+                        continue
+                    filtered_items.append(item)
+                packet = packet.model_copy(update={"items": filtered_items})
             extract_run_id = getattr(llm, "last_llm_run_id", None) if llm else None
             await trace.record(
                 "evidence_proposed",
@@ -248,12 +263,28 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "v2",
                 f"Extractor proposed {len(packet.items)} evidence item(s).",
                 "structured_extraction_completed",
-                outputs={"proposed_count": len(packet.items)},
+                outputs={
+                    "proposed_count": len(packet.items),
+                    "pre_filter_dropped": pre_filter_dropped,
+                },
                 llm_run_id=extract_run_id,
             )
 
             validated = await tx.validate_and_record_evidence(packet.items, message)
             accepted_count = sum(item.accepted for item in validated)
+            if not skip_evidence and not await tx.location_established():
+                geo_key = infer_geo_from_text(request.text)
+                if geo_key and await tx.record_geo_from_text(message, geo_key):
+                    await tx.apply_evidence_reduce_contradictions_snapshot([])
+                    accepted_count += 1
+                    await trace.record(
+                        "geo_inferred_from_text",
+                        "location_policy",
+                        "v1",
+                        f"Inferred geo constraint {geo_key} from student text.",
+                        "geo_text_fallback",
+                        outputs={"geo_key": geo_key},
+                    )
             rejected_reasons: dict[str, int] = {}
             for item in validated:
                 if not item.accepted:
@@ -270,6 +301,9 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     "accepted_count": accepted_count,
                     "rejected_count": len(validated) - accepted_count,
                     "rejection_reason_counts": rejected_reasons,
+                    "evidence_yield": round(
+                        accepted_count / max(len(validated), 1), 4
+                    ),
                 },
             )
 
@@ -381,6 +415,38 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         )
 
         candidates = await tx.question_candidates()
+        blocked_candidates: list[dict[str, Any]] = []
+        filtered_candidates: list[Target] = []
+        for candidate in candidates:
+            if is_repetition_blocked(candidate):
+                blocked_candidates.append(
+                    {
+                        "blocked_key": candidate.key,
+                        "asked_count": candidate.asked_count,
+                        "status": candidate.coverage_status,
+                        "kind": candidate.kind,
+                    }
+                )
+                continue
+            filtered_candidates.append(candidate)
+        if blocked_candidates:
+            replacement = select_next(filtered_candidates or candidates)
+            await trace.record(
+                "question_target_blocked",
+                "question_policy",
+                "v1",
+                f"Blocked {len(blocked_candidates)} over-asked supported target(s).",
+                "repetition_hard_stop",
+                outputs={
+                    "blocked": blocked_candidates,
+                    "chosen_instead": (
+                        {"kind": replacement.kind, "key": replacement.key}
+                        if replacement
+                        else None
+                    ),
+                },
+            )
+        candidates = filtered_candidates or candidates
 
         # Adaptive dialogue repair: corrections and greetings inject high-continuity
         # candidates so we acknowledge before probing (these never become evidence).
@@ -448,6 +514,21 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             or _FALLBACK_TARGET
         )
         if planner_decision:
+            if planner_decision.reason == "follow_up_exhausted":
+                await trace.record(
+                    "question_target_blocked",
+                    "question_policy",
+                    "v1",
+                    f"Follow-up exhausted on {planner_decision.target.key}; switching.",
+                    "follow_up_exhausted",
+                    outputs={
+                        "blocked_key": (last_q or {}).get("target_key"),
+                        "chosen_instead": {
+                            "kind": target.kind,
+                            "key": target.key,
+                        },
+                    },
+                )
             await trace.record(
                 "question_target_selected",
                 "conversation_planner",
@@ -455,9 +536,14 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 f"Planner chose {planner_decision.action.value} toward {target.key}.",
                 planner_decision.reason,
                 outputs={
+                    "target_kind": target.kind,
+                    "target_key": target.key,
+                    "planner_action": planner_decision.action.value,
                     "action": planner_decision.action.value,
                     "phase": planner_decision.phase.value,
-                    "target_key": target.key,
+                    "asked_count": target.asked_count,
+                    "candidate_count": len(candidates),
+                    "decision_value": question_value(target),
                     "avoid_topics": list(planner_decision.avoid_topics),
                 },
             )
@@ -528,16 +614,18 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
 
         counters = await tx.session_counters()
         if thin.is_thin and not skip_evidence:
-            elicit_key = target.key
-            if elicit_key == "constraints:geo":
-                elicit_key = "constraints"
-            if target.kind == "profile_validation":
-                elicit_key = "profile"
-            same_target = counters.get("elicitation_target_key") == elicit_key
-            attempts = int(counters.get("elicitation_attempts_for_target") or 0)
-            if same_target:
-                attempts += 1
+            pending_key = counters.get("elicitation_target_key")
+            if pending_key:
+                elicit_key = pending_key
+                if elicit_key == "constraints:geo":
+                    elicit_key = "constraints"
+                attempts = int(counters.get("elicitation_attempts_for_target") or 0) + 1
             else:
+                elicit_key = elicitation_dimension_family(target.key)
+                if target.key == "constraints:geo":
+                    elicit_key = "constraints"
+                if target.kind == "profile_validation":
+                    elicit_key = "profile"
                 attempts = 1
             can_recover = target.kind in {
                 "required_hard_variable",
@@ -546,16 +634,35 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "project_discrimination",
                 "contradiction",
                 "elicitation",
-            }
-            if can_recover and attempts == 1:
-                # First difficulty gets a smaller open question on the same topic.
-                # Persist the attempt so a repeated "idk" can unlock choices.
+            } or (
+                target.kind == "behavioral_anchor" and prior_assistant_questions >= 1
+            )
+            if not can_recover:
+                await trace.record(
+                    "elicitation_skipped_not_recoverable",
+                    "elicitation_policy",
+                    "v1",
+                    f"Thin answer on non-recoverable target {target.kind}:{target.key}.",
+                    "not_recoverable",
+                    outputs={"dimension_key": elicit_key, "attempt": attempts},
+                )
+            elif can_recover and attempts == 1:
                 await tx.update_session_counters(
                     elicitation_attempts_for_target=attempts,
                     elicitation_target_key=elicit_key,
                 )
+                await trace.record(
+                    "elicitation_rephrase",
+                    "elicitation_policy",
+                    "v1",
+                    f"First thin answer on {elicit_key}; rephrase before options.",
+                    "thin_answer_rephrase",
+                    outputs={"dimension_key": elicit_key, "attempt": attempts},
+                )
             elif can_recover and should_offer_options(
-                reply_signal=reply_signal.value, attempts=attempts
+                reply_signal=reply_signal.value,
+                attempts=attempts,
+                is_thin=thin.is_thin,
             ):
                 target = elicitation_target(elicit_key)
                 message_kind = "elicitation"
@@ -627,6 +734,31 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "decision_value": question_value(target),
                 "asked_count": target.asked_count,
                 "continuity": target.continuity,
+                "candidate_count": len(candidates),
+                "planner_action": (
+                    planner_decision.action.value if planner_decision else None
+                ),
+            },
+        )
+
+        missing_established = [
+            key
+            for key, status in (stage_inputs.get("dimension_statuses") or {}).items()
+            if status != "supported"
+        ]
+        await trace.record(
+            "stage_gate_evaluated",
+            "stage_policy",
+            "v2",
+            "Evaluated profile-review stage gate inputs.",
+            stage_inputs.get("review_reason") or "stage_gate",
+            outputs={
+                "coverage_established": stage_inputs.get("coverage_established"),
+                "coverage_touched": stage_inputs.get("coverage_touched"),
+                "missing_established_keys": missing_established,
+                "location_ready": stage_inputs.get("location_ready"),
+                "review_eligible": stage_inputs.get("review_eligible"),
+                "reason_code": stage_inputs.get("review_reason"),
             },
         )
 

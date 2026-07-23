@@ -408,7 +408,22 @@ class TurnTransaction:
         )
         dim_map = await self._dimension_map()
         validated: list[ValidatedEvidence] = []
+
+        def _clean_text(value: str | None) -> str | None:
+            if value is None:
+                return None
+            # Postgres UTF8 rejects NUL; models occasionally emit it.
+            return value.replace("\x00", "")
+
         for item in grounded:
+            item = item.model_copy(
+                update={
+                    "exact_source_quote": _clean_text(item.exact_source_quote) or "",
+                    "value_key": _clean_text(item.value_key),
+                    "rationale": _clean_text(item.rationale) or item.rationale,
+                    "rejection_reason": _clean_text(item.rejection_reason),
+                }
+            )
             dimension_id = dim_map.get(item.dimension_key)
             if dimension_id is None and item.accepted:
                 item = item.model_copy(
@@ -464,7 +479,17 @@ class TurnTransaction:
                         else None,
                     },
                 )
-                for mid in item.source_message_ids:
+                # Only link sources that actually exist. Rejected proposals often
+                # carry hallucinated message IDs; inserting those aborts the turn.
+                owned_ids = {m.id for m in messages}
+                source_ids = (
+                    [mid for mid in item.source_message_ids if mid in owned_ids]
+                    if item.accepted
+                    else []
+                )
+                if item.accepted and not source_ids and message.id in owned_ids:
+                    source_ids = [message.id]
+                for mid in source_ids:
                     await self.session.execute(
                         text(
                             """
@@ -973,6 +998,7 @@ class TurnTransaction:
                     key=key,
                     fallback_template=template,
                     asked_count=asked_by_key.get(key, 0),
+                    coverage_status=status,
                     continuity=continuity,
                     value=QuestionValue(
                         uncertainty_reduction=uncertainty,
@@ -1042,11 +1068,7 @@ class TurnTransaction:
 
         supported = sum(1 for r in coverage_rows if r["status"] == "supported")
         if supported >= 2:
-            # Prefer discriminating provisional dims; avoid repeating supported work_mode.
-            provisional = next(
-                (r["key"] for r in coverage_rows if r["status"] == "provisional"),
-                None,
-            )
+            # Prefer discriminating provisional dims; skip keys already asked twice.
             asked = await self.session.execute(
                 text(
                     """
@@ -1059,12 +1081,33 @@ class TurnTransaction:
                 {"session_id": self._session_id},
             )
             discrimination_count = int(asked.scalar_one())
+            provisional = next(
+                (
+                    r["key"]
+                    for r in coverage_rows
+                    if r["status"] == "provisional"
+                    and asked_by_key.get(r["key"], 0) < 2
+                ),
+                None,
+            )
             if provisional:
                 add("project_discrimination", provisional)
             elif discrimination_count < 2:
                 add("project_discrimination", "work_mode")
 
-        add("profile_validation", "profile")
+        established_ratio = sum(
+            1 for r in coverage_rows if r["required"] and r["status"] == "supported"
+        ) / max(
+            sum(1 for r in coverage_rows if r["required"]),
+            1,
+        )
+        session_stage = await self.session.execute(
+            text("SELECT stage::text AS stage FROM core.sessions WHERE id = :session_id"),
+            {"session_id": self._session_id},
+        )
+        current_stage = session_stage.scalar_one()
+        if established_ratio >= 0.9 or current_stage in {"profile_review", "project_matching"}:
+            add("profile_validation", "profile")
 
         # De-duplicate while preserving priority order from intent priority + key.
         seen: set[tuple[str, str]] = set()
@@ -1082,21 +1125,26 @@ class TurnTransaction:
         required = await self.session.execute(
             text(
                 """
-                SELECT count(*) FILTER (WHERE d.required) AS required_total,
-                       count(*) FILTER (
-                         WHERE d.required AND c.status::text = 'supported'
-                       ) AS required_supported,
-                       count(*) FILTER (
-                         WHERE d.required AND c.status::text <> 'unknown'
-                       ) AS required_touched
+                SELECT d.key, d.required, c.status::text AS status
                   FROM assessment.dimensions d
                   JOIN assessment.coverage c
                     ON c.dimension_id = d.id AND c.session_id = :session_id
+                 ORDER BY d.ordinal
                 """
             ),
             {"session_id": self._session_id},
         )
-        row = required.mappings().one()
+        coverage_rows = list(required.mappings())
+        row = {
+            "required_total": sum(1 for r in coverage_rows if r["required"]),
+            "required_supported": sum(
+                1 for r in coverage_rows if r["required"] and r["status"] == "supported"
+            ),
+            "required_touched": sum(
+                1 for r in coverage_rows if r["required"] and r["status"] != "unknown"
+            ),
+        }
+        dimension_statuses = {r["key"]: r["status"] for r in coverage_rows}
         total = int(row["required_total"] or 0) or 1
         established = int(row["required_supported"] or 0)
         touched = int(row["required_touched"] or 0)
@@ -1149,13 +1197,25 @@ class TurnTransaction:
         else:
             reviewed, projects_ready = False, False
         location_ready = await self.location_established()
+        from app.services.question_policy import evaluate_review_eligibility
+
+        open_contradictions = int(open_c.scalar_one())
+        review_eligible, review_reason = evaluate_review_eligibility(
+            contradictions=open_contradictions,
+            location_ready=location_ready,
+            coverage_established=established / total,
+            dimension_statuses=dimension_statuses,
+        )
         return {
             "coverage_established": established / total,
             "coverage_touched": touched / total,
-            "contradictions": int(open_c.scalar_one()),
+            "contradictions": open_contradictions,
             "reviewed": reviewed,
             "projects_ready": projects_ready,
             "location_ready": location_ready,
+            "dimension_statuses": dimension_statuses,
+            "review_eligible": review_eligible,
+            "review_reason": review_reason,
         }
 
     async def contradiction_sides(
@@ -1834,6 +1894,52 @@ class TurnTransaction:
         )
         values = [row["value_key"] for row in result.mappings()]
         return any(is_geo_value_key(v) or v in GEO_VALUE_KEYS for v in values)
+
+    async def record_geo_from_text(self, message: MessageRow, geo_key: str) -> bool:
+        """Persist accepted geo constraint evidence when extractor missed a clear place."""
+        assert self._session_id is not None
+        if await self.location_established():
+            return False
+        dim_map = await self._dimension_map()
+        dimension_id = dim_map.get("constraints")
+        if dimension_id is None:
+            return False
+        evidence_id = uuid4()
+        quote = message.content.strip()
+        if geo_key not in quote.lower().replace(" ", "_").replace("-", "_"):
+            quote = f"{quote} [{geo_key}]"
+        await self.session.execute(
+            text(
+                """
+                INSERT INTO assessment.evidence
+                    (id, session_id, dimension_id, value_key, strength, polarity,
+                     exact_source_quote, status, reducer_version)
+                VALUES
+                    (:id, :session_id, :dimension_id, :value_key, :strength, 'support',
+                     :exact_source_quote, 'accepted', :reducer_version)
+                """
+            ),
+            {
+                "id": evidence_id,
+                "session_id": self._session_id,
+                "dimension_id": dimension_id,
+                "value_key": geo_key,
+                "strength": 0.85,
+                "exact_source_quote": quote[:500],
+                "reducer_version": self._settings.reducer_version,
+            },
+        )
+        await self.session.execute(
+            text(
+                """
+                INSERT INTO assessment.evidence_sources (evidence_id, message_id)
+                VALUES (:evidence_id, :message_id)
+                ON CONFLICT DO NOTHING
+                """
+            ),
+            {"evidence_id": evidence_id, "message_id": message.id},
+        )
+        return True
 
     async def session_counters(self) -> dict[str, Any]:
         assert self._session_id is not None

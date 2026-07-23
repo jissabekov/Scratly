@@ -30,6 +30,7 @@ Rules:
 2. Multi-value topics/assets/capabilities coexist; do not invent conflicts.
 3. Polarity oppose only when the student explicitly negates something.
 4. exact_source_quote must be a verbatim substring of an allowed source message.
+   Only cite message IDs from allowed_source_messages[].id — never invent IDs.
 5. strength is 0–1 mapping confidence; score_band is the behavioral ladder when known.
 6. Never invent score_band=0 for silence — omit the facet instead.
 7. Do not propose duplicate (dimension_key, value_key, polarity) rows.

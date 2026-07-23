@@ -62,6 +62,11 @@ STAGES = (
 GAP_RESOLUTION_ESTABLISHED = 0.5
 PROFILE_REVIEW_ESTABLISHED = 0.9
 MEASUREMENT_TOUCHED = 0.4
+CORE_REVIEW_ANCHORS = ("topics", "work_mode", "motivation", "execution")
+CORE_REVIEW_REQUIRED_SUPPORTED = ("topics", "work_mode", "motivation")
+HIGH_REPEAT_KEYS = frozenset(
+    {"constraints", "constraints:geo", "capability", "execution", "profile", "work_mode"}
+)
 
 _ANCHOR_RANK = {k: i for i, k in enumerate(ANCHOR_KEY_ORDER)}
 _ANCHOR_RANK_FALLBACK = len(ANCHOR_KEY_ORDER)
@@ -189,6 +194,17 @@ def plan_next(
         target = select_next([c for c in major_uncovered if c.key != last_target_key] or major_uncovered)
         return PlannerDecision(target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "branch_yield_collapsed")
 
+    if last_target_key and current_depth >= 3:
+        switch_pool = [c for c in pool if c.key != last_target_key and not is_repetition_blocked(c)]
+        if switch_pool:
+            target = select_next(switch_pool)
+            return PlannerDecision(
+                target,
+                PlannerAction.SWITCH,
+                DiscoveryPhase.BREADTH if not breadth_complete else DiscoveryPhase.VERIFY,
+                "follow_up_exhausted",
+            )
+
     if not breadth_complete and major_uncovered and current_depth >= DEFAULT_MAX_TOPIC_DEPTH:
         target = select_next([c for c in major_uncovered if c.key != last_target_key] or major_uncovered)
         return PlannerDecision(target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "topic_budget_reached")
@@ -247,6 +263,7 @@ class Target:
     information_gain: float = 0.5  # compatibility alias for early repositories
     continuity: float = 0.0
     asked_count: int = 0
+    coverage_status: str = "unknown"
     value: QuestionValue = field(default_factory=QuestionValue)
     target_dimensions: tuple[str, ...] = ()
     project_modes: tuple[str, ...] = ()
@@ -286,6 +303,23 @@ def classify_reply(text: str) -> ReplySignal:
     return ReplySignal.SUBSTANTIVE
 
 
+def is_repetition_blocked(target: Target) -> bool:
+    """Hard-stop re-asking anchors that stop yielding new evidence."""
+    if target.kind in {"contradiction", "conversation_repair"}:
+        return False
+    if target.asked_count >= 2 and target.coverage_status in {"supported", "established"}:
+        return True
+    if (
+        target.asked_count >= 2
+        and target.coverage_status == "provisional"
+        and target.key in HIGH_REPEAT_KEYS
+    ):
+        return True
+    if target.asked_count >= 3 and target.key in HIGH_REPEAT_KEYS:
+        return True
+    return False
+
+
 def question_value(target: Target) -> float:
     """Auditable V1 proxy for expected reduction in project-decision uncertainty."""
     value = target.value
@@ -302,7 +336,7 @@ def question_value(target: Target) -> float:
         + value.leading_penalty
         + value.sensitivity_penalty
         + value.fatigue_penalty
-        + min(target.asked_count * .15, .6)
+        + target.asked_count * .35
     )
     return round(BASE_VALUE.get(target.kind, 0.0) + positive - penalties, 6)
 
@@ -318,8 +352,9 @@ def select_next(candidates: list[Target]) -> Target | None:
     repair = [c for c in candidates if c.kind == "conversation_repair"]
     contradictions = [c for c in candidates if c.kind == "contradiction"]
     pool = repair or contradictions or candidates
+    eligible = [c for c in pool if not is_repetition_blocked(c)] or pool
     return min(
-        pool,
+        eligible,
         key=lambda x: (
             -question_value(x),
             _ANCHOR_RANK.get(x.key, _ANCHOR_RANK_FALLBACK),
@@ -349,6 +384,35 @@ def derive_phase(
     return InterviewPhase.PROJECT_FIT_PROBING
 
 
+def evaluate_review_eligibility(
+    *,
+    contradictions: int,
+    location_ready: bool | None,
+    coverage_established: float,
+    dimension_statuses: dict[str, str],
+) -> tuple[bool, str | None]:
+    """Decision-sufficient review latch — core anchors supported without full inventory."""
+    if contradictions > 0:
+        return False, None
+    if location_ready is False:
+        return False, None
+    if not all(
+        dimension_statuses.get(k) == "supported" for k in CORE_REVIEW_REQUIRED_SUPPORTED
+    ):
+        return False, None
+    if dimension_statuses.get("execution") not in {"supported", "provisional"}:
+        return False, None
+    secondary_ok = (
+        dimension_statuses.get("capability") in {"supported", "provisional"}
+        or dimension_statuses.get("assets") in {"supported", "provisional"}
+    )
+    if not secondary_ok:
+        return False, None
+    if coverage_established >= 0.6:
+        return True, "decision_sufficient_review"
+    return False, None
+
+
 def derive_stage(
     *,
     contradictions: int,
@@ -358,6 +422,8 @@ def derive_stage(
     coverage_touched: float | None = None,
     coverage: float | None = None,
     location_ready: bool | None = None,
+    dimension_statuses: dict[str, str] | None = None,
+    **_ignored: Any,
 ) -> str:
     """Derive stage from supported coverage and open true contradictions.
 
@@ -372,6 +438,7 @@ def derive_stage(
         else (coverage_established or 0.0)
     )
     touched = established if coverage_touched is None else coverage_touched
+    statuses = dimension_statuses or {}
 
     if projects_ready and reviewed:
         return "complete"
@@ -379,6 +446,14 @@ def derive_stage(
         if location_ready is False:
             return "profile_review"
         return "project_matching"
+    review_eligible, _reason = evaluate_review_eligibility(
+        contradictions=contradictions,
+        location_ready=location_ready,
+        coverage_established=established,
+        dimension_statuses=statuses,
+    )
+    if review_eligible and contradictions == 0:
+        return "profile_review"
     if established >= PROFILE_REVIEW_ESTABLISHED and contradictions == 0:
         return "profile_review"
     if contradictions > 0 and established >= GAP_RESOLUTION_ESTABLISHED:

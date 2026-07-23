@@ -2,17 +2,19 @@
 
 Scratly runs an **explainable assessment conversation**: a teen student answers questions; the system builds a structured preference profile; teachers can see *why* every claim, stage, and next question happened.
 
-## How to read these docs
+## Start here
 
 | Doc | What it explains |
 |---|---|
-| [architecture.md](architecture.md) | Hard rules, system topology, sole turn write path, decision tracing |
-| [student-model.md](student-model.md) | V1 profile: interests, work modes, motivation, execution, assets |
-| [scoring-rules.md](scoring-rules.md) | Reducer v2, contradiction engine, 40/40/20 fit + execution gates |
-| [conversation-policy.md](conversation-policy.md) | 7 anchors, stages, location, elicitation, student Q&A, traces |
-| [conversation-quality.md](conversation-quality.md) | Tone, good/bad questions, stage experience (product quality bar) |
-| [local-development.md](local-development.md) | Run Compose/host API, Azure Entra, tests, sim harness, troubleshooting |
-| [conversation-quality-fix-plan.md](conversation-quality-fix-plan.md) | Historical design record of the quality fixes (implemented) |
+| **[system-guide.md](system-guide.md)** | **End-to-end current system** — turn pipeline, policy, stages, elicitation, geo, matching, eval |
+| [architecture.md](architecture.md) | Hard rules, topology, sole write path, schemas, tracing |
+| [conversation-policy.md](conversation-policy.md) | Planner, anchors, repetition, stages, elicitation |
+| [student-model.md](student-model.md) | V1 profile dimensions and evidence semantics |
+| [scoring-rules.md](scoring-rules.md) | Reducer v2, contradictions, matching weights |
+| [eval-suite.md](eval-suite.md) | 18-persona live regressor, assertions, proof workflow |
+| [eval-findings-and-fix-plan.md](eval-findings-and-fix-plan.md) | 2026-07-23 eval findings, fix plan, proof status |
+| [conversation-quality.md](conversation-quality.md) | Tone and UX quality bar |
+| [local-development.md](local-development.md) | Compose, Azure Entra, tests, troubleshooting |
 
 ## Mental model (one paragraph)
 
@@ -51,3 +53,4 @@ discovery  →  measurement  →  (gap_resolution if true conflicts)
 | Opportunity match / research / compose | `opportunity_matcher.py`, `web_research_client.py`, `project_composer.py`, `project_citation_gate.py` |
 | Persistence / candidates | `apps/api/app/repository/assessment.py` |
 | Live sim harness | `scripts/sim_assessment_conversation.py` |
+| **Live eval regressor (18 personas)** | `scripts/eval_conversation_suite.py` · [eval-suite.md](eval-suite.md) |

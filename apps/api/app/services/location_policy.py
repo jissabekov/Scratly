@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Iterable
+
+_GEO_IN_TEXT = re.compile(
+    r"(?:\b(?:i'?m|i am|we'?re|based|located|live|living)\s+(?:in|near|around)\s+"
+    r"([A-Za-z][A-Za-z\s\-]{1,40}))"
+    r"|(?:^\s*(?:in|near)\s+([A-Za-z][A-Za-z\s\-]{1,40})\s*[.!?]?\s*$)",
+    re.IGNORECASE,
+)
 
 GEO_REGION_KEYS = frozenset(
     {
@@ -25,6 +33,8 @@ GEO_PLACE_KEYS = frozenset(
         "austin",
         "new_york",
         "brooklyn",
+        "nashville",
+        "chicago",
     }
 )
 
@@ -77,6 +87,25 @@ def is_geo_value_key(value_key: str | None) -> bool:
 
 def location_established_from_values(value_keys: Iterable[str | None]) -> bool:
     return any(is_geo_value_key(v) for v in value_keys)
+
+
+def infer_geo_from_text(text: str) -> str | None:
+    """Best-effort city/region label from a clear place statement in free text."""
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    match = _GEO_IN_TEXT.search(raw)
+    if not match:
+        return None
+    place = (match.group(1) or match.group(2) or "").strip()
+    if not place:
+        return None
+    normalized = _normalize(place)
+    if is_non_geo_constraint(normalized):
+        return None
+    if is_geo_value_key(normalized):
+        return normalized
+    return None
 
 
 def location_established_from_profile(profile: dict[str, Any]) -> bool:

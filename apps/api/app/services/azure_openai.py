@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextvars import ContextVar
 from datetime import date, datetime
 from dataclasses import asdict, is_dataclass
 from enum import Enum
@@ -31,6 +32,12 @@ AuditWriter = Callable[..., Awaitable[Any]]
 
 _PROMPTS_ROOT = Path(__file__).resolve().parents[2] / "prompts"
 _RESPONSES_MIN_VERSION = (2025, 3, 1)
+
+# Per-request isolation for the process-wide cached LLM client (see deps.get_llm).
+_llm_audit: ContextVar[AuditWriter | None] = ContextVar("llm_audit", default=None)
+_llm_session_id: ContextVar[UUID | None] = ContextVar("llm_session_id", default=None)
+_llm_turn_id: ContextVar[UUID | None] = ContextVar("llm_turn_id", default=None)
+_llm_last_run_id: ContextVar[UUID | None] = ContextVar("llm_last_run_id", default=None)
 
 # Compose often injects blank AZURE_* keys; EnvironmentCredential rejects empties.
 _AZURE_ENV_KEYS = (
@@ -126,14 +133,31 @@ class AzureOpenAIService:
             "writer": settings.azure_openai_writer_deployment,
             "summary": settings.azure_openai_summary_deployment,
         }
-        self.audit = audit_writer
-        self._session_id: UUID | None = None
-        self._turn_id: UUID | None = None
-        self.last_llm_run_id: UUID | None = None
+        self._default_audit = audit_writer
+
+    @property
+    def audit(self) -> AuditWriter | None:
+        bound = _llm_audit.get()
+        return bound if bound is not None else self._default_audit
+
+    @audit.setter
+    def audit(self, value: AuditWriter | None) -> None:
+        # Request-scoped only — never overwrite process-wide defaults on the
+        # cached singleton (concurrent turns were racing here).
+        _llm_audit.set(value)
+
+    @property
+    def last_llm_run_id(self) -> UUID | None:
+        return _llm_last_run_id.get()
+
+    @last_llm_run_id.setter
+    def last_llm_run_id(self, value: UUID | None) -> None:
+        _llm_last_run_id.set(value)
 
     def set_turn_context(self, session_id: UUID | None, turn_id: UUID | None) -> None:
-        self._session_id = session_id
-        self._turn_id = turn_id
+        _llm_session_id.set(session_id)
+        _llm_turn_id.set(turn_id)
+        _llm_last_run_id.set(None)
 
     async def close(self) -> None:
         await self.client.close()
@@ -177,19 +201,20 @@ class AzureOpenAIService:
                 )
             response_id = response.id
             usage = response.usage
-        self.last_llm_run_id = None
-        if self.audit is not None:
-            run_id = await self.audit(
+        _llm_last_run_id.set(None)
+        audit = self.audit
+        if audit is not None:
+            run_id = await audit(
                 prompt_name=prompt_name,
                 prompt_version=prompt_version,
                 deployment=deployment_name,
                 response_id=response_id,
                 usage=usage,
-                session_id=self._session_id,
-                turn_id=self._turn_id,
+                session_id=_llm_session_id.get(),
+                turn_id=_llm_turn_id.get(),
             )
             if run_id is not None:
-                self.last_llm_run_id = run_id
+                _llm_last_run_id.set(run_id)
         return parsed
 
     async def memory(self, context):
@@ -214,19 +239,20 @@ class AzureOpenAIService:
             include=["web_search_call.action.sources"],
             input=f"Find public opportunities relevant to: {query}. Cite sources.",
         )
-        self.last_llm_run_id = None
-        if self.audit is not None:
-            run_id = await self.audit(
+        _llm_last_run_id.set(None)
+        audit = self.audit
+        if audit is not None:
+            run_id = await audit(
                 prompt_name="web_research",
                 prompt_version="v1",
                 deployment=deployment_name,
                 response_id=getattr(response, "id", None),
                 usage=getattr(response, "usage", None),
-                session_id=self._session_id,
-                turn_id=self._turn_id,
+                session_id=_llm_session_id.get(),
+                turn_id=_llm_turn_id.get(),
             )
             if run_id is not None:
-                self.last_llm_run_id = run_id
+                _llm_last_run_id.set(run_id)
         return response
 
 

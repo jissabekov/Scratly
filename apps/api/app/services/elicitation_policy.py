@@ -112,6 +112,30 @@ def elicitation_options_present(question: str, spec: ElicitationSpec) -> bool:
     return hits >= 2
 
 
-def should_offer_options(*, reply_signal: str, attempts: int) -> bool:
+def elicitation_dimension_family(dimension_key: str) -> str:
+    """Map facet keys to the option-bank family (execution:persistence → execution)."""
+    if dimension_key.startswith("execution:"):
+        return "execution"
+    if dimension_key.startswith("constraints:"):
+        return "constraints"
+    return dimension_key.split(":", 1)[0]
+
+
+def same_elicitation_dimension(left: str | None, right: str | None) -> bool:
+    if not left or not right:
+        return False
+    return elicitation_dimension_family(left) == elicitation_dimension_family(right)
+
+
+def should_offer_options(
+    *,
+    reply_signal: str,
+    attempts: int,
+    is_thin: bool = False,
+) -> bool:
     """Use choices as a recovery aid, never as the default interview format."""
-    return reply_signal == "insufficient" and attempts == 2
+    if attempts < 2:
+        return False
+    if is_thin:
+        return True
+    return reply_signal in {"insufficient", "thin_answer"}

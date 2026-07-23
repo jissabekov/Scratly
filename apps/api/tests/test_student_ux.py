@@ -186,8 +186,17 @@ def test_elicitation_options_and_quality_gate():
 def test_options_are_only_a_second_insufficient_answer_recovery():
     assert not should_offer_options(reply_signal="insufficient", attempts=1)
     assert should_offer_options(reply_signal="insufficient", attempts=2)
-    assert not should_offer_options(reply_signal="insufficient", attempts=3)
-    assert not should_offer_options(reply_signal="thin_answer", attempts=2)
+    assert should_offer_options(reply_signal="insufficient", attempts=3)
+    assert should_offer_options(reply_signal="thin_answer", attempts=2)
+    assert should_offer_options(reply_signal="substantive_answer", attempts=2, is_thin=True)
+    assert not should_offer_options(reply_signal="substantive_answer", attempts=2, is_thin=False)
+
+
+def test_infer_geo_from_text_nashville_and_chicago():
+    from app.services.location_policy import infer_geo_from_text
+
+    assert infer_geo_from_text("I'm in Nashville.") == "nashville"
+    assert infer_geo_from_text("i live near Chicago") == "chicago"
 
 
 def test_location_established_and_stage_gate():

@@ -103,12 +103,30 @@ has score ≥ 2 with ≥ 2 evidence rows (a single mention never unlocks work-mo
 
 After anchors: ask the unknown that **changes leading project options**.
 
-### Thin answers
+### Thin answers and elicitation
 
-`idk` first receives a smaller open rephrase on the same subject. Only a repeated explicit
-insufficient answer may switch to optional elicitation choices; ordinary short answers never
-trigger a forced-choice menu. A third failed attempt advances rather than badgering.
-Social openers (`hello`, name intros) before any assistant question are **never** thin.
+1. **First thin** on a recoverable dimension → smaller rephrase; trace `elicitation_rephrase`; persist counter on `core.sessions`.
+2. **Second thin** (same dimension family, counter not reset on planner SWITCH) → option chips if `should_offer_options` (`thin`, `insufficient`, or `thin_answer` + `attempts ≥ 2`); trace `elicitation_selected`.
+3. **Third+** → `elicitation_exhausted`; soft-skip and advance.
+4. Greetings and name intros before any assistant question are **never** thin.
+5. Non-recoverable targets (e.g. turn-1 `social_intro`) → `elicitation_skipped_not_recoverable`.
+
+See `elicitation_policy.py`, `thin_answer.py`, and [system-guide.md](system-guide.md) §7.
+
+### Repetition hard-stop
+
+`is_repetition_blocked()` excludes over-asked targets before `select_next`. Penalty `asked_count × 0.35`. Planner forces `follow_up_exhausted` after depth ≥ 3 on same key. Emits `question_target_blocked`.
+
+`profile_validation` candidates appear only when `coverage_established ≥ 0.9` or session is already in review/matching.
+
+### Stage gates
+
+Two paths to `profile_review`:
+
+- **Full inventory:** `coverage_established ≥ 0.9`, no open contradictions
+- **Decision-sufficient:** `evaluate_review_eligibility()` — core three supported, execution supported/provisional, capability or assets touched, location ready, established ≥ 0.6
+
+Every turn emits `stage_gate_evaluated` before `stage_derived`.
 
 ### Next-question decisions
 
@@ -123,10 +141,12 @@ still takes precedence, but questionnaire order alone does not decide ordinary t
 
 `discovery` → `measurement` → `gap_resolution` → `profile_review` → `project_matching` → `complete`
 
-Coverage uses required dims (`topics`, `work_mode`, `motivation`, `constraints`, `execution`).
+Coverage uses required dims (`topics`, `work_mode`, `motivation`, `constraints`, `execution`, `capability`, `assets`).
 `supported` counts toward established coverage; `contradicted` counts as touched only.
 
-`project_matching` requires profile review latch + `location_ready` (geo on constraints).
+**Review latch:** see `evaluate_review_eligibility` and `stage_gate_evaluated` traces ([system-guide.md](system-guide.md) §3).
+
+`project_matching` requires profile review latch + `location_ready` (geo on constraints). Geo may be established via extractor or `geo_inferred_from_text` fallback.
 
 ---
 

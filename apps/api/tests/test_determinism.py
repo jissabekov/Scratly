@@ -3,7 +3,7 @@ from uuid import uuid4
 from app.contracts import ProposedEvidence
 from app.services.grounding_validator import validate_grounding
 from app.services.profile_reducer import reduce_profile
-from app.services.question_policy import InterviewPhase, PlannerAction, QuestionValue, ReplySignal, Target, classify_reply, derive_phase, plan_next, select_next, derive_stage
+from app.services.question_policy import InterviewPhase, PlannerAction, QuestionValue, ReplySignal, Target, classify_reply, derive_phase, evaluate_review_eligibility, is_repetition_blocked, plan_next, select_next, derive_stage
 from app.services.project_matcher import decision_entropy, fit_distribution, rank_projects, recommendation_ready
 from app.services.question_quality import validate_question
 from app.services.azure_openai import _json_default
@@ -77,6 +77,70 @@ def test_question_selection_rewards_continuity_but_penalizes_repetition():
   value=connected.value,
  )
  assert select_next([unrelated, repeated]).key == 'motivation'
+
+
+def test_repetition_hard_stop_prefers_unasked_anchor():
+ execution = Target(
+  'project_discrimination', 'execution', 'x', asked_count=3,
+  coverage_status='supported', continuity=1,
+  value=QuestionValue(project_discrimination=1, uncertainty_reduction=0.2),
+ )
+ assets = Target(
+  'required_hard_variable', 'assets', 'y', asked_count=0,
+  coverage_status='unknown', continuity=0.25,
+  value=QuestionValue(uncertainty_reduction=1),
+ )
+ assert is_repetition_blocked(execution)
+ assert not is_repetition_blocked(assets)
+ assert select_next([execution, assets]).key == 'assets'
+
+
+def test_follow_up_exhausted_forces_switch():
+ current = Target('project_discrimination', 'execution', 'x', asked_count=3)
+ gap = Target('required_hard_variable', 'assets', 'y', asked_count=0)
+ decision = plan_next([current, gap], last_target_key='execution', student_text='more')
+ assert decision.action == PlannerAction.SWITCH
+ assert decision.reason == 'follow_up_exhausted'
+ assert decision.target.key == 'assets'
+
+
+def test_decision_sufficient_review_stage():
+ statuses = {
+  'topics': 'supported', 'work_mode': 'supported', 'motivation': 'supported',
+  'execution': 'supported', 'capability': 'provisional', 'assets': 'unknown',
+  'constraints': 'supported',
+ }
+ eligible, reason = evaluate_review_eligibility(
+  contradictions=0, location_ready=True, coverage_established=0.8,
+  dimension_statuses=statuses,
+ )
+ assert eligible and reason == 'decision_sufficient_review'
+ assert derive_stage(
+  contradictions=0, reviewed=False, projects_ready=False,
+  coverage_established=0.8, coverage_touched=1.0, location_ready=True,
+  dimension_statuses=statuses,
+ ) == 'profile_review'
+
+
+def test_decision_sufficient_review_allows_provisional_execution():
+ statuses = {
+  'topics': 'supported', 'work_mode': 'supported', 'motivation': 'supported',
+  'execution': 'provisional', 'capability': 'provisional', 'assets': 'unknown',
+  'constraints': 'supported',
+ }
+ eligible, reason = evaluate_review_eligibility(
+  contradictions=0, location_ready=True, coverage_established=0.75,
+  dimension_statuses=statuses,
+ )
+ assert eligible and reason == 'decision_sufficient_review'
+
+
+def test_repetition_blocks_provisional_constraints():
+ blocked = Target(
+  'project_discrimination', 'constraints', 'x', asked_count=2,
+  coverage_status='provisional',
+ )
+ assert is_repetition_blocked(blocked)
 def test_contexts_are_independent_and_writer_bounded():
  c=ContextBuilder(); transcript=list(range(20)); q=c.question_writer('x',transcript,'memory','profile'); m=c.memory(transcript,20)
  assert q['recent_messages']==list(range(12,20)) and 'raw_transcript' not in q and 'profile' not in m

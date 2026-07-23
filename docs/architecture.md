@@ -73,16 +73,18 @@ Ordinary assessment state changes go through one transactional workflow
 | 8 | Close non-conflicts / resolve clarifying answers | `contradiction_resolved` | See [scoring-rules.md](scoring-rules.md) |
 | 9 | Recount open contradictions | `contradiction_evaluated` | Engine **v2** |
 | 10 | Location readiness check | `location_readiness_checked` | Geo on `constraints` |
-| 11 | Thin-answer evaluate → elicitation or soft-skip | `answer_thinness_evaluated`, `elicitation_*` | Max 2 attempts / target |
-| 12 | Select next question target | `question_target_selected` | Reason `priority_{kind}` |
-| 13 | Derive conversation stage | `stage_derived` | Includes `location_ready` |
-| 14 | Optional profile-review narrative | `profile_review_completed` | Latch `profile_reviewed` |
-| 15 | Write / fallback question (prompt **v2**) | `question_written` or `question_fallback_used` | |
-| 16 | Quality gate (incl. elicitation options) | `question_quality_gate` | Only if outcome ≠ `passed` |
-| 17 | If `project_matching` + location: research, rank, compose | `research_*`, `opportunities_matched`, `project_*` | Citations required |
-| 18 | Persist assistant message (`message_kind`), stage, complete turn | — | Answer/refusal prefix + question |
-| 19 | Maybe compact memory (non-fatal) | — | Never feeds extractor |
-| 20 | Commit | `turn_completed` | Reason `turn_committed` |
+| 11 | Thin-answer evaluate → elicitation or soft-skip | `answer_thinness_evaluated`, `elicitation_rephrase`, `elicitation_selected`, `elicitation_exhausted`, `elicitation_skipped_not_recoverable` | Counter persists across target switch |
+| 11b | Geo text fallback if extractor missed place | `geo_inferred_from_text` | `infer_geo_from_text` + `record_geo_from_text` |
+| 12 | Filter repetition-blocked candidates | `question_target_blocked` | `repetition_hard_stop` |
+| 13 | Planner + select next question target | `question_target_selected` | Planner (advisory) + policy (committed) |
+| 14 | Evaluate stage gate + derive stage | `stage_gate_evaluated`, `stage_derived` | Decision-sufficient review latch |
+| 15 | Optional profile-review narrative | `profile_review_completed` | Latch `profile_reviewed` |
+| 16 | Write / fallback question (prompt **v2**) | `question_written` or `question_fallback_used` | |
+| 17 | Quality gate (incl. elicitation options) | `question_quality_gate` | Only if outcome ≠ `passed` |
+| 18 | If `project_matching` + location: research, rank, compose | `research_*`, `opportunities_matched`, `project_*` | Citations required |
+| 19 | Persist assistant message (`message_kind`), stage, complete turn | — | Answer/refusal prefix + question |
+| 20 | Maybe compact memory (non-fatal) | — | Never feeds extractor |
+| 21 | Commit | `turn_completed` | Reason `turn_committed` |
 
 Public API:
 
@@ -136,6 +138,14 @@ Migrations (lexical apply on first Postgres volume):
 2. `002_decision_tracing.sql` — decision events + immutability trigger
 3. `003_contradiction_resolution.sql` — `contradiction_resolved` / `question_quality_gate` enums, `clarification_attempts`
 4. `004_student_ux_and_projects.sql` — student Q&A / elicitation events, opportunities, research, generated projects, location intents, session counters
+5. `005`–`010` — discovery guidance, adaptive conversation, student model v1, evidence model, topic boundaries, etc.
+6. **`011_eval_fix_trace_events.sql`** — `question_target_blocked`, `stage_gate_evaluated`, `elicitation_rephrase`, `elicitation_skipped_not_recoverable`, `geo_inferred_from_text`
+
+Apply `011` on existing volumes:
+
+```bash
+docker compose exec -T postgres psql -U scratly -d scratly < migrations/011_eval_fix_trace_events.sql
+```
 
 ---
 
