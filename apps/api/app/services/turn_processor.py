@@ -1,5 +1,12 @@
 from app.services.decision_trace import DecisionTraceRecorder
-from app.services.question_policy import derive_stage, select_next
+from app.services.question_policy import (
+    ReplySignal,
+    Target,
+    classify_reply,
+    derive_stage,
+    select_next,
+)
+from app.services.question_quality import validate_question
 
 
 async def process_student_turn(repo, extractor, writer, context_builder, session_id, request):
@@ -84,7 +91,30 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         )
 
         candidates = await tx.question_candidates()
+        reply_signal = classify_reply(request.text)
+        if reply_signal == ReplySignal.CORRECTION:
+            candidates.append(
+                Target(
+                    "conversation_repair",
+                    "repair_rejected_assumption",
+                    "You’re right — I made an assumption there. What part of what you mentioned would you be up for telling me a little more about?",
+                    information_gain=1.0,
+                    continuity=1.0,
+                )
+            )
+        elif reply_signal == ReplySignal.GREETING:
+            candidates.append(
+                Target(
+                    "behavioral_anchor",
+                    "low_pressure_welcome",
+                    "Hey — I’ll help you notice what kinds of activities and projects genuinely fit. What have you enjoyed spending time on lately, even if it seems ordinary?",
+                    information_gain=1.0,
+                    continuity=1.0,
+                )
+            )
         target = select_next(candidates)
+        if target is None:
+            raise RuntimeError("Question policy returned no target before session completion")
         await trace.record(
             "question_target_selected",
             "question_policy",
@@ -117,6 +147,11 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     await tx.public_profile(),
                 )
             )
+            rendered = question.question if hasattr(question, "question") else question
+            quality = validate_question(rendered)
+            if not quality.accepted:
+                raise ValueError(f"question_quality:{','.join(quality.reasons)}")
+            question = rendered
             await trace.record(
                 "question_written",
                 "question_writer",

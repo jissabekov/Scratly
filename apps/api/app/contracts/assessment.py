@@ -7,6 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 Quote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 class StrictModel(BaseModel): model_config = ConfigDict(extra='forbid')
 class Polarity(StrEnum): SUPPORT='support'; OPPOSE='oppose'
+class EvidenceType(StrEnum):
+    REPEATED_BEHAVIOR='repeated_behavior'
+    BEHAVIORAL_EXAMPLE='behavioral_example'
+    FORCED_TRADEOFF='forced_tradeoff'
+    STATED_PREFERENCE='stated_preference'
+    SELF_DESCRIPTION='self_description'
+    HYPOTHETICAL='hypothetical'
 class ProposedEvidence(StrictModel):
     dimension_key: str
     value_key: str | None = None
@@ -15,9 +22,15 @@ class ProposedEvidence(StrictModel):
     source_message_ids: Annotated[list[UUID], Field(min_length=1)]
     exact_source_quote: Quote
     rationale: str
+    evidence_type: EvidenceType = EvidenceType.STATED_PREFERENCE
+    confidence: Annotated[float, Field(ge=0, le=1)] = 0.5
+    context_tags: list[str] = Field(default_factory=list)
 class EvidencePacket(StrictModel):
     items: list[ProposedEvidence]
     no_evidence_reason: str | None = None
+    answer_quality: Literal['insufficient','low','medium','high'] = 'medium'
+    ambiguities: list[str] = Field(default_factory=list)
+    engagement: Literal['unknown','low','medium','high'] = 'unknown'
 class ValidatedEvidence(ProposedEvidence):
     accepted: bool
     rejection_reason: str | None = None

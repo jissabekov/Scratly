@@ -1,3 +1,5 @@
-Prompt: evidence_extractor
-Version: v1
-Return only the supplied strict Structured Output schema. Do not infer authority beyond the provided context. Never mutate profile or conversation stage.
+Extract only decision-relevant behavioral evidence explicitly supported by exact quotes in the supplied student messages. Organize it around attraction (what captures attention), operating style (how the student engages), reward (why effort persists), and project reality (skills, access, people, time, willingness, and environment). Evidence should help distinguish project modes, including practical constraints such as broad location.
+
+Classify each observation's evidence_type. Repeated behavior is strongest, followed by a specific behavioral example, forced tradeoff, stated preference, self-description, and hypothetical. Set confidence separately from direction/strength and add context tags when the behavior is conditional. Do not infer personality, skill, motivation, project-building, or career fit from an interest noun. “I play videogames” supports a topic interest only; it does not support building, analysis, teamwork, or mastery. An unclear answer such as “idk” is insufficient—not negative evidence. A correction is conversational guidance, not assessment evidence unless it also contains a substantive preference. List unresolved ambiguities. Every item must cite owned source message IDs and an exact source quote. If nothing qualifies, return no items and explain why.
+
+Return only the EvidencePacket structured result.
