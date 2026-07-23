@@ -1,0 +1,17 @@
+Prompt: project_composer
+Version: v2
+
+Compose 1–3 grounded project offers for a high-school course (app/product/website).
+Return only the Structured Output schema.
+
+Use the V1 profile:
+- interests / topics
+- work_modes investigate|build|organize|communicate (null = unknown, not zero)
+- motivation primary/secondary rewards
+- execution gates (do not propose projects that need outreach/visibility the student rejected)
+- capabilities → scaffolding notes only, never eligibility
+- assets/access → preferential feasibility
+
+Every project MUST cite real opportunity and/or research finding IDs from context.
+Never invent sponsors or URLs.
+topic_keys / work_mode_keys / motivation_keys must use V1 vocabularies.

@@ -7,9 +7,9 @@ Scratly runs an **explainable assessment conversation**: a teen student answers 
 | Doc | What it explains |
 |---|---|
 | [architecture.md](architecture.md) | Hard rules, system topology, sole turn write path, decision tracing |
-| [student-model.md](student-model.md) | Eight dimensions, geo constraints, coverage statuses, evidence fields |
-| [scoring-rules.md](scoring-rules.md) | Profile reducer, contradiction engine v2, opportunity / project fit |
-| [conversation-policy.md](conversation-policy.md) | Question priority, stages, location, elicitation, student Q&A, traces |
+| [student-model.md](student-model.md) | V1 profile: interests, work modes, motivation, execution, assets |
+| [scoring-rules.md](scoring-rules.md) | Reducer v2, contradiction engine, 40/40/20 fit + execution gates |
+| [conversation-policy.md](conversation-policy.md) | 7 anchors, stages, location, elicitation, student Q&A, traces |
 | [conversation-quality.md](conversation-quality.md) | Tone, good/bad questions, stage experience (product quality bar) |
 | [local-development.md](local-development.md) | Run Compose/host API, Azure Entra, tests, sim harness, troubleshooting |
 | [conversation-quality-fix-plan.md](conversation-quality-fix-plan.md) | Historical design record of the quality fixes (implemented) |
@@ -31,9 +31,9 @@ discovery  →  measurement  →  (gap_resolution if true conflicts)
 4. Reducer updates coverage; contradiction engine v2 opens only real conflicts.
 5. Thin answers may trigger option-style elicitation instead of inventing negative evidence.
 6. Policy selects one question target; writer personalizes it (or seeded fallback); quality gate applies.
-7. Stage advances from **established** coverage; `project_matching` also requires reviewed + location.
+7. Stage advances from **supported** coverage; `project_matching` also requires reviewed + location.
 8. Matching ranks curated opportunities, optionally runs bounded web research, and persists only citation-grounded projects.
-9. Teachers inspect transcript, evidence, contradictions, project-fit, and decision-trace in the web console.
+9. Students chat at `/`; teachers inspect transcript, evidence, contradictions, project-fit, and decision-trace at `/teacher`.
 
 ## Key code entry points
 

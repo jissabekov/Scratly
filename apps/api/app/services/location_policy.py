@@ -42,13 +42,13 @@ def location_established_from_values(value_keys: Iterable[str | None]) -> bool:
 
 
 def location_established_from_profile(profile: dict[str, Any]) -> bool:
-    """True when public/matching profile carries an established geo constraint."""
+    """True when public/matching profile carries a supported geo constraint."""
     dims = profile.get("dimensions") or []
     for dim in dims:
         if dim.get("key") != "constraints":
             continue
         status = dim.get("status")
-        if status not in {"established", "provisional"}:
+        if status not in {"supported", "provisional"}:
             continue
         value = dim.get("value")
         if is_geo_value_key(value):

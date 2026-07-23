@@ -1,122 +1,74 @@
-# Scoring rules
+# Scoring rules (V1)
 
-Deterministic rules for profile reduction, contradictions, and project fit. Models never average conflicts or invent coverage.
+Deterministic rules for profile reduction, contradictions, and project fit.
+Models never average conflicts or invent coverage from silence.
 
-Related: [student-model.md](student-model.md) · [conversation-policy.md](conversation-policy.md) · [docs index](README.md)
+Related: [student-model.md](student-model.md) · [conversation-policy.md](conversation-policy.md)
 
 ---
 
-## Profile reducer (v1)
+## Profile reducer (v2)
 
-Input: **accepted** evidence only (rejected proposals never affect the profile).
+Input: **accepted** evidence only.
 
-For each dimension:
+### Interests (`topics`)
 
-1. Score each `value_key` as `±strength` by polarity (`support` adds, `oppose` subtracts).
-2. Pick the value with the maximum score.
-3. Confidence = that score clamped to `[0, 1]`.
-4. Status = `established` if confidence **≥ 0.70**, else `provisional`.
+- Group by `value_key` (topic).
+- Prefer `score_band` (0–4); else derive from `strength` via `round(strength * 4)`.
+- `evidence_count` = accepted supports; `examples` = short quotes.
+- Status: `supported` with repeated strong evidence; else `provisional`.
+- Never invent a topic that was never mentioned.
 
-Rows without a `value_key` are skipped for scoring. Empty score maps yield `provisional` with `value = null`.
+### Work modes / execution facets
 
-The reducer **does not** set `contested`. That status is applied by contradiction sync when engine v2 opens a true conflict.
+- Facets start as `null` / `unknown` (UNKNOWN ≠ 0).
+- Update only facets with accepted evidence.
+- Oppose on a facet can push toward 0 when explicit avoidance is evidenced.
+
+### Motivation
+
+- Rank reward keys by support strength.
+- Top → `primary`, second → `secondary` (five-reward vocabulary only).
+
+### Capabilities
+
+- Level 0–3 from `score_band` (clamped) or derived strength.
+- Oppose → capability gap for scaffolding only.
+
+### Assets
+
+- Freeform list; no numeric score.
+
+### Compatibility dimensions view
+
+Reducer also emits a flat `dimensions[]` view for coverage sync (`supported` / `provisional` / `unknown`).
+`contradicted` is applied by contradiction sync, not the reducer.
 
 ---
 
 ## Contradiction engine (v2)
 
-Code: `apps/api/app/services/contradiction_engine.py` (`ENGINE_VERSION = "v2"`).
+True conflicts only:
 
-### What is *not* a conflict
+- Same `value_key` with both support and oppose
+- Declared incompatible pairs (sparse; V1 has no collab/challenge rivals)
 
-Compatible multi-valued signals coexist. Examples that must **not** open a contradiction:
-
-- motivation: `curiosity` + `impact`
-- topics: `neighborhood_data` + `science_projects`
-- capability: `python_basics` + `spreadsheets` + oppose(`full_web_app`)
-- collaboration nuance: small group for brainstorming, solo for coding
-
-### When a conflict opens
-
-A dimension is contested when any of these holds:
-
-| Reason code | Condition |
-|---|---|
-| `support_oppose_same_value` | Same `value_key` has both support and oppose |
-| `preference_negation` | Support X and oppose Y where they are rivals **or** the dim is `single_choice` |
-| `declared_incompatible_pair` | Two supported values appear in the sparse incompatibility table |
-| `single_choice_competing_supports` | `single_choice` dim has ≥2 distinct support values |
-
-### Incompatibility table (sparse)
-
-Default is compatible. Only these pairs are true rivals today:
-
-| Dimension | Pair |
-|---|---|
-| `work_mode` | `large_group` ↔ `solo_only` |
-| `collaboration` | `large_group_only` ↔ `solo_only` |
-| `challenge` | `avoid_hard` ↔ `seek_hard` |
-
-Cardinality defaults: `challenge` is `single_choice`; most others are `multi_value` or `structured` (see [student-model.md](student-model.md)).
-
-### Resolution (never average)
-
-Open contradictions close by later append-only updates (never edits of history):
-
-| Resolution | Status | When |
-|---|---|---|
-| `explicit_newest` | `resolved` | Clarifying turn supplies accepted evidence that picks a side (newest wins) |
-| `dismissed_not_conflict` | `resolved` | Re-evaluation shows the open was not a true conflict under v2 |
-| `unresolved_after_clarification` | `dismissed` | ≥ **2** clarification attempts with no usable evidence |
-
-Resolve triggers on a turn when:
-
-1. the previous assistant question targeted this contradiction, **or**
-2. the dimension was already open and this turn added accepted evidence, **or**
-3. this turn is an explicit preference (support one value and oppose another).
-
-After resolve/dismiss, coverage is restored from the latest profile snapshot (contested → provisional/established).
-
-### Reopen rules
-
-After `explicit_newest`, `unresolved_after_clarification`, or `compatible_merge`, the same dimension reopens only if **new** evidence after the resolution cutoff:
-
-- opposes the winning value, **or**
-- supports an incompatible rival, **or**
-- adds a competing support on a `single_choice` dimension.
-
-Mere restatements of the winning side do not reopen the fight.
-
-Decision event: `contradiction_resolved` with the resolution as `reason_code`, plus entity refs to contradiction and evidence IDs.
+Compatible multi-value supports coexist (multiple interests, multiple assets).
 
 ---
 
-## Project fit
-
-### Curated opportunities (primary path)
-
-When the session reaches `project_matching` with location established, `opportunity_matcher.py` ranks
-seeded `matching.opportunities`:
+## Project / opportunity fit
 
 ```text
-score = 0.40 × topic_overlap + 0.40 × work_mode_overlap + 0.20 × motivation_overlap
+score = 0.40 × topic_overlap
+      + 0.40 × work_mode_alignment
+      + 0.20 × motivation_alignment
 ```
 
-- **Geo** is a hard eligibility gate: student `geo_regions` / `geo_places` must intersect the
-  opportunity’s regions/places, **or** the opportunity (or student) allows `remote_ok`.
-- Other **hard_constraints** on the opportunity are independent pass/fail gates.
-- **Capability gaps** do not block eligibility; they produce scope/scaffold suggestions
-  (e.g. `scaffold:code`).
-- Results persist in `matching.project_fits` with `opportunity_id` and `algorithm_version`.
+**Execution gates (PASS/FAIL):** if opportunity `hard_constraints` requires
+`outreach_willingness >= 3` (etc.) and the student score is known and lower → fail.
+If the facet is `null` / unknown → **do not fail**.
 
-Bounded web research may add URL-grounded rows in `matching.research_findings`.
-`project_composer` may then draft 1–3 student-facing offers; each must cite at least one
-existing opportunity ID and/or research finding ID or it is rejected (`project_citation_rejected`).
+**Geo:** still a hard filter via constraint geo keys / `remote_ok`.
 
-Admin `project-fit` shows opportunity ranks, generated projects + citations, research URLs,
-or the catalog when no fits have been computed yet.
-
-### Legacy archetypes
-
-`project_matcher.py` still scores older `matching.project_archetypes` with the same 40/40/20
-weights for unit tests and backward compatibility. Live matching prefers opportunities.
+**Capabilities:** produce `scaffold:…` adjustments only — never eligibility failure.

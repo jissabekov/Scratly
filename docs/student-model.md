@@ -1,113 +1,94 @@
-# Student model
+# Student model (V1)
 
-The assessment profile is a structured view of a student’s preferences and constraints across eight dimensions. Numeric internals (confidence scores) are teacher-facing; the writer and student see labels and statuses only.
+Human-auditable profile used to design course projects (app / product / website).
+Numeric ladders are behavioral evidence scores — not personality decimals.
 
 Related: [scoring-rules.md](scoring-rules.md) · [conversation-policy.md](conversation-policy.md) · [docs index](README.md)
 
 ---
 
-## Dimensions
+## Profile shape
 
-Seeded in `assessment.dimensions` (ordinal order):
+```json
+{
+  "interests": [{"topic": "basketball", "score": 4, "evidence_count": 3, "examples": ["..."], "status": "supported"}],
+  "work_modes": {"investigate": 3, "build": 2, "organize": null, "communicate": 4},
+  "work_mode_status": {"investigate": "supported", "build": "provisional", "organize": "unknown", "communicate": "supported"},
+  "motivation": {"primary": "competition_achievement", "secondary": "recognition_influence", "status": "provisional"},
+  "execution": {"persistence": 3, "ambiguity_tolerance": 2, "outreach_willingness": null, "public_visibility": 4},
+  "capabilities": [{"name": "video_editing", "level": 3, "evidence": "..."}],
+  "assets": ["plays organized basketball"],
+  "constraints": {"geo": ["remote_ok"]}
+}
+```
 
-| Key | Label | Required | Cardinality mode | Role |
-|---|---|---|---|---|
-| `topics` | Topic interests | yes | `multi_value` | What to work on |
-| `work_mode` | Work mode | yes | `structured` | Solo / small group / process style |
-| `motivation` | Motivation | yes | `multi_value` | Why the work matters |
-| `capability` | Capabilities | no | `multi_value` | Skills and gaps (scaffolding, not eligibility) |
-| `constraints` | Constraints | yes | `multi_value` | Non-negotiable limits (time, tools, group size, …) |
-| `collaboration` | Collaboration | no | `structured` | Who to work with, in which situations |
-| `challenge` | Challenge appetite | no | `single_choice` | Seek hard vs avoid hard (true rivals possible) |
-| `impact` | Desired impact | no | `multi_value` | What “useful” looks like |
-
-**Required dimensions (4):** `topics`, `work_mode`, `motivation`, `constraints`.  
-Coverage math uses this denominator — see [conversation-policy.md](conversation-policy.md).
-
-### Location (geo) vocabulary
-
-Location for project matching is expressed as **constraint value keys** (not a separate dimension).
-The extractor maps place talk onto `dimension_key=constraints` with these preferred keys:
-
-| Kind | Example value keys |
-|---|---|
-| Region | `seattle_metro`, `bay_area`, `austin_metro`, `nyc_metro`, `remote_ok` |
-| Place | `seattle`, `bellevue`, `san_francisco`, `oakland`, `san_jose`, `berkeley`, `austin`, `new_york`, `brooklyn` |
-
-Matching will not enter `project_matching` until at least one geo value is established
-(`location_ready`). Missing geo surfaces as question target `constraints:geo`.
-
-### Cardinality modes
-
-| Mode | Meaning |
-|---|---|
-| `multi_value` | Several support values coexist (e.g. curiosity + impact). Not a conflict. |
-| `structured` | Faceted / situational values coexist (e.g. brainstorming in a small group, coding alone). |
-| `single_choice` | Competing supports may be a true conflict when the student must pick one primary answer. |
-
-Full conflict rules: [scoring-rules.md](scoring-rules.md).
-
-### Motivation vocabulary
-
-Allowed motivation `value_key`s come from `assessment.motivation_values`:
-
-`mastery` · `impact` · `autonomy` · `recognition` · `belonging` · `curiosity`
-
-Unknown motivation keys are rejected with `taxonomy_value_not_allowed`. Other dimensions map free text to closest keys via the extractor prompt (omit if nothing fits).
+**UNKNOWN ≠ 0.** A never-discussed facet stays `null` / `unknown`. Zero means positive evidence of avoidance or strong dislike.
 
 ---
 
-## Coverage status
+## Dimensions
 
-Each `(session, dimension)` row in `assessment.coverage` has one status:
+| Key | Required | Role |
+|---|---|---|
+| `topics` | yes | Interests with depth score 0–4 |
+| `work_mode` | yes | Investigate / Build / Organize / Communicate (each 0–4 or null) |
+| `motivation` | yes | Primary + secondary reward from five keys |
+| `capability` | no | Skills 0–3 (scaffolding only) |
+| `constraints` | yes | Must-haves + geo value keys |
+| `execution` | yes | Persistence, ambiguity, outreach, visibility (0–4 or null) |
+| `assets` | no | Freeform access (no numeric score) |
+
+Legacy dims **removed:** `collaboration`, `challenge`, dimension `impact`.
+
+### Interest depth (0–4)
+
+| Score | Meaning |
+|---|---|
+| 0 | Actively dislikes / avoids |
+| 1 | Mild interest; occasional consumption |
+| 2 | Repeated voluntary time |
+| 3 | Actively participates / creates / practices |
+| 4 | Sustained deep involvement + substantial knowledge |
+
+### Work modes (0–4 each)
+
+`investigate` · `build` · `organize` · `communicate`
+
+### Motivation rewards (exactly five)
+
+`discovery_mastery` · `competition_achievement` · `impact_usefulness` · `recognition_influence` · `belonging_responsibility`
+
+Store primary + secondary only.
+
+### Execution (0–4)
+
+`persistence` · `ambiguity_tolerance` · `outreach_willingness` · `public_visibility`
+
+Used as **PASS/FAIL gates** in matching. Unknown does not fail a gate.
+
+### Capabilities (0–3)
+
+Extensible skill names. Affect scaffolding (`scaffold:…`), never eligibility.
+
+### Assets / access
+
+Freeform strings. No score.
+
+---
+
+## Status
 
 | Status | Meaning |
 |---|---|
-| `unknown` | No accepted evidence yet |
-| `provisional` | Accepted evidence, confidence **&lt; 0.70** |
-| `established` | Accepted evidence, confidence **≥ 0.70** |
-| `contested` | A **true** open contradiction exists for this dimension (engine v2) |
-
-The reducer only emits `provisional` / `established`. Contested is applied by contradiction sync after reduce. When a contradiction resolves or is dismissed, coverage is restored from the latest profile snapshot.
+| `unknown` | No accepted evidence |
+| `provisional` | Thin / single-example evidence |
+| `supported` | Repeated behavioral evidence |
+| `contradicted` | Open true conflict |
 
 ---
 
 ## Evidence
 
-Every claim about the student is an evidence row. Proposals must include:
+Proposals include `dimension_key`, optional `value_key`, `polarity`, `strength` (0–1 mapping confidence), optional `score_band` (0–4 behavioral ladder), owned `source_message_ids`, and `exact_source_quote`.
 
-| Field | Rule |
-|---|---|
-| `dimension_key` | Must exist in taxonomy |
-| `value_key` | Optional but preferred; motivation must be in vocabulary |
-| `polarity` | `support` or `oppose` |
-| `strength` | 0–1 (clamped) |
-| `source_message_ids` | Must be owned by this session |
-| `exact_source_quote` | Verbatim substring of an owned message |
-| `rationale` | Model explanation (not stored as profile truth) |
-
-Lifecycle status: `proposed` → `accepted` | `rejected` (with reason) · later `superseded` if needed.
-
-### Grounding rejection reasons
-
-| Reason | When |
-|---|---|
-| `source_message_unavailable_or_not_owned` | Message ID not in session |
-| `exact_quote_not_found` | Quote not a substring of owned content |
-| `empty_quote` | Blank quote |
-| `excess_proposals_trimmed` | Beyond 5 proposals in one turn |
-| `taxonomy_value_not_allowed` | Illegal motivation key |
-| `unknown_dimension_key` | Dimension not in taxonomy |
-
-Capabilities change **scope and scaffolding**, not hard eligibility for projects.
-
----
-
-## Profile snapshots
-
-Each successful reduce writes:
-
-- `assessment.profile_snapshots` — versioned state + `reducer_version`
-- `assessment.profile_changes` — why the transition happened
-
-Teachers browse these via admin `profile` / `profile-history`. Students never see raw confidence numbers in the writer context — only public labels/statuses/values.
+Motivation keys must be in the five-reward vocabulary. Work-mode values must be the four facets.

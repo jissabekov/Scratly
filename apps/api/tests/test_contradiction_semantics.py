@@ -27,9 +27,9 @@ def test_maya_turn1_compatible_supports_are_not_conflicts():
     items = [
         _ev("topics", "neighborhood_data"),
         _ev("topics", "science_projects"),
-        _ev("motivation", "curiosity"),
-        _ev("motivation", "impact"),
-        _ev("work_mode", "hands_on_building"),
+        _ev("motivation", "discovery_mastery"),
+        _ev("motivation", "impact_usefulness"),
+        _ev("work_mode", "build"),
         _ev("constraints", "small_projects"),
     ]
     assert find_contradictions(items) == []
@@ -54,40 +54,36 @@ def test_support_and_oppose_same_value_is_conflict():
     assert conflicts[0].reason == "support_oppose_same_value"
 
 
-def test_declared_incompatible_pair_conflicts():
+def test_work_mode_facets_can_coexist():
     items = [
-        _ev("work_mode", "large_group"),
-        _ev("work_mode", "solo_only"),
+        _ev("work_mode", "investigate"),
+        _ev("work_mode", "build"),
+    ]
+    assert find_contradictions(items) == []
+
+
+def test_execution_support_and_oppose_same_facet_conflicts():
+    items = [
+        _ev("execution", "public_visibility"),
+        _ev("execution", "public_visibility", polarity="oppose"),
     ]
     conflicts = find_contradictions(items)
     assert len(conflicts) == 1
-    assert conflicts[0].reason == "declared_incompatible_pair"
+    assert conflicts[0].reason == "support_oppose_same_value"
 
 
-def test_preference_negation_on_single_choice_conflicts():
+def test_execution_facets_can_coexist():
     items = [
-        _ev("challenge", "seek_hard"),
-        _ev("challenge", "avoid_hard", polarity="oppose"),
+        _ev("execution", "persistence"),
+        _ev("execution", "ambiguity_tolerance"),
     ]
-    conflicts = find_contradictions(items)
-    assert len(conflicts) == 1
-    assert conflicts[0].reason == "preference_negation"
+    assert find_contradictions(items) == []
 
 
-def test_single_choice_competing_supports_conflict():
+def test_assets_can_coexist_without_conflict():
     items = [
-        _ev("challenge", "medium"),
-        _ev("challenge", "high"),
-    ]
-    conflicts = find_contradictions(items)
-    assert len(conflicts) == 1
-    assert conflicts[0].reason == "single_choice_competing_supports"
-
-
-def test_collaboration_nuance_is_not_conflict():
-    items = [
-        _ev("collaboration", "small_group"),
-        _ev("collaboration", "small_group_but_not_for_coding"),
+        _ev("assets", "python basics"),
+        _ev("assets", "community mentor"),
     ]
     assert find_contradictions(items) == []
 
@@ -155,17 +151,17 @@ def test_question_gate_rejects_generic_contradiction():
         question=target.fallback_template,
         target=target,
         previous_assistant=None,
-        value_a="curiosity",
-        value_b="impact",
+        value_a="discovery_mastery",
+        value_b="impact_usefulness",
         azure_succeeded=True,
     )
     assert gate["outcome"] == "seeded_override"
-    assert "curiosity" in gate["question"].lower() or "curiosity" in gate["question"]
+    assert "discovery" in gate["question"].lower() or "mastery" in gate["question"].lower()
     assert "two different preferences" not in gate["question"].lower()
 
 
 def test_contradiction_fallback_names_options():
-    text = contradiction_fallback("work_mode", "small_group", "independent")
-    assert "small group" in text
-    assert "independent" in text
+    text = contradiction_fallback("work_mode", "investigate", "build")
+    assert "investigate" in text
+    assert "build" in text
     assert "two different preferences" not in text.lower()

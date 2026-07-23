@@ -13,7 +13,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.contracts import ProposedEvidence, TurnResponse, ValidatedEvidence
+from app.contracts import (
+    ElicitationSpec,
+    ProposedEvidence,
+    TurnResponse,
+    ValidatedEvidence,
+)
+from app.services.elicitation_policy import build_elicitation_spec
 from app.services.contradiction_engine import (
     ENGINE_VERSION,
     cardinality_for,
@@ -25,7 +31,7 @@ from app.services.contradiction_engine import (
 )
 from app.services.grounding_validator import validate_grounding
 from app.services.profile_reducer import reduce_profile
-from app.services.question_policy import Target, contradiction_fallback
+from app.services.question_policy import Target, contradiction_fallback, required_fallback
 
 # Dismiss unresolved contradictions after this many failed clarifications.
 _MAX_CLARIFICATION_ATTEMPTS = 2
@@ -54,10 +60,20 @@ class TurnOutcome:
     turn_id: UUID
     content: str
     stage: str
+    message_kind: str | None = None
+    elicitation: ElicitationSpec | None = None
+    student_message_id: UUID | None = None
+    assistant_message_id: UUID | None = None
 
     def as_response(self) -> TurnResponse:
         return TurnResponse(
-            turn_id=self.turn_id, assistant_message=self.content, stage=self.stage
+            turn_id=self.turn_id,
+            assistant_message=self.content,
+            stage=self.stage,
+            message_kind=self.message_kind,
+            elicitation=self.elicitation,
+            student_message_id=self.student_message_id,
+            assistant_message_id=self.assistant_message_id or self.id,
         )
 
 
@@ -145,12 +161,16 @@ class AssessmentRepository:
                 """
                 SELECT t.id AS turn_id,
                        t.status,
+                       t.student_message_id,
                        m.id AS message_id,
                        m.content,
-                       s.stage::text AS stage
+                       m.message_kind::text AS message_kind,
+                       s.stage::text AS stage,
+                       q.target_key
                   FROM conversation.turns t
                   JOIN core.sessions s ON s.id = t.session_id
              LEFT JOIN conversation.messages m ON m.id = t.assistant_message_id
+             LEFT JOIN assessment.questions q ON q.turn_id = t.id
                  WHERE t.session_id = :session_id
                    AND t.idempotency_key = :idempotency_key
                 """
@@ -160,12 +180,78 @@ class AssessmentRepository:
         row = result.mappings().first()
         if not row or row["status"] != "completed" or row["message_id"] is None:
             return None
+        kind = row["message_kind"]
+        elicitation = None
+        if kind == "elicitation" and row["target_key"]:
+            elicit_key = row["target_key"]
+            if elicit_key == "constraints:geo":
+                elicit_key = "constraints"
+            elicitation = build_elicitation_spec(elicit_key)
         return TurnOutcome(
             id=row["message_id"],
             turn_id=row["turn_id"],
             content=row["content"],
             stage=row["stage"],
+            message_kind=kind,
+            elicitation=elicitation,
+            student_message_id=row["student_message_id"],
+            assistant_message_id=row["message_id"],
         )
+
+    async def list_messages(self, session_id: UUID) -> list[dict[str, Any]]:
+        result = await self.session.execute(
+            text(
+                """
+                SELECT id, turn_id, sequence, role::text AS role, content,
+                       message_kind::text AS message_kind, created_at
+                  FROM conversation.messages
+                 WHERE session_id = :session_id
+                 ORDER BY sequence
+                """
+            ),
+            {"session_id": session_id},
+        )
+        return [dict(row) for row in result.mappings()]
+
+    async def list_student_projects(self, session_id: UUID) -> list[dict[str, Any]]:
+        result = await self.session.execute(
+            text(
+                """
+                SELECT p.id, p.title, p.summary, p.payload,
+                       COALESCE(
+                         (
+                           SELECT count(*)::int
+                             FROM matching.generated_project_citations c
+                            WHERE c.project_id = p.id
+                         ),
+                         0
+                       ) AS citation_count
+                  FROM matching.generated_projects p
+                 WHERE p.session_id = :session_id
+                 ORDER BY p.created_at DESC
+                """
+            ),
+            {"session_id": session_id},
+        )
+        items: list[dict[str, Any]] = []
+        for row in result.mappings():
+            payload = row["payload"]
+            if isinstance(payload, str):
+                payload = json.loads(payload)
+            if not isinstance(payload, dict):
+                payload = {}
+            items.append(
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "summary": row["summary"],
+                    "topic_keys": list(payload.get("topic_keys") or []),
+                    "work_mode_keys": list(payload.get("work_mode_keys") or []),
+                    "motivation_keys": list(payload.get("motivation_keys") or []),
+                    "citation_count": int(row["citation_count"] or 0),
+                }
+            )
+        return items
 
     @asynccontextmanager
     async def transaction(self):
@@ -343,9 +429,10 @@ class TurnTransaction:
                         """
                         INSERT INTO assessment.evidence
                             (id, session_id, dimension_id, value_key, strength, polarity,
-                             exact_source_quote, status, rejection_reason, reducer_version)
+                             score_band, exact_source_quote, status, rejection_reason, reducer_version)
                         VALUES
                             (:id, :session_id, :dimension_id, :value_key, :strength, :polarity,
+                             :score_band,
                              :exact_source_quote, CAST(:status AS assessment.evidence_status),
                              :rejection_reason, :reducer_version)
                         """
@@ -357,6 +444,7 @@ class TurnTransaction:
                         "value_key": item.value_key,
                         "strength": item.strength,
                         "polarity": item.polarity.value,
+                        "score_band": item.score_band,
                         "exact_source_quote": item.exact_source_quote,
                         "status": status,
                         "rejection_reason": item.rejection_reason
@@ -390,7 +478,7 @@ class TurnTransaction:
             text(
                 """
                 SELECT e.id, d.key AS dimension_key, e.value_key, e.strength,
-                       e.polarity, e.exact_source_quote,
+                       e.score_band, e.polarity, e.exact_source_quote,
                        ARRAY(
                          SELECT es.message_id::text
                            FROM assessment.evidence_sources es
@@ -416,6 +504,7 @@ class TurnTransaction:
                     dimension_key=row["dimension_key"],
                     value_key=row["value_key"],
                     strength=float(row["strength"]),
+                    score_band=row["score_band"],
                     polarity=row["polarity"],
                     source_message_ids=source_ids,
                     exact_source_quote=row["exact_source_quote"],
@@ -445,17 +534,7 @@ class TurnTransaction:
         )
         version = int(version_result.scalar_one())
         snapshot_id = uuid4()
-        state = {
-            "dimensions": [
-                {
-                    "key": d.key,
-                    "status": d.status,
-                    "value": d.value,
-                    "confidence": d.confidence,
-                }
-                for d in profile.dimensions
-            ]
-        }
+        state = profile.state
         now = datetime.now(timezone.utc)
         await self.session.execute(
             text(
@@ -564,7 +643,7 @@ class TurnTransaction:
                 text(
                     """
                     UPDATE assessment.coverage
-                       SET status = 'contested', updated_at = now()
+                       SET status = 'contradicted', updated_at = now()
                      WHERE session_id = :session_id AND dimension_id = :dimension_id
                     """
                 ),
@@ -831,28 +910,36 @@ class TurnTransaction:
 
         for row in coverage_rows:
             if row["required"] and row["status"] == "unknown":
-                add("required_hard_variable", row["key"])
+                add(
+                    "required_hard_variable",
+                    row["key"],
+                    required_fallback(row["key"]),
+                )
 
         if not await self.location_established():
             loc_intent = intent_map.get("location_constraint")
             loc_fallback = (
                 loc_intent["fallback_template"]
                 if loc_intent
-                else "Where are you based (city or region), or is remote work fine?"
+                else required_fallback("constraints:geo")
             )
             add("required_hard_variable", "constraints:geo", loc_fallback)
 
         for row in coverage_rows:
             if row["key"] in {"topics", "work_mode"} and row["status"] == "unknown":
-                add("project_critical_unknown", row["key"])
+                add(
+                    "project_critical_unknown",
+                    row["key"],
+                    required_fallback(row["key"]),
+                )
 
         for row in coverage_rows:
             if row["status"] == "provisional":
                 add("provisional_dimension", row["key"])
 
-        established = sum(1 for r in coverage_rows if r["status"] == "established")
-        if established >= 2:
-            # Prefer discriminating provisional dims; avoid repeating established work_mode.
+        supported = sum(1 for r in coverage_rows if r["status"] == "supported")
+        if supported >= 2:
+            # Prefer discriminating provisional dims; avoid repeating supported work_mode.
             provisional = next(
                 (r["key"] for r in coverage_rows if r["status"] == "provisional"),
                 None,
@@ -894,8 +981,8 @@ class TurnTransaction:
                 """
                 SELECT count(*) FILTER (WHERE d.required) AS required_total,
                        count(*) FILTER (
-                         WHERE d.required AND c.status::text = 'established'
-                       ) AS required_established,
+                         WHERE d.required AND c.status::text = 'supported'
+                       ) AS required_supported,
                        count(*) FILTER (
                          WHERE d.required AND c.status::text <> 'unknown'
                        ) AS required_touched
@@ -908,7 +995,7 @@ class TurnTransaction:
         )
         row = required.mappings().one()
         total = int(row["required_total"] or 0) or 1
-        established = int(row["required_established"] or 0)
+        established = int(row["required_supported"] or 0)
         touched = int(row["required_touched"] or 0)
         open_c = await self.session.execute(
             text(
@@ -1160,7 +1247,7 @@ class TurnTransaction:
                 if dim.get("key") == dimension_key:
                     status = dim.get("status") or "provisional"
                     break
-        if status == "contested":
+        if status == "contradicted":
             status = "provisional"
         await self.session.execute(
             text(
@@ -1351,7 +1438,21 @@ class TurnTransaction:
             }
             for d in state.get("dimensions", [])
         ]
-        return {"dimensions": public_dims}
+        public_profile = {"dimensions": public_dims}
+        for key in (
+            "interests",
+            "work_modes",
+            "work_mode_status",
+            "motivation",
+            "execution",
+            "execution_status",
+            "capabilities",
+            "assets",
+            "constraints",
+        ):
+            if key in state:
+                public_profile[key] = state[key]
+        return public_profile
 
     async def persist_question_and_complete(
         self,
@@ -1364,6 +1465,8 @@ class TurnTransaction:
         used_fallback: bool = False,
         message_kind: str | None = None,
         assistant_prefix: str | None = None,
+        elicitation: ElicitationSpec | None = None,
+        student_message_id: UUID | None = None,
     ) -> TurnOutcome:
         assert self._session_id is not None
         intent_key = target.kind
@@ -1484,7 +1587,14 @@ class TurnTransaction:
             {"stage": stage, "session_id": self._session_id},
         )
         return TurnOutcome(
-            id=assistant_id, turn_id=turn.id, content=content, stage=stage
+            id=assistant_id,
+            turn_id=turn.id,
+            content=content,
+            stage=stage,
+            message_kind=kind,
+            elicitation=elicitation,
+            student_message_id=student_message_id,
+            assistant_message_id=assistant_id,
         )
 
     async def record_decision_event(
@@ -1706,7 +1816,7 @@ class TurnTransaction:
         return [dict(row) for row in result.mappings()]
 
     async def matching_profile(self) -> dict[str, Any]:
-        """Build matcher-shaped profile from accepted evidence."""
+        """Build matcher-shaped profile from V1 snapshot + accepted evidence."""
         assert self._session_id is not None
         from app.services.location_policy import (
             GEO_PLACE_KEYS,
@@ -1714,27 +1824,53 @@ class TurnTransaction:
             extract_geo_from_profile,
         )
 
+        public = await self.public_profile()
         rows = await self.accepted_evidence_summaries(limit=200)
+
         topics: set[str] = set()
-        work_modes: set[str] = set()
-        motivations: set[str] = set()
+        for interest in public.get("interests") or []:
+            if isinstance(interest, dict) and interest.get("topic"):
+                topics.add(str(interest["topic"]))
+
+        work_modes: dict[str, int | None] = {
+            "investigate": None,
+            "build": None,
+            "organize": None,
+            "communicate": None,
+        }
+        raw_modes = public.get("work_modes") or {}
+        if isinstance(raw_modes, dict):
+            for key in work_modes:
+                val = raw_modes.get(key)
+                work_modes[key] = int(val) if val is not None else None
+
+        motivation = public.get("motivation") or {}
+        primary = motivation.get("primary") if isinstance(motivation, dict) else None
+        secondary = (
+            motivation.get("secondary") if isinstance(motivation, dict) else None
+        )
+        motivations = {x for x in (primary, secondary) if x}
+
+        execution = public.get("execution") or {}
+        if not isinstance(execution, dict):
+            execution = {}
+
         capability_gaps: set[str] = set()
         constraints: dict[str, str] = {}
         geo_regions: set[str] = set()
         geo_places: set[str] = set()
+
         for row in rows:
-            if row.get("polarity") == "oppose":
-                if row.get("dimension_key") == "capability" and row.get("value_key"):
-                    capability_gaps.add(row["value_key"])
-                continue
             key = row.get("dimension_key")
             value = row.get("value_key")
+            if row.get("polarity") == "oppose":
+                if key == "capability" and value:
+                    capability_gaps.add(value)
+                continue
             if not value:
                 continue
             if key == "topics":
                 topics.add(value)
-            elif key == "work_mode":
-                work_modes.add(value)
             elif key == "motivation":
                 motivations.add(value)
             elif key == "constraints":
@@ -1743,7 +1879,17 @@ class TurnTransaction:
                     geo_regions.add(value)
                 if value in GEO_PLACE_KEYS:
                     geo_places.add(value)
-        public = await self.public_profile()
+
+        constraint_state = public.get("constraints") or {}
+        if isinstance(constraint_state, dict):
+            for geo in constraint_state.get("geo") or []:
+                geo = str(geo)
+                if geo in GEO_REGION_KEYS:
+                    geo_regions.add(geo)
+                if geo in GEO_PLACE_KEYS:
+                    geo_places.add(geo)
+                constraints[geo] = "yes"
+
         geo = extract_geo_from_profile(
             {
                 **public,
@@ -1754,13 +1900,17 @@ class TurnTransaction:
         )
         return {
             "topics": sorted(topics),
-            "work_modes": sorted(work_modes),
+            "work_modes": work_modes,
             "motivations": sorted(motivations),
+            "primary_reward": primary,
+            "secondary_reward": secondary,
+            "execution": execution,
             "constraints": constraints,
             "capability_gaps": sorted(capability_gaps),
             "geo_regions": geo["geo_regions"] or sorted(geo_regions),
             "geo_places": geo["geo_places"] or sorted(geo_places),
             "dimensions": public.get("dimensions") or [],
+            "assets": list(public.get("assets") or []),
         }
 
     async def list_active_opportunities(self) -> list[dict[str, Any]]:

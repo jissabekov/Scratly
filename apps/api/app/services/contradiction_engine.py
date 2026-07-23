@@ -27,22 +27,12 @@ DIMENSION_CARDINALITY: dict[str, str] = {
     "motivation": "multi_value",
     "capability": "multi_value",
     "constraints": "multi_value",
-    "collaboration": "structured",
-    "challenge": "single_choice",
-    "impact": "multi_value",
+    "execution": "structured",
+    "assets": "multi_value",
 }
 
-# Sparse true rivals only. Unlisted pairs are compatible.
-VALUE_INCOMPATIBILITIES: frozenset[tuple[str, str, str]] = frozenset(
-    {
-        ("work_mode", "large_group", "solo_only"),
-        ("work_mode", "solo_only", "large_group"),
-        ("collaboration", "large_group_only", "solo_only"),
-        ("collaboration", "solo_only", "large_group_only"),
-        ("challenge", "avoid_hard", "seek_hard"),
-        ("challenge", "seek_hard", "avoid_hard"),
-    }
-)
+# Sparse true rivals only. Unlisted facet pairs are compatible.
+VALUE_INCOMPATIBILITIES: frozenset[tuple[str, str, str]] = frozenset()
 
 
 @dataclass(frozen=True)

@@ -15,7 +15,7 @@ def test_invented_and_cross_session_quotes_rejected():
  assert validate_grounding([item(m.id,'exact')],[m],other)[0].rejection_reason=='source_message_unavailable_or_not_owned'
 def test_reducer_accepted_only_and_threshold():
  s=uuid4(); m=Msg(uuid4(),s,'exact'); accepted=validate_grounding([item(m.id),item(m.id,value='b',strength=.1)],[m],s)
- profile=reduce_profile(accepted); assert profile.reducer_version=='v1' and profile.dimensions[0].value=='a' and profile.dimensions[0].status=='established'
+ profile=reduce_profile(accepted); assert profile.reducer_version=='v2' and profile.dimensions[0].value=='a' and profile.dimensions[0].status=='provisional'
 def test_question_priority_and_stages():
  targets=[Target('profile_validation','z','z'),Target('contradiction','a','a')]
  assert select_next(targets).kind=='contradiction'
@@ -25,6 +25,27 @@ def test_contexts_are_independent_and_writer_bounded():
  c=ContextBuilder(); transcript=list(range(20)); q=c.question_writer('x',transcript,'memory','profile'); m=c.memory(transcript,20)
  assert q['recent_messages']==list(range(12,20)) and 'raw_transcript' not in q and 'profile' not in m
 def test_project_weights_constraints_and_capability_not_eligibility():
- profile={'topics':['x'],'work_modes':['y'],'motivations':['z'],'constraints':{'age':'ok'},'capability_gaps':['code']}
- result=rank_projects(profile,[{'id':'p','topics':['x'],'work_modes':['y'],'motivations':[],'hard_constraints':{'age':'ok'}}])[0]
- assert result.eligible and result.score==.8 and result.scope_adjustments==('scaffold:code',)
+    profile = {
+        "topics": ["x"],
+        "work_modes": {"build": 4, "investigate": None, "organize": None, "communicate": None},
+        "motivations": ["discovery_mastery"],
+        "primary_reward": "discovery_mastery",
+        "execution": {},
+        "constraints": {"age": "ok"},
+        "capability_gaps": ["code"],
+    }
+    result = rank_projects(
+        profile,
+        [
+            {
+                "id": "p",
+                "topics": ["x"],
+                "work_modes": ["build"],
+                "motivations": ["discovery_mastery"],
+                "hard_constraints": {"age": "ok"},
+            }
+        ],
+    )[0]
+    assert result.eligible and result.score >= 0.9 and result.scope_adjustments == (
+        "scaffold:code",
+    )

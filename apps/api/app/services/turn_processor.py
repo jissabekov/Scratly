@@ -10,7 +10,7 @@ from app.contracts import (
     ValidatedEvidence,
 )
 from app.services.decision_trace import DecisionTraceRecorder
-from app.services.elicitation_policy import elicitation_target
+from app.services.elicitation_policy import build_elicitation_spec, elicitation_target
 from app.services.location_policy import extract_geo_from_profile
 from app.services.memory_compactor import MemoryCompactor
 from app.services.opportunity_matcher import rank_opportunities
@@ -108,6 +108,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
 
         assistant_prefix: str | None = None
         message_kind = "assessment_question"
+        elicitation_spec = None
         skip_evidence = intent.primary_intent == PrimaryIntent.STUDENT_QUESTION
 
         # --- Student question branch ---
@@ -136,6 +137,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     {
                         "intent": intent.model_dump(mode="json"),
                         "student_message": {"content": request.text},
+                        "student_text": request.text,
                         "public_profile_summary": public_profile,
                         "accepted_evidence": evidence_summaries,
                         "last_target_key": (last_q or {}).get("target_key"),
@@ -358,11 +360,14 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         target = select_next(candidates) or _FALLBACK_TARGET
 
         # --- Thin answer → elicitation ---
+        # Prefer last_question presence as a cheap prior-ask signal.
+        prior_assistant_questions = 1 if last_q else 0
         thin = evaluate_thin_answer(
             request.text,
             accepted_evidence_count=accepted_count,
             primary_intent=intent.primary_intent.value,
             pending_contradiction=bool(pending_dim),
+            prior_assistant_questions=prior_assistant_questions,
         )
         await trace.record(
             "answer_thinness_evaluated",
@@ -399,6 +404,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             }:
                 target = elicitation_target(elicit_key)
                 message_kind = "elicitation"
+                elicitation_spec = build_elicitation_spec(elicit_key)
                 await tx.update_session_counters(
                     elicitation_attempts_for_target=attempts,
                     elicitation_target_key=elicit_key,
@@ -469,7 +475,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 review = await llm.structured(
                     "writer",
                     "profile_review",
-                    "v1",
+                    "v2",
                     ProfileReviewOutput,
                     context_builder.profile_review(
                         public_profile, await tx.accepted_evidence_summaries()
@@ -535,8 +541,6 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 previous_assistant_question=previous_assistant,
             )
             if target.kind == "elicitation":
-                from app.services.elicitation_policy import build_elicitation_spec
-
                 writer_context["elicitation"] = build_elicitation_spec(
                     target.key
                 ).model_dump()
@@ -604,6 +608,12 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 )
                 message_kind = "project_offer"
 
+        if message_kind == "elicitation" and elicitation_spec is None:
+            elicit_key = target.key
+            if elicit_key == "constraints:geo":
+                elicit_key = "constraints"
+            elicitation_spec = build_elicitation_spec(elicit_key)
+
         assistant = await tx.persist_question_and_complete(
             turn,
             target,
@@ -613,6 +623,8 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             used_fallback=used_fallback,
             message_kind=message_kind,
             assistant_prefix=assistant_prefix,
+            elicitation=elicitation_spec,
+            student_message_id=message.id,
         )
 
         try:

@@ -303,7 +303,7 @@ class QuestionWriter:
 
     async def write(self, context) -> str:
         result = await self.llm.structured(
-            "writer", "question_writer", "v2", QuestionResponse, context
+            "writer", "question_writer", "v3", QuestionResponse, context
         )
         return result.question
 

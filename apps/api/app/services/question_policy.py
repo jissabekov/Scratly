@@ -1,4 +1,4 @@
-"""Deterministic stage and question-target policy."""
+"""Deterministic stage and question-target policy (V1 anchors)."""
 
 from dataclasses import dataclass
 
@@ -12,18 +12,24 @@ PRIORITY = (
     "project_discrimination",
     "profile_validation",
 )
-# Same-priority tie-break: interests before constraints (geo last among required).
-DISCOVERY_KEY_ORDER = (
+
+# 7-anchor discovery order: interests → depth/work-mode → motivation →
+# execution → hard outreach/visibility/geo. Decision-impact unknowns win ties.
+ANCHOR_KEY_ORDER = (
     "topics",
-    "motivation",
     "work_mode",
-    "capability",
-    "collaboration",
-    "challenge",
-    "impact",
+    "motivation",
+    "execution",
+    "execution:persistence",
+    "execution:ambiguity_tolerance",
+    "execution:outreach_willingness",
+    "execution:public_visibility",
     "constraints",
     "constraints:geo",
+    "capability",
+    "assets",
 )
+
 STAGES = (
     "discovery",
     "measurement",
@@ -37,8 +43,11 @@ GAP_RESOLUTION_ESTABLISHED = 0.5
 PROFILE_REVIEW_ESTABLISHED = 0.9
 MEASUREMENT_TOUCHED = 0.4
 
-_DISCOVERY_RANK = {k: i for i, k in enumerate(DISCOVERY_KEY_ORDER)}
-_DISCOVERY_RANK_FALLBACK = len(DISCOVERY_KEY_ORDER)
+_ANCHOR_RANK = {k: i for i, k in enumerate(ANCHOR_KEY_ORDER)}
+_ANCHOR_RANK_FALLBACK = len(ANCHOR_KEY_ORDER)
+
+# Back-compat alias used by older tests/docs.
+DISCOVERY_KEY_ORDER = ANCHOR_KEY_ORDER
 
 
 @dataclass(frozen=True)
@@ -54,8 +63,8 @@ def select_next(candidates: list[Target]) -> Target | None:
         min(
             candidates,
             key=lambda x: (
-                order[x.kind],
-                _DISCOVERY_RANK.get(x.key, _DISCOVERY_RANK_FALLBACK),
+                order.get(x.kind, len(PRIORITY)),
+                _ANCHOR_RANK.get(x.key, _ANCHOR_RANK_FALLBACK),
                 x.key,
             ),
         )
@@ -74,11 +83,10 @@ def derive_stage(
     coverage: float | None = None,
     location_ready: bool | None = None,
 ) -> str:
-    """Derive stage from established coverage and open true contradictions.
+    """Derive stage from supported coverage and open true contradictions.
 
-    Legacy callers may pass ``coverage`` (treated as established). Contested
-    dims contribute only to ``coverage_touched``, so early false conflicts no
-    longer force ``gap_resolution``.
+    Legacy callers may pass ``coverage`` (treated as supported/established).
+    Contested dims contribute only to ``coverage_touched``.
 
     ``project_matching`` requires reviewed + location_ready (when provided).
     """
@@ -87,17 +95,12 @@ def derive_stage(
         if coverage_established is None and coverage is not None
         else (coverage_established or 0.0)
     )
-    touched = (
-        established
-        if coverage_touched is None
-        else coverage_touched
-    )
+    touched = established if coverage_touched is None else coverage_touched
 
     if projects_ready and reviewed:
         return "complete"
     if reviewed:
         if location_ready is False:
-            # Stay in profile_review until geo is established.
             return "profile_review"
         return "project_matching"
     if established >= PROFILE_REVIEW_ESTABLISHED and contradictions == 0:
@@ -132,9 +135,39 @@ def contradiction_fallback(
 
 
 _REQUIRED_FALLBACKS = {
-    "topics": "What kinds of projects or topics are you drawn to?",
-    "motivation": "What would make this project feel worth doing for you?",
-    "work_mode": "How do you like to work — mostly alone, with others, or a mix?",
+    "topics": (
+        "Think about the last few months — when nobody was making you do anything, "
+        "what have you spent the most time doing or learning about?"
+    ),
+    "work_mode": (
+        "When something you care about needs fixing, which part pulls you in most — "
+        "figuring out what's going on, building something that helps, getting people "
+        "organized, or explaining it so others pay attention?"
+    ),
+    "motivation": (
+        "Imagine your project turns out really well. Which outcome would make you "
+        "care the most — mastering something hard, beating a target, helping someone, "
+        "being noticed, or people counting on you?"
+    ),
+    "execution": (
+        "What's something difficult you kept working at after it became frustrating "
+        "or boring?"
+    ),
+    "execution:persistence": (
+        "What's something difficult you kept working at after it became frustrating "
+        "or boring?"
+    ),
+    "execution:ambiguity_tolerance": (
+        "If I said 'find a way to make something useful in your area' with no steps, "
+        "does that sound interesting or annoying — and what would you do first?"
+    ),
+    "execution:outreach_willingness": (
+        "How comfortable would you be emailing an organization you've never talked to?"
+    ),
+    "execution:public_visibility": (
+        "How do you feel about eventually presenting your work publicly — class only, "
+        "outside orgs, or a bigger pitch/demo?"
+    ),
     "constraints": (
         "Any must-haves for the project — deadline, tools, budget, or other limits?"
     ),
@@ -142,9 +175,10 @@ _REQUIRED_FALLBACKS = {
         "Where are you based (city or region), or is remote work fine?"
     ),
     "capability": "What skills or tools are you already comfortable using?",
-    "collaboration": "How much collaboration do you want on this project?",
-    "challenge": "How challenging do you want this project to feel?",
-    "impact": "What kind of impact do you hope the project has?",
+    "assets": (
+        "Do you have any unusual access that could help — people, teams, datasets, "
+        "equipment, communities, or a job/hobby connection?"
+    ),
 }
 
 

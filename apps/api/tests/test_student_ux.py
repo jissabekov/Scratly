@@ -39,19 +39,23 @@ def test_discovery_select_next_prefers_topics_over_constraints():
         _req("motivation"),
         _req("topics"),
         _req("work_mode"),
+        _req("execution"),
     ]
     assert select_next(targets).key == "topics"
 
     without_topics = [t for t in targets if t.key != "topics"]
-    assert select_next(without_topics).key == "motivation"
+    assert select_next(without_topics).key == "work_mode"
 
-    without_motivation = [t for t in without_topics if t.key != "motivation"]
-    assert select_next(without_motivation).key == "work_mode"
+    without_work = [t for t in without_topics if t.key != "work_mode"]
+    assert select_next(without_work).key == "motivation"
 
-    without_work = [t for t in without_motivation if t.key != "work_mode"]
-    assert select_next(without_work).key == "constraints"
+    without_motivation = [t for t in without_work if t.key != "motivation"]
+    assert select_next(without_motivation).key == "execution"
 
-    geo_only = [t for t in without_work if t.key != "constraints"]
+    without_exec = [t for t in without_motivation if t.key != "execution"]
+    assert select_next(without_exec).key == "constraints"
+
+    geo_only = [t for t in without_exec if t.key != "constraints"]
     assert select_next(geo_only).key == "constraints:geo"
 
 
@@ -59,9 +63,8 @@ def test_required_fallback_avoids_non_negotiable_opener():
     for key in ("topics", "motivation", "work_mode", "constraints", "constraints:geo"):
         text = required_fallback(key).lower()
         assert "non-negotiable" not in text
-    assert "topics" in required_fallback("topics").lower() or "project" in required_fallback(
-        "topics"
-    ).lower()
+    topics = required_fallback("topics").lower()
+    assert "spent" in topics or "learning" in topics or "time" in topics
     assert "must-have" in required_fallback("constraints").lower() or "deadline" in required_fallback(
         "constraints"
     ).lower()
@@ -176,7 +179,7 @@ def test_location_established_and_stage_gate():
     assert not location_established_from_values(["evening_only"])
     profile = {
         "dimensions": [
-            {"key": "constraints", "status": "established", "value": "seattle_metro"}
+            {"key": "constraints", "status": "supported", "value": "seattle_metro"}
         ]
     }
     assert location_established_from_profile(profile)

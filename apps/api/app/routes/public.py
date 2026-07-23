@@ -3,7 +3,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 
-from app.contracts import TurnRequest, TurnResponse
+from app.contracts import (
+    MessageItem,
+    SessionMessagesResponse,
+    SessionProjectsResponse,
+    StudentProjectItem,
+    TurnRequest,
+    TurnResponse,
+)
 from app.deps import get_context_builder, get_extractor, get_repo, get_writer
 from app.repository import AssessmentRepository, TurnOutcome
 from app.services.context_builder import ContextBuilder
@@ -39,6 +46,40 @@ async def resume_session(
         "updated_at": session["updated_at"],
         "completed_at": session["completed_at"],
     }
+
+
+@router.get(
+    "/sessions/{session_id}/messages", response_model=SessionMessagesResponse
+)
+async def list_session_messages(
+    session_id: UUID, repo: AssessmentRepository = Depends(get_repo)
+):
+    session = await repo.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    rows = await repo.list_messages(session_id)
+    return SessionMessagesResponse(
+        session_id=session_id,
+        stage=session["stage"],
+        completed_at=session.get("completed_at"),
+        items=[MessageItem.model_validate(row) for row in rows],
+    )
+
+
+@router.get(
+    "/sessions/{session_id}/projects", response_model=SessionProjectsResponse
+)
+async def list_session_projects(
+    session_id: UUID, repo: AssessmentRepository = Depends(get_repo)
+):
+    session = await repo.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    rows = await repo.list_student_projects(session_id)
+    return SessionProjectsResponse(
+        session_id=session_id,
+        items=[StudentProjectItem.model_validate(row) for row in rows],
+    )
 
 
 @router.post("/sessions/{session_id}/turns", response_model=TurnResponse)

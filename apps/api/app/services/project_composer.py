@@ -62,7 +62,7 @@ class ProjectComposer:
         }
         try:
             raw = await self.llm.structured(
-                "writer", "project_composer", "v1", ProjectComposeOutput, context
+                "writer", "project_composer", "v2", ProjectComposeOutput, context
             )
         except Exception:
             raw = _seeded_compose(context)

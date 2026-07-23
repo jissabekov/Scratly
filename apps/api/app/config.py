@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     azure_openai_summary_deployment: str = "gpt-5.4-mini"
     memory_response_interval: int = 8
     memory_token_threshold: int = 6000
-    reducer_version: str = "v1"
+    reducer_version: str = "v2"
 
 
 @lru_cache

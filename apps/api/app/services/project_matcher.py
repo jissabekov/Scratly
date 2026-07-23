@@ -1,14 +1,84 @@
+"""Archetype project matching (V1) — mirrors opportunity gates."""
+
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import Any
+
+from app.services.opportunity_matcher import (
+    EXECUTION_GATE_KEYS,
+    WORK_MODE_KEYS,
+    _execution_gates,
+    _motivation_alignment,
+    _work_mode_alignment,
+)
+
+
 @dataclass(frozen=True)
-class Match: project_id:str; eligible:bool; score:float; topic:float; work_mode:float; motivation:float; failed_constraints:tuple[str,...]; scope_adjustments:tuple[str,...]
-def _overlap(wanted:set[str], offered:set[str])->float: return len(wanted&offered)/max(1,len(wanted))
-def rank_projects(profile:dict,projects:list[dict])->list[Match]:
-    matches=[]
-    for p in projects:
-        failed=tuple(k for k,v in p.get('hard_constraints',{}).items() if profile.get('constraints',{}).get(k)!=v)
-        topic=_overlap(set(profile.get('topics',[])),set(p.get('topics',[])))
-        work=_overlap(set(profile.get('work_modes',[])),set(p.get('work_modes',[])))
-        motivation=_overlap(set(profile.get('motivations',[])),set(p.get('motivations',[])))
-        adjustments=tuple(f"scaffold:{x}" for x in profile.get('capability_gaps',[]))
-        matches.append(Match(p['id'],not failed,.4*topic+.4*work+.2*motivation,topic,work,motivation,failed,adjustments))
-    return sorted(matches,key=lambda m:(not m.eligible,-m.score,m.project_id))
+class Match:
+    project_id: str
+    eligible: bool
+    score: float
+    topic: float
+    work_mode: float
+    motivation: float
+    failed_constraints: tuple[str, ...]
+    scope_adjustments: tuple[str, ...]
+
+
+def _overlap(wanted: set[str], offered: set[str]) -> float:
+    if not wanted:
+        return 0.0
+    return len(wanted & offered) / max(1, len(wanted))
+
+
+def rank_projects(profile: dict[str, Any], projects: list[dict[str, Any]]) -> list[Match]:
+    topics = set(profile.get("topics") or [])
+    raw_modes = profile.get("work_modes")
+    if isinstance(raw_modes, dict):
+        student_modes = {
+            k: (int(v) if v is not None else None) for k, v in raw_modes.items()
+        }
+    else:
+        student_modes = {k: 3 for k in (raw_modes or []) if k in WORK_MODE_KEYS}
+
+    gaps = tuple(profile.get("capability_gaps") or [])
+    adjustments = tuple(f"scaffold:{x}" for x in gaps)
+    constraints = profile.get("constraints") or {}
+    if not isinstance(constraints, dict):
+        constraints = {}
+
+    matches: list[Match] = []
+    for project in projects:
+        failed: list[str] = []
+        hard = project.get("hard_constraints") or {}
+        if not isinstance(hard, dict):
+            hard = {}
+        for key, value in hard.items():
+            if key in EXECUTION_GATE_KEYS:
+                continue
+            if key in constraints and constraints.get(key) != value:
+                failed.append(key)
+        failed.extend(_execution_gates(profile, hard))
+
+        topic = _overlap(topics, set(project.get("topics") or []))
+        work = _work_mode_alignment(
+            student_modes, set(project.get("work_modes") or [])
+        )
+        motivation = _motivation_alignment(
+            profile, set(project.get("motivations") or [])
+        )
+        score = 0.4 * topic + 0.4 * work + 0.2 * motivation
+        matches.append(
+            Match(
+                project["id"],
+                not failed,
+                score,
+                topic,
+                work,
+                motivation,
+                tuple(failed),
+                adjustments,
+            )
+        )
+    return sorted(matches, key=lambda m: (not m.eligible, -m.score, m.project_id))

@@ -9,7 +9,7 @@ This guide stays candid about what is local-ready versus Azure-production scaffo
 ### Monorepo layout
 
 - `apps/api/` is a Python 3.12 FastAPI service with configuration loading, async SQLAlchemy connectivity, public/admin route surfaces, deterministic assessment services, Azure OpenAI access, and production container packaging.
-- `apps/web/` is a Node.js 22 / Next.js 15 teacher inspection console with a production standalone container image.
+- `apps/web/` is a Node.js 22 / Next.js 15 app: student chat at `/` and teacher inspection console at `/teacher`, with a production standalone container image.
 - `migrations/` contains ordered PostgreSQL 16 migrations. PostgreSQL is the only state database.
 - `infra/bicep/` describes the future Azure topology.
 - `docs/` explains architecture, student model, scoring, conversation policy/quality, and this local workflow ([index](README.md)).
@@ -23,7 +23,7 @@ The service boundaries are:
 
 1. `evidence_extractor.py` may propose evidence (prompt v2) but cannot mutate profile state.
 2. `grounding_validator.py` checks session ownership, exact quotes, proposal caps, and motivation taxonomy.
-3. `profile_reducer.py` reads accepted evidence only and records a reducer version (0.70 → established).
+3. `profile_reducer.py` reads accepted evidence only and records reducer v2 (V1 scores; silence stays unknown).
 4. `contradiction_engine.py` (v2) opens only true conflicts; resolution never averages strengths.
 5. `turn_intent_classifier.py` / `student_answerer.py` handle process/profile/project Q&A (refuse homework).
 6. `thin_answer.py` / `elicitation_policy.py` switch thin assessment replies to option-style questions.
@@ -55,20 +55,23 @@ The database uniqueness constraint on `(session_id, idempotency_key)` is the con
 
 `004_student_ux_and_projects.sql` adds student Q&A / elicitation / location / research / project decision events, `matching.opportunities` (+ seeds), research runs/findings, generated projects + citations, session counters (`consecutive_student_questions`, elicitation attempts, `profile_reviewed`), and assistant `message_kind`. After editing migrations on an existing volume, run `make local-reset` (wipes local data).
 
-### Teacher UI and infrastructure
+### Student chat and teacher UI
 
-The teacher page loads live admin data: profile, evidence ledger, conversation, timeline, contradictions, question history, next-question rationale, project ranking, and decision trace. It can create sessions and submit turns against the local API (`NEXT_PUBLIC_API_BASE_URL`).
+Student chat at `:3000` uses public APIs only: create/resume session, list messages, submit turns (with `message_kind` / elicitation), and list generated projects. History rebuilds from `GET /v1/sessions/{id}/messages` (session id stored in the browser).
+
+The teacher page at `:3000/teacher` loads live admin data: profile, evidence ledger, conversation, timeline, contradictions, question history, next-question rationale, project ranking, and decision trace. It can create sessions and submit turns against the local API (`NEXT_PUBLIC_API_BASE_URL`).
 
 The Bicep file sketches two Container Apps, PostgreSQL Flexible Server, Blob Storage for files, Application Insights, Log Analytics, managed identities, and Blob RBAC. It is not required for local testing and should not be deployed as production infrastructure until its database connection, networking, registry access, Azure OpenAI RBAC, and secret references are completed. Blob and App Insights stay out of the local compose path.
 
 ## 2. Honest readiness status
 
-Session/turn persistence, admin inspection, teacher console, contradiction v2, stage pacing, LLM audit linkage, and memory compaction are wired for a local end-to-end assessment journey:
+Session/turn persistence, student chat, admin inspection, teacher console, contradiction v2, stage pacing, LLM audit linkage, and memory compaction are wired for a local end-to-end assessment journey:
 
 1. `POST /v1/sessions` creates a student + session in PostgreSQL.
 2. `POST /v1/sessions/{id}/turns` runs `process_student_turn()` (intent → optional student answer → evidence → grounding → reduce → resolve → thin/elicitation → stage → question → quality gate → optional project match → memory → decision trace).
-3. Teacher UI at `:3000` lists sessions, submits turns, and loads live admin views + decision trace.
-4. `scripts/sim_assessment_conversation.py` can run multi-turn Azure sims with assertions.
+3. Student chat at `:3000` creates sessions, submits turns, and resumes transcript via `GET /v1/sessions/{id}/messages`.
+4. Teacher UI at `:3000/teacher` lists sessions, submits turns, and loads live admin views + decision trace.
+5. `scripts/sim_assessment_conversation.py` can run multi-turn Azure sims with assertions.
 
 Azure OpenAI is optional: with `AZURE_OPENAI_ENDPOINT` set and `az login` (host) or SP env vars (container), the extractor/writer/compactor use structured Azure calls and record `audit.llm_runs` linked from extract/write events. Without it, the extractor returns no evidence and the writer uses seeded fallback question templates — the persistence path still works.
 
@@ -214,7 +217,7 @@ npm --prefix apps/web install
 make web-run
 ```
 
-Open `http://127.0.0.1:3000`.
+Open `http://127.0.0.1:3000` for student chat, or `http://127.0.0.1:3000/teacher` for inspection.
 
 ## 7. Run the production-style containers locally
 
@@ -235,7 +238,8 @@ docker compose --profile full up -d --build --wait
 
 Then open:
 
-- Web: `http://127.0.0.1:3000`
+- Student chat: `http://127.0.0.1:3000`
+- Teacher console: `http://127.0.0.1:3000/teacher`
 - API OpenAPI: `http://127.0.0.1:8000/docs`
 - API health: `http://127.0.0.1:8000/health`
 - API database readiness: `http://127.0.0.1:8000/health/ready`
@@ -324,12 +328,24 @@ curl --fail "http://127.0.0.1:8000/v1/admin/sessions"
 
 ### UI path
 
-1. Open `http://127.0.0.1:3000`
-2. Click **New session**
-3. Edit the student turn text and click **Submit turn**
-4. Confirm Conversation, Question history, and Decision trace panels populate
+1. Open `http://127.0.0.1:3000` — student chat creates a session and shows a welcome invite
+2. Send a first message; confirm an assistant question appears and the stage chip updates
+3. Refresh the page — transcript should restore from `GET /v1/sessions/{id}/messages`
+4. Open `http://127.0.0.1:3000/teacher` — select the session and confirm Conversation, Question history, and Decision trace panels populate
 
 Idempotent retries: repeat the same `idempotency_key` and you get the same completed turn.
+
+### Playwright (student chat)
+
+With API on `:8000` and web on `:3000`:
+
+```bash
+npm --prefix apps/web install
+npx --prefix apps/web playwright install chromium
+npm --prefix apps/web run test:e2e
+```
+
+Covers session create, two turns, Postgres-backed transcript resume, New chat, and teacher console visibility.
 
 ### Live conversation sim
 
