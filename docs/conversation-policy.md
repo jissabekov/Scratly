@@ -19,7 +19,11 @@ Fixed order (`question_policy.PRIORITY`):
 5. `project_discrimination` — discriminate among options (prefer provisional dims; avoid hammering established `work_mode`)
 6. `profile_validation` — reflect summary back for confirmation
 
-`select_next` picks the candidate with the best (priority index, then `key`). Seeded intents and fallback templates live in `assessment.question_intents` (including `elicitation` and `location_constraint`).
+`select_next` picks the candidate with the best (priority index, then discovery key rank, then `key`). Discovery rank (`DISCOVERY_KEY_ORDER`) prefers interests before constraints:
+
+`topics` → `motivation` → `work_mode` → `capability` → `collaboration` → `challenge` → `impact` → `constraints` → `constraints:geo` → other keys last.
+
+Seeded intents and fallback templates live in `assessment.question_intents` (including `elicitation` and `location_constraint`).
 
 ### How candidates are built
 

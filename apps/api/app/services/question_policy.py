@@ -12,6 +12,18 @@ PRIORITY = (
     "project_discrimination",
     "profile_validation",
 )
+# Same-priority tie-break: interests before constraints (geo last among required).
+DISCOVERY_KEY_ORDER = (
+    "topics",
+    "motivation",
+    "work_mode",
+    "capability",
+    "collaboration",
+    "challenge",
+    "impact",
+    "constraints",
+    "constraints:geo",
+)
 STAGES = (
     "discovery",
     "measurement",
@@ -25,6 +37,9 @@ GAP_RESOLUTION_ESTABLISHED = 0.5
 PROFILE_REVIEW_ESTABLISHED = 0.9
 MEASUREMENT_TOUCHED = 0.4
 
+_DISCOVERY_RANK = {k: i for i, k in enumerate(DISCOVERY_KEY_ORDER)}
+_DISCOVERY_RANK_FALLBACK = len(DISCOVERY_KEY_ORDER)
+
 
 @dataclass(frozen=True)
 class Target:
@@ -36,7 +51,16 @@ class Target:
 def select_next(candidates: list[Target]) -> Target | None:
     order = {v: i for i, v in enumerate(PRIORITY)}
     return (
-        min(candidates, key=lambda x: (order[x.kind], x.key)) if candidates else None
+        min(
+            candidates,
+            key=lambda x: (
+                order[x.kind],
+                _DISCOVERY_RANK.get(x.key, _DISCOVERY_RANK_FALLBACK),
+                x.key,
+            ),
+        )
+        if candidates
+        else None
     )
 
 
@@ -105,3 +129,28 @@ def contradiction_fallback(
             f"you want to prioritize?"
         )
     return f"For {label}, which preference is closer to what you want now?"
+
+
+_REQUIRED_FALLBACKS = {
+    "topics": "What kinds of projects or topics are you drawn to?",
+    "motivation": "What would make this project feel worth doing for you?",
+    "work_mode": "How do you like to work — mostly alone, with others, or a mix?",
+    "constraints": (
+        "Any must-haves for the project — deadline, tools, budget, or other limits?"
+    ),
+    "constraints:geo": (
+        "Where are you based (city or region), or is remote work fine?"
+    ),
+    "capability": "What skills or tools are you already comfortable using?",
+    "collaboration": "How much collaboration do you want on this project?",
+    "challenge": "How challenging do you want this project to feel?",
+    "impact": "What kind of impact do you hope the project has?",
+}
+
+
+def required_fallback(key: str) -> str:
+    """Teen-friendly seeded ask for a required / discovery target key."""
+    if key in _REQUIRED_FALLBACKS:
+        return _REQUIRED_FALLBACKS[key]
+    label = key.replace("_", " ").replace(":", " ")
+    return f"What should I know about your {label} for this project?"

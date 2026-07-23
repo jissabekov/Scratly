@@ -11,17 +11,36 @@ from app.contracts import (
     TurnIntentPacket,
 )
 
+_PURPOSE = (
+    "I'm here to help you find a real project opportunity for your course — "
+    "something you could build as an app, product, or website. "
+    "I ask a few focused questions about what you're into, how you like to work, "
+    "and any must-haves, then match you with grounded options."
+)
+
 _PROCESS_TEMPLATES = {
+    "topics": (
+        "I ask about topics and interests first so we can match projects you'll "
+        "actually want to build — not just ones that fit a checklist."
+    ),
+    "motivation": (
+        "Motivation is about what makes the project feel worth doing for you — "
+        "so we can favor opportunities that match that energy."
+    ),
     "work_mode": (
         "Work mode means how you prefer to get things done — for example alone, "
-        "with a small group, or mixed depending on the task. I'll ask about that "
-        "so we can match a project that fits how you work."
+        "with a small group, or mixed depending on the task. That helps match a "
+        "project that fits how you work."
     ),
-    "default": (
-        "This conversation maps your interests, constraints, and working style. "
-        "I ask one focused question at a time so we can build an explainable profile "
-        "before suggesting projects."
+    "constraints": (
+        "Must-haves like deadline, tools, budget, or location keep suggestions "
+        "realistic for your situation. We usually cover interests first, then these."
     ),
+    "constraints:geo": (
+        "Where you're based (or if remote is fine) matters because many "
+        "opportunities are local or place-specific."
+    ),
+    "default": _PURPOSE,
 }
 
 _REFUSAL_HOMEWORK = (
@@ -101,6 +120,7 @@ def seeded_student_answer(
     *,
     public_profile: dict | None = None,
     last_target_key: str | None = None,
+    student_text: str | None = None,
 ) -> StudentAnswerOutput:
     topic = intent.question_topic
     if topic == QuestionTopic.OUT_OF_SCOPE:
@@ -138,14 +158,24 @@ def seeded_student_answer(
                 "Suggested projects must cite those sources; we do not invent them."
             ),
         )
-    # process
-    key = last_target_key or "default"
-    text = _PROCESS_TEMPLATES.get(key, _PROCESS_TEMPLATES["default"])
-    if last_target_key and last_target_key != "profile":
-        text = (
-            f"I asked about {last_target_key.replace('_', ' ')} because it helps "
-            f"match a realistic project. {text}"
-        )
+    # process — mission / purpose / why we ask
+    lowered = (student_text or "").lower()
+    asks_mission = any(
+        token in lowered
+        for token in ("mission", "purpose", "why are you", "why ask", "why are u")
+    )
+    dim_text = _PROCESS_TEMPLATES.get(
+        last_target_key or "default", _PROCESS_TEMPLATES["default"]
+    )
+    if asks_mission or last_target_key in {None, "default", "profile"}:
+        text = _PURPOSE if asks_mission else dim_text
+        if asks_mission and last_target_key and last_target_key not in {
+            "default",
+            "profile",
+        }:
+            text = f"{_PURPOSE} {dim_text}"
+    else:
+        text = dim_text
     return StudentAnswerOutput(mode=StudentAnswerMode.ANSWER, text=text)
 
 
@@ -173,4 +203,6 @@ class StudentAnswerer:
                 packet,
                 public_profile=context.get("public_profile_summary"),
                 last_target_key=context.get("last_target_key"),
+                student_text=context.get("student_text")
+                or context.get("latest_student_message"),
             )

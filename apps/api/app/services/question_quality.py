@@ -8,7 +8,11 @@ from app.services.elicitation_policy import (
     build_elicitation_spec,
     elicitation_options_present,
 )
-from app.services.question_policy import Target, contradiction_fallback
+from app.services.question_policy import (
+    Target,
+    contradiction_fallback,
+    required_fallback,
+)
 
 _GENERIC_CONTRADICTION = re.compile(
     r"i heard two different preferences", re.IGNORECASE
@@ -83,16 +87,12 @@ def _seeded_for(target: Target, value_a: str | None, value_b: str | None) -> str
         return contradiction_fallback(target.key, value_a, value_b)
     if target.kind == "elicitation":
         return build_elicitation_spec(target.key).fallback_template
+    if target.kind in {"required_hard_variable", "project_critical_unknown"}:
+        return required_fallback(target.key)
     label = target.key.replace("_", " ")
     alternates = {
         "provisional_dimension": (
             f"Can you share a recent example that shows your {label} preference in action?"
-        ),
-        "required_hard_variable": (
-            f"What is one non-negotiable detail about {label} for your project?"
-        ),
-        "project_critical_unknown": (
-            f"If you had to choose one focus for {label} this month, what would it be?"
         ),
         "project_discrimination": (
             f"Which option for {label} would make you more excited to start tomorrow?"
@@ -100,9 +100,7 @@ def _seeded_for(target: Target, value_a: str | None, value_b: str | None) -> str
         "profile_validation": (
             "Looking at what we've covered so far, what feels most accurate — and what would you change?"
         ),
-        "location_constraint": (
-            "Where are you based (city or region), or is remote work fine?"
-        ),
+        "location_constraint": required_fallback("constraints:geo"),
     }
     return alternates.get(target.kind, target.fallback_template)
 

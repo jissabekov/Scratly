@@ -21,11 +21,73 @@ from app.services.location_policy import (
 )
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.project_citation_gate import filter_grounded_projects
-from app.services.question_policy import Target, derive_stage, select_next
+from app.services.question_policy import Target, derive_stage, select_next, required_fallback
 from app.services.question_quality import apply_question_quality_gate
 from app.services.thin_answer import evaluate_thin_answer
 from app.services.turn_intent_classifier import heuristic_classify
 from app.services.student_answerer import answer_scope_gate, seeded_student_answer
+
+
+def _req(key: str) -> Target:
+    return Target("required_hard_variable", key, required_fallback(key))
+
+
+def test_discovery_select_next_prefers_topics_over_constraints():
+    targets = [
+        _req("constraints"),
+        _req("constraints:geo"),
+        _req("motivation"),
+        _req("topics"),
+        _req("work_mode"),
+    ]
+    assert select_next(targets).key == "topics"
+
+    without_topics = [t for t in targets if t.key != "topics"]
+    assert select_next(without_topics).key == "motivation"
+
+    without_motivation = [t for t in without_topics if t.key != "motivation"]
+    assert select_next(without_motivation).key == "work_mode"
+
+    without_work = [t for t in without_motivation if t.key != "work_mode"]
+    assert select_next(without_work).key == "constraints"
+
+    geo_only = [t for t in without_work if t.key != "constraints"]
+    assert select_next(geo_only).key == "constraints:geo"
+
+
+def test_required_fallback_avoids_non_negotiable_opener():
+    for key in ("topics", "motivation", "work_mode", "constraints", "constraints:geo"):
+        text = required_fallback(key).lower()
+        assert "non-negotiable" not in text
+    assert "topics" in required_fallback("topics").lower() or "project" in required_fallback(
+        "topics"
+    ).lower()
+    assert "must-have" in required_fallback("constraints").lower() or "deadline" in required_fallback(
+        "constraints"
+    ).lower()
+
+
+def test_seeded_process_answer_states_course_project_purpose():
+    process = TurnIntentPacket(
+        primary_intent=PrimaryIntent.STUDENT_QUESTION,
+        question_topic=QuestionTopic.PROCESS,
+    )
+    mission = seeded_student_answer(
+        process,
+        last_target_key="constraints",
+        student_text="do u have a mission, why are u asking this question?",
+    )
+    assert mission.mode.value == "answer"
+    lowered = mission.text.lower()
+    assert "course" in lowered or "project opportunity" in lowered
+    assert "app" in lowered or "website" in lowered or "product" in lowered
+
+    why_topics = seeded_student_answer(
+        process,
+        last_target_key="topics",
+        student_text="why are you asking this?",
+    )
+    assert "interest" in why_topics.text.lower() or "topic" in why_topics.text.lower()
 
 
 def test_heuristic_student_question_and_homework_refusal():

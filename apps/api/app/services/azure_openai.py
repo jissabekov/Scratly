@@ -275,6 +275,8 @@ class LocalFallbackLLM:
                 intent,
                 public_profile=(context or {}).get("public_profile_summary"),
                 last_target_key=(context or {}).get("last_target_key"),
+                student_text=(context or {}).get("student_text")
+                or ((context or {}).get("student_message") or {}).get("content"),
             )
         if model is ProfileReviewOutput or name == "ProfileReviewOutput":
             return ProfileReviewOutput(
