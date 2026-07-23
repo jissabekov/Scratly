@@ -33,18 +33,18 @@ Curated `matching.opportunities` are application catalog data, not student truth
 ## System boundaries
 
 ```text
-Teacher console (Next.js :3000)
-        │  HTTP /v1
-        ▼
-   FastAPI API (:8000)
-        │
+Student chat (Next.js :3000/)  ──public /v1──┐
+Teacher console (:3000/teacher) ─admin /v1──┤
+                                            ▼
+                                       FastAPI API (:8000)
+                                            │
         ├── Azure OpenAI (Entra)  — extract, intent, answer, write, compact, web_search, compose
         └── PostgreSQL 16         — sole state store
 ```
 
 | Layer | Responsibility |
 |---|---|
-| `apps/web` | Teacher UI: create sessions, submit turns, inspect admin views + decision trace |
+| `apps/web` | Student chat at `/` (public session/messages/turns/projects); teacher inspect at `/teacher` |
 | `apps/api` | Sole assessment write path, policy, grounding, reduction, matching, audit |
 | `migrations/` | Ordered SQL schemas: `core`, `conversation`, `assessment`, `matching`, `audit` |
 | Azure OpenAI | Structured outputs (+ optional Responses `web_search`); never selects stage/priority or mutates profile |

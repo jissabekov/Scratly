@@ -7,9 +7,10 @@ import re
 from app.contracts import PrimaryIntent, QuestionTopic, TurnIntentPacket
 
 _QUESTION_MARKERS = re.compile(
-    r"(\?|what do you mean|why are you asking|what do you know about me|"
+    r"(\?|what do you mean|why are (you|u) asking|why ask|"
+    r"what do you know about me|"
     r"what does .+ mean|how does this work|what'?s my profile|"
-    r"can you explain|why ask)",
+    r"can you explain)",
     re.IGNORECASE,
 )
 _OUT_OF_SCOPE = re.compile(
@@ -23,8 +24,14 @@ _PROFILE_ASK = re.compile(
     re.IGNORECASE,
 )
 _PROJECT_ASK = re.compile(
-    r"(how (do|does) (project|matching)|when (do|will) (i|we) get a project|"
-    r"what projects)",
+    r"(how (do|does) (project|matching) work|"
+    r"when (do|will) (i|we) get (a |my )?project|"
+    r"what projects (do|will|can)|"
+    r"show me (a |some )?projects)",
+    re.IGNORECASE,
+)
+_WHY_ASKING = re.compile(
+    r"why (are|do) (you|u) ask|why ask|what do you mean",
     re.IGNORECASE,
 )
 
@@ -52,6 +59,9 @@ def heuristic_classify(text: str) -> TurnIntentPacket:
     topic = QuestionTopic.NONE
     if _PROFILE_ASK.search(raw):
         topic = QuestionTopic.PROFILE
+    elif _WHY_ASKING.search(raw):
+        # "why are you asking about X project?" is process pushback, not project matching.
+        topic = QuestionTopic.PROCESS
     elif _PROJECT_ASK.search(raw):
         topic = QuestionTopic.PROJECT
     elif is_question:

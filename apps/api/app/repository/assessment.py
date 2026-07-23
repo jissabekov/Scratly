@@ -31,7 +31,14 @@ from app.services.contradiction_engine import (
 )
 from app.services.grounding_validator import validate_grounding
 from app.services.profile_reducer import reduce_profile
-from app.services.question_policy import Target, contradiction_fallback, required_fallback
+from app.services.question_policy import (
+    Target,
+    contradiction_fallback,
+    interest_depth_fallback,
+    interest_depth_ready,
+    required_fallback,
+    should_emit_required,
+)
 
 # Dismiss unresolved contradictions after this many failed clarifications.
 _MAX_CLARIFICATION_ATTEMPTS = 2
@@ -895,6 +902,22 @@ class TurnTransaction:
             )
 
         candidates: list[Target] = []
+        public_profile = await self.public_profile()
+        interests_ready = interest_depth_ready(public_profile)
+        topic_label = None
+        for interest in public_profile.get("interests") or []:
+            if isinstance(interest, dict) and interest.get("topic"):
+                topic_label = str(interest["topic"])
+                break
+        if not topic_label:
+            for dim in public_profile.get("dimensions") or []:
+                if (
+                    isinstance(dim, dict)
+                    and dim.get("key") == "topics"
+                    and dim.get("value")
+                ):
+                    topic_label = str(dim["value"])
+                    break
 
         def add(kind: str, key: str, fallback: str | None = None) -> None:
             intent = intent_map.get(kind)
@@ -910,13 +933,15 @@ class TurnTransaction:
 
         for row in coverage_rows:
             if row["required"] and row["status"] == "unknown":
+                if not should_emit_required(row["key"], interests_ready=interests_ready):
+                    continue
                 add(
                     "required_hard_variable",
                     row["key"],
                     required_fallback(row["key"]),
                 )
 
-        if not await self.location_established():
+        if interests_ready and not await self.location_established():
             loc_intent = intent_map.get("location_constraint")
             loc_fallback = (
                 loc_intent["fallback_template"]
@@ -925,8 +950,22 @@ class TurnTransaction:
             )
             add("required_hard_variable", "constraints:geo", loc_fallback)
 
+        # Anchor 2: deepen shallow / provisional interests before work_mode.
+        topics_status = next(
+            (r["status"] for r in coverage_rows if r["key"] == "topics"),
+            "unknown",
+        )
+        if topics_status == "provisional" and not interests_ready:
+            add(
+                "project_critical_unknown",
+                "topics",
+                interest_depth_fallback(topic_label),
+            )
+
         for row in coverage_rows:
             if row["key"] in {"topics", "work_mode"} and row["status"] == "unknown":
+                if row["key"] == "work_mode" and not interests_ready:
+                    continue
                 add(
                     "project_critical_unknown",
                     row["key"],
@@ -935,7 +974,10 @@ class TurnTransaction:
 
         for row in coverage_rows:
             if row["status"] == "provisional":
-                add("provisional_dimension", row["key"])
+                fallback = None
+                if row["key"] == "topics" and not interests_ready:
+                    fallback = interest_depth_fallback(topic_label)
+                add("provisional_dimension", row["key"], fallback)
 
         supported = sum(1 for r in coverage_rows if r["status"] == "supported")
         if supported >= 2:

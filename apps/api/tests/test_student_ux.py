@@ -64,10 +64,11 @@ def test_required_fallback_avoids_non_negotiable_opener():
         text = required_fallback(key).lower()
         assert "non-negotiable" not in text
     topics = required_fallback("topics").lower()
-    assert "spent" in topics or "learning" in topics or "time" in topics
+    assert "free time" in topics or "spending" in topics or "into" in topics
     assert "must-have" in required_fallback("constraints").lower() or "deadline" in required_fallback(
         "constraints"
     ).lower()
+    assert "project" not in required_fallback("work_mode").lower()
 
 
 def test_seeded_process_answer_states_course_project_purpose():
@@ -90,7 +91,7 @@ def test_seeded_process_answer_states_course_project_purpose():
         last_target_key="topics",
         student_text="why are you asking this?",
     )
-    assert "interest" in why_topics.text.lower() or "topic" in why_topics.text.lower()
+    assert "spend time" in why_topics.text.lower() or "interest" in why_topics.text.lower() or "into" in why_topics.text.lower()
 
 
 def test_heuristic_student_question_and_homework_refusal():
@@ -124,7 +125,10 @@ def test_answer_scope_gate_out_of_scope_and_cap():
 
     seeded = seeded_student_answer(process, last_target_key="work_mode")
     assert seeded.mode.value == "answer"
-    assert "work mode" in seeded.text.lower() or "Work mode" in seeded.text
+    lowered = seeded.text.lower()
+    assert "energiz" in lowered or "figuring" in lowered or "work" in lowered
+    assert "investigate" not in lowered
+    assert "curated opportunities" not in lowered
 
 
 def test_thin_answer_idk_and_substantive():

@@ -32,7 +32,7 @@ test.describe('Student chat conversation', () => {
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Scratly' })).toBeVisible();
     await expect(page.locator('.chat-bubble.welcome')).toContainText(
-      'When nobody'
+      "Hey — I'm Scratly"
     );
     await expect(page.locator('.stage-chip')).toContainText(/Discovery/i);
 

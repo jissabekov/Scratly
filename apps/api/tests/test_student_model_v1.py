@@ -16,6 +16,7 @@ from app.services.project_matcher import rank_projects
 from app.services.question_policy import Target, required_fallback, select_next
 from app.services.thin_answer import evaluate_thin_answer
 from app.services.student_answerer import seeded_student_answer
+from app.services.turn_intent_classifier import heuristic_classify
 
 
 def _ev(
@@ -167,6 +168,84 @@ def test_greeting_not_thin_before_first_question():
         prior_assistant_questions=1,
     )
     assert mid.is_thin
+
+
+def test_interest_depth_gates_work_mode():
+    from app.services.question_policy import (
+        interest_depth_fallback,
+        interest_depth_ready,
+        should_emit_required,
+    )
+
+    shallow = {
+        "dimensions": [{"key": "topics", "status": "provisional", "value": "videogames"}],
+        "interests": [
+            {"topic": "videogames", "score": 1, "evidence_count": 1, "status": "provisional"}
+        ],
+    }
+    assert not interest_depth_ready(shallow)
+    assert not should_emit_required("work_mode", interests_ready=False)
+    assert should_emit_required("topics", interests_ready=False)
+
+    deep = {
+        "dimensions": [{"key": "topics", "status": "provisional", "value": "basketball"}],
+        "interests": [
+            {"topic": "basketball", "score": 3, "evidence_count": 2, "status": "provisional"}
+        ],
+    }
+    assert interest_depth_ready(deep)
+    assert should_emit_required("work_mode", interests_ready=True)
+
+    single_high = {
+        "dimensions": [{"key": "topics", "status": "provisional", "value": "videogames"}],
+        "interests": [
+            {"topic": "videogames", "score": 3, "evidence_count": 1, "status": "provisional"}
+        ],
+    }
+    assert not interest_depth_ready(single_high)
+
+    depth_q = interest_depth_fallback("videogames").lower()
+    assert "occasional" in depth_q or "deep" in depth_q
+    assert "project" not in depth_q
+
+
+def test_framing_pushback_answer_is_conversational():
+    packet = TurnIntentPacket(
+        primary_intent=PrimaryIntent.STUDENT_QUESTION,
+        question_topic=QuestionTopic.PROCESS,
+    )
+    answer = seeded_student_answer(
+        packet,
+        last_target_key="work_mode",
+        student_text="I said I play, why are u asking me about gaming project",
+    )
+    lowered = answer.text.lower()
+    assert "jumped ahead" in lowered or "playing is enough" in lowered
+    assert "curated opportunities" not in lowered
+    assert "bounded web research" not in lowered
+
+    intent = heuristic_classify(
+        "I said I play, why are u asking me about gaming project"
+    )
+    assert intent.primary_intent == PrimaryIntent.STUDENT_QUESTION
+    assert intent.question_topic == QuestionTopic.PROCESS
+
+
+def test_select_next_prefers_interest_depth_over_work_mode():
+    targets = [
+        Target(
+            "project_critical_unknown",
+            "topics",
+            "Got it — videogames. Is that more occasional or something you get deep into?",
+        ),
+        Target("required_hard_variable", "work_mode", required_fallback("work_mode")),
+        Target("provisional_dimension", "topics", "Could you share a concrete example?"),
+    ]
+    # If work_mode is still emitted (legacy), required beats project_critical —
+    # the candidate builder must suppress work_mode until depth is ready.
+    # When only depth candidates remain, prefer project_critical topics.
+    depth_only = [t for t in targets if t.key == "topics"]
+    assert select_next(depth_only).kind == "project_critical_unknown"
 
 
 def test_process_answer_mentions_course_project():

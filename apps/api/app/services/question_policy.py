@@ -1,6 +1,9 @@
 """Deterministic stage and question-target policy (V1 anchors)."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import Any
 
 from app.services.location_policy import location_established_from_profile
 
@@ -13,7 +16,7 @@ PRIORITY = (
     "profile_validation",
 )
 
-# 7-anchor discovery order: interests → depth/work-mode → motivation →
+# 7-anchor discovery order: interests → depth → work-mode → motivation →
 # execution → hard outreach/visibility/geo. Decision-impact unknowns win ties.
 ANCHOR_KEY_ORDER = (
     "topics",
@@ -29,6 +32,17 @@ ANCHOR_KEY_ORDER = (
     "capability",
     "assets",
 )
+
+# Required dims other than topics stay gated until interest depth is real.
+_POST_INTEREST_REQUIRED = {
+    "work_mode",
+    "motivation",
+    "execution",
+    "constraints",
+    "constraints:geo",
+    "capability",
+    "assets",
+}
 
 STAGES = (
     "discovery",
@@ -116,6 +130,59 @@ def location_ready(profile: dict) -> bool:
     return location_established_from_profile(profile)
 
 
+def interest_depth_ready(profile: dict[str, Any] | None) -> bool:
+    """True once we have enough interest depth to leave discovery-of-topics.
+
+    Matches the documented 7-anchor order: warm open → interest depth → work-mode.
+    A single casual mention ("playing videogames") stays provisional/shallow and
+    must be deepened before other required dims (especially work_mode).
+    """
+    if not profile:
+        return False
+    dims = {
+        d.get("key"): d
+        for d in (profile.get("dimensions") or [])
+        if isinstance(d, dict) and d.get("key")
+    }
+    topics = dims.get("topics") or {}
+    status = topics.get("status")
+    if status in {"supported", "contradicted"}:
+        return True
+
+    interests = profile.get("interests") or []
+    best_score = -1
+    best_evidence = 0
+    for item in interests:
+        if not isinstance(item, dict):
+            continue
+        score = item.get("score")
+        if score is None:
+            continue
+        score_i = int(score)
+        evidence = int(item.get("evidence_count") or 0)
+        if score_i > best_score or (
+            score_i == best_score and evidence > best_evidence
+        ):
+            best_score = score_i
+            best_evidence = evidence
+
+    # Need repeated behavioral signal — a single casual mention stays shallow.
+    if best_score >= 2 and best_evidence >= 2:
+        return True
+    if best_score >= 3 and best_evidence >= 2:
+        return True
+    return False
+
+
+def should_emit_required(key: str, *, interests_ready: bool) -> bool:
+    """Gate post-interest required asks until interest depth is ready."""
+    if key == "topics":
+        return True
+    if key in _POST_INTEREST_REQUIRED:
+        return interests_ready
+    return True
+
+
 def contradiction_fallback(
     dimension_key: str, value_a: str | None, value_b: str | None
 ) -> str:
@@ -136,18 +203,18 @@ def contradiction_fallback(
 
 _REQUIRED_FALLBACKS = {
     "topics": (
-        "Think about the last few months — when nobody was making you do anything, "
-        "what have you spent the most time doing or learning about?"
+        "Hey — good to meet you. When you've had free time lately, what have you "
+        "actually been spending it on?"
     ),
     "work_mode": (
-        "When something you care about needs fixing, which part pulls you in most — "
-        "figuring out what's going on, building something that helps, getting people "
-        "organized, or explaining it so others pay attention?"
+        "When you're into something you care about, what usually pulls you in most — "
+        "figuring out how it works, making or fixing things, getting people organized, "
+        "or explaining it so others get it?"
     ),
     "motivation": (
-        "Imagine your project turns out really well. Which outcome would make you "
-        "care the most — mastering something hard, beating a target, helping someone, "
-        "being noticed, or people counting on you?"
+        "If something you care about went really well, which outcome would matter most — "
+        "mastering something hard, beating a target, helping someone, being noticed, "
+        "or people counting on you?"
     ),
     "execution": (
         "What's something difficult you kept working at after it became frustrating "
@@ -169,10 +236,10 @@ _REQUIRED_FALLBACKS = {
         "outside orgs, or a bigger pitch/demo?"
     ),
     "constraints": (
-        "Any must-haves for the project — deadline, tools, budget, or other limits?"
+        "Any must-haves I should keep in mind — deadline, tools, budget, or other limits?"
     ),
     "constraints:geo": (
-        "Where are you based (city or region), or is remote work fine?"
+        "Where are you based (city or region), or is remote fine too?"
     ),
     "capability": "What skills or tools are you already comfortable using?",
     "assets": (
@@ -182,9 +249,23 @@ _REQUIRED_FALLBACKS = {
 }
 
 
+def interest_depth_fallback(topic: str | None = None) -> str:
+    """Behavioral depth ask — not a work-mode / project-framed question."""
+    if topic:
+        label = str(topic).replace("_", " ").strip()
+        return (
+            f"Got it — {label}. Is that more occasional, something you do a lot, "
+            f"or something you get pretty deep into?"
+        )
+    return (
+        "Got it. Is that more occasional, something you do a lot, "
+        "or something you get pretty deep into?"
+    )
+
+
 def required_fallback(key: str) -> str:
     """Teen-friendly seeded ask for a required / discovery target key."""
     if key in _REQUIRED_FALLBACKS:
         return _REQUIRED_FALLBACKS[key]
     label = key.replace("_", " ").replace(":", " ")
-    return f"What should I know about your {label} for this project?"
+    return f"What should I know about your {label}?"

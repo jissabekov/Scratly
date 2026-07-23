@@ -24,7 +24,7 @@ A teacher reading the transcript should always understand **why** the next quest
 
 | Stage | Student experience |
 |---|---|
-| `discovery` | Warm interest open → depth → contextual work-mode |
+| `discovery` | Warm interest open → depth → contextual work-mode (activity language, not premature “project”) |
 | `measurement` | Motivation tradeoff, execution behavioral proof |
 | `gap_resolution` | Explicit choices only for true conflicts |
 | `profile_review` | Reflect V1 profile for confirm |

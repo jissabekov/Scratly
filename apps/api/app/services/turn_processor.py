@@ -15,11 +15,17 @@ from app.services.location_policy import extract_geo_from_profile
 from app.services.memory_compactor import MemoryCompactor
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.project_composer import ProjectComposer
-from app.services.question_policy import Target, derive_stage, select_next
+from app.services.question_policy import (
+    Target,
+    derive_stage,
+    interest_depth_fallback,
+    select_next,
+)
 from app.services.question_quality import apply_question_quality_gate
 from app.services.student_answerer import (
     StudentAnswerer,
     answer_scope_gate,
+    is_framing_pushback,
     validate_answer_citations,
 )
 from app.services.thin_answer import evaluate_thin_answer
@@ -84,6 +90,14 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
 
         heuristic = heuristic_classify(request.text)
         if heuristic.question_topic == QuestionTopic.OUT_OF_SCOPE:
+            intent = heuristic
+        elif (
+            heuristic.primary_intent == PrimaryIntent.STUDENT_QUESTION
+            and heuristic.question_topic == QuestionTopic.PROCESS
+            and intent.question_topic == QuestionTopic.PROJECT
+            and heuristic.confidence >= 0.65
+        ):
+            # "why are you asking about X project?" is process, not project-matching.
             intent = heuristic
         elif (
             heuristic.primary_intent == PrimaryIntent.STUDENT_QUESTION
@@ -359,6 +373,45 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         candidates = await tx.question_candidates()
         target = select_next(candidates) or _FALLBACK_TARGET
 
+        # Framing pushback ("I just play — why a project?") → stay on interest depth.
+        if is_framing_pushback(request.text):
+            topics_status = next(
+                (
+                    d.get("status")
+                    for d in (public_profile.get("dimensions") or [])
+                    if isinstance(d, dict) and d.get("key") == "topics"
+                ),
+                "unknown",
+            )
+            if topics_status != "supported":
+                topic_label = None
+                for interest in public_profile.get("interests") or []:
+                    if isinstance(interest, dict) and interest.get("topic"):
+                        topic_label = str(interest["topic"])
+                        break
+                if not topic_label:
+                    for dim in public_profile.get("dimensions") or []:
+                        if (
+                            isinstance(dim, dict)
+                            and dim.get("key") == "topics"
+                            and dim.get("value")
+                        ):
+                            topic_label = str(dim["value"])
+                            break
+                target = Target(
+                    "project_critical_unknown",
+                    "topics",
+                    interest_depth_fallback(topic_label),
+                )
+                await trace.record(
+                    "question_target_selected",
+                    "question_policy",
+                    "v1",
+                    "Retargeted to interest depth after framing pushback.",
+                    "interest_depth_after_pushback",
+                    outputs={"topic": topic_label, "topics_status": topics_status},
+                )
+
         # --- Thin answer → elicitation ---
         # Prefer last_question presence as a cheap prior-ask signal.
         prior_assistant_questions = 1 if last_q else 0
@@ -529,33 +582,55 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
 
         used_fallback = False
         azure_succeeded = False
+        opening_mode = None
+        if "social_opener" in (thin.reason_codes or []):
+            opening_mode = "social_opener"
+        force_seeded_depth = (
+            is_framing_pushback(request.text)
+            and target.key == "topics"
+            and target.kind in {"project_critical_unknown", "provisional_dimension"}
+        )
         try:
-            writer_context = context_builder.question_writer(
-                target,
-                recent,
-                memory,
-                public_profile,
-                contradiction_sides={"value_a": value_a, "value_b": value_b}
-                if target.kind == "contradiction"
-                else None,
-                previous_assistant_question=previous_assistant,
-            )
-            if target.kind == "elicitation":
-                writer_context["elicitation"] = build_elicitation_spec(
-                    target.key
-                ).model_dump()
-            question = await writer.write(writer_context)
-            write_run_id = getattr(llm, "last_llm_run_id", None) if llm else None
-            await trace.record(
-                "question_written",
-                "question_writer",
-                "v2",
-                "Azure personalized the application-selected question target.",
-                "structured_writer_succeeded",
-                outputs={"target_kind": target.kind},
-                llm_run_id=write_run_id,
-            )
-            azure_succeeded = True
+            if force_seeded_depth:
+                question = target.fallback_template
+                used_fallback = True
+                await trace.record(
+                    "question_fallback_used",
+                    "question_writer",
+                    "v2",
+                    "Used seeded interest-depth ask after framing pushback.",
+                    "framing_pushback_seeded_depth",
+                    outputs={"target_kind": target.kind},
+                )
+            else:
+                writer_context = context_builder.question_writer(
+                    target,
+                    recent,
+                    memory,
+                    public_profile,
+                    contradiction_sides={"value_a": value_a, "value_b": value_b}
+                    if target.kind == "contradiction"
+                    else None,
+                    previous_assistant_question=previous_assistant,
+                )
+                if opening_mode:
+                    writer_context["opening_mode"] = opening_mode
+                if target.kind == "elicitation":
+                    writer_context["elicitation"] = build_elicitation_spec(
+                        target.key
+                    ).model_dump()
+                question = await writer.write(writer_context)
+                write_run_id = getattr(llm, "last_llm_run_id", None) if llm else None
+                await trace.record(
+                    "question_written",
+                    "question_writer",
+                    "v2",
+                    "Azure personalized the application-selected question target.",
+                    "structured_writer_succeeded",
+                    outputs={"target_kind": target.kind},
+                    llm_run_id=write_run_id,
+                )
+                azure_succeeded = True
         except Exception as error:
             used_fallback = True
             question = target.fallback_template
@@ -578,6 +653,8 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             value_a=value_a,
             value_b=value_b,
             azure_succeeded=azure_succeeded and not used_fallback,
+            public_profile=public_profile,
+            opening_mode=opening_mode,
         )
         question = gate["question"]
         if gate["outcome"] != "passed":

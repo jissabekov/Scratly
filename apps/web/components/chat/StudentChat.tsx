@@ -23,7 +23,7 @@ import { ProjectCards } from './ProjectCards';
 import { StageChip } from './StageChip';
 
 const WELCOME_TEXT =
-  'When nobody’s making you do anything, what have you been spending time on or learning about? I’ll ask a few focused questions and help find a real course project that fits.';
+  "Hey — I'm Scratly. Tell me a bit about yourself and what you've been into lately, and I'll help find a course project that actually fits.";
 
 function welcomeMessage(): ThreadMessage {
   return {

@@ -6,3 +6,10 @@ node_modules/
 .env
 compose.override.yaml
 *.pyc
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
+apps/web/playwright/.cache/
+.api-*.log
+.last-probe-session.txt
+sim-*.json
