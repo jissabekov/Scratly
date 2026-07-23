@@ -7,6 +7,7 @@ from typing import Iterable
 from app.contracts import (
     CapabilityRecord,
     ConstraintProfile,
+    EvidenceType,
     ExecutionScores,
     ExecutionStatuses,
     InterestRecord,
@@ -39,6 +40,28 @@ STATUS_CONFIDENCE = {
     ProfileStatus.SUPPORTED: 1.0,
     ProfileStatus.CONTRADICTED: 0.25,
 }
+
+# Reliability weighting from the adaptive-evidence model (origin/main). Higher
+# reliability evidence (observed repeated behavior) outweighs self-description or
+# hypotheticals when a facet bucket holds multiple competing observations.
+RELIABILITY = {
+    EvidenceType.REPEATED_BEHAVIOR: 1.00,
+    EvidenceType.BEHAVIORAL_EXAMPLE: 0.90,
+    EvidenceType.FORCED_TRADEOFF: 0.75,
+    EvidenceType.STATED_PREFERENCE: 0.60,
+    EvidenceType.SELF_DESCRIPTION: 0.50,
+    EvidenceType.HYPOTHETICAL: 0.40,
+}
+
+
+def _evidence_weight(item: ValidatedEvidence) -> float:
+    reliability = RELIABILITY.get(getattr(item, "evidence_type", None), 0.60)
+    confidence = getattr(item, "confidence", 1.0)
+    try:
+        confidence = float(confidence)
+    except (TypeError, ValueError):
+        confidence = 1.0
+    return max(reliability * confidence, 1e-6)
 
 
 @dataclass(frozen=True)
@@ -216,22 +239,24 @@ def _summaries_for_dimension(
 def _summarize_bucket(
     value_key: str, rows: list[ValidatedEvidence], *, max_band: int
 ) -> FacetSummary:
-    support_bands = [
-        _band_for(item, max_band=max_band)
+    support = [
+        (_band_for(item, max_band=max_band), _evidence_weight(item))
         for item in rows
         if item.polarity.value == "support"
     ]
-    oppose_bands = [
-        _band_for(item, max_band=max_band)
+    oppose = [
+        (_band_for(item, max_band=max_band), _evidence_weight(item))
         for item in rows
         if item.polarity.value == "oppose"
     ]
+    support_bands = [band for band, _ in support]
+    oppose_bands = [band for band, _ in oppose]
     if support_bands and oppose_bands:
         net = round((sum(support_bands) - sum(oppose_bands)) / max(1, len(rows)))
         score = _clamp(net, 0, max_band)
         status = ProfileStatus.CONTRADICTED
     elif support_bands:
-        score = _clamp(round(sum(support_bands) / len(support_bands)), 0, max_band)
+        score = _clamp(round(_weighted_mean(support)), 0, max_band)
         status = (
             ProfileStatus.SUPPORTED
             if len(support_bands) >= 2
@@ -423,6 +448,19 @@ def _top_scored_key(scores: dict[str, int | None]) -> str | None:
         return None
     ranked.sort(key=lambda item: (-item[1], item[0]))
     return ranked[0][0]
+
+
+def _weighted_mean(pairs: list[tuple[int, float]]) -> float:
+    """Reliability/confidence-weighted mean of evidence bands.
+
+    Invariant to the weight for single-item buckets, so deterministic V1
+    scores are preserved while multi-observation buckets favor more reliable
+    evidence.
+    """
+    total_weight = sum(weight for _, weight in pairs)
+    if total_weight <= 0:
+        return sum(band for band, _ in pairs) / len(pairs)
+    return sum(band * weight for band, weight in pairs) / total_weight
 
 
 def _clamp(value: int, lower: int, upper: int) -> int:

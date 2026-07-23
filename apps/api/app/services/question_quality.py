@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any
 
 from app.services.elicitation_policy import (
@@ -202,3 +203,37 @@ def _near_duplicate(a: str, b: str) -> bool:
 
 def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower().strip())
+
+
+@dataclass(frozen=True)
+class QuestionQuality:
+    accepted: bool
+    reasons: tuple[str, ...]
+
+
+def validate_question(text: str) -> QuestionQuality:
+    """Lightweight structural gate from the adaptive-conversation PR.
+
+    Complements ``apply_question_quality_gate`` with a standalone accept/reject
+    check (used by tests and any writer path that wants a hard validation).
+    """
+    normalized = " ".join(text.lower().split())
+    reasons = []
+    if text.count("?") != 1:
+        reasons.append("not_exactly_one_question")
+    if len(text) > 500:
+        reasons.append("too_long")
+    if any(
+        term in normalized
+        for term in (
+            "profile is stable",
+            "bounded web research",
+            "internal stage",
+            "evidence packet",
+            "question policy",
+        )
+    ):
+        reasons.append("internal_policy_leak")
+    if "exact address" in normalized or "street address" in normalized:
+        reasons.append("overprecise_location_request")
+    return QuestionQuality(not reasons, tuple(reasons))

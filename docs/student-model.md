@@ -3,6 +3,14 @@
 Human-auditable profile used to design course projects (app / product / website).
 Numeric ladders are behavioral evidence scores — not personality decimals.
 
+The model predicts project fit; it does not assign a personality type. It has four layers: **attraction** (what repeatedly captures attention), **operating style** (how the student acts in context), **reward** (what sustains effort), and **project reality** (skills, access, people, time, willingness, environment, and broad location). Topics provide context, but a shared topic must never imply a shared project mode.
+
+Each signal is unknown, provisional, established/supported, or contested/contradicted. State retains an estimate and separate confidence, supporting and contradicting evidence counts, evidence diversity, contextual tags, sources, and update boundary. Evidence retains type, polarity, strength, extraction confidence, exact quote, source messages, acceptance decision, and rejection reason. Reliability descends from repeated behavior and concrete examples through tradeoffs and stated preferences to self-description and hypotheticals. An insufficient answer is missing information, never negative evidence.
+
+Conditional signals are first-class: for example, leadership in a high-interest, concrete group can coexist with avoidance of mandatory, unfocused group work. Contradictions remain explicit until a follow-up identifies the context; they are never averaged into a meaningless midpoint. Capabilities and feasibility change project scope, scaffolding, or eligibility—not a student's worth.
+
+The application also maintains a private probability distribution over currently plausible project modes. Question selection reduces uncertainty only when it can change that distribution or resolve a required constraint. Numeric internal state and project probabilities are teacher-only.
+
 Related: [scoring-rules.md](scoring-rules.md) · [conversation-policy.md](conversation-policy.md) · [docs index](README.md)
 
 ---
@@ -91,4 +99,4 @@ Freeform strings. No score.
 
 Proposals include `dimension_key`, optional `value_key`, `polarity`, `strength` (0–1 mapping confidence), optional `score_band` (0–4 behavioral ladder), owned `source_message_ids`, and `exact_source_quote`.
 
-Motivation keys must be in the five-reward vocabulary. Work-mode values must be the four facets.
+Motivation keys must be in the five-reward vocabulary. Work-mode values must be the four facets. Each evidence item also carries an `evidence_type` (repeated_behavior → behavioral_example → forced_tradeoff → stated_preference → self_description → hypothetical), an extraction `confidence`, and optional `context_tags`; the reducer weights facet buckets by reliability × confidence.

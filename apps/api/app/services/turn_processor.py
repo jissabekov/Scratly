@@ -16,7 +16,9 @@ from app.services.memory_compactor import MemoryCompactor
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.project_composer import ProjectComposer
 from app.services.question_policy import (
+    ReplySignal,
     Target,
+    classify_reply,
     derive_stage,
     interest_depth_fallback,
     select_next,
@@ -371,6 +373,42 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         )
 
         candidates = await tx.question_candidates()
+
+        # Adaptive dialogue repair: corrections and greetings inject high-continuity
+        # candidates so we acknowledge before probing (these never become evidence).
+        reply_signal = classify_reply(request.text)
+        if reply_signal == ReplySignal.CORRECTION:
+            candidates.append(
+                Target(
+                    "conversation_repair",
+                    "repair_rejected_assumption",
+                    "You’re right — I made an assumption there. What part of what you "
+                    "mentioned would you be up for telling me a little more about?",
+                    information_gain=1.0,
+                    continuity=1.0,
+                )
+            )
+        elif reply_signal == ReplySignal.GREETING and not candidates:
+            candidates.append(
+                Target(
+                    "behavioral_anchor",
+                    "low_pressure_welcome",
+                    "Hey — I’ll help you notice what kinds of activities and projects "
+                    "genuinely fit. What have you enjoyed spending time on lately, even "
+                    "if it seems ordinary?",
+                    information_gain=1.0,
+                    continuity=1.0,
+                )
+            )
+        await trace.record(
+            "reply_signal_classified",
+            "question_policy",
+            "v1",
+            f"Classified reply signal {reply_signal.value}.",
+            f"reply_{reply_signal.value}",
+            outputs={"reply_signal": reply_signal.value},
+        )
+
         target = select_next(candidates) or _FALLBACK_TARGET
 
         # Framing pushback ("I just play — why a project?") → stay on interest depth.

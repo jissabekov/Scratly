@@ -10,10 +10,12 @@ import json
 import os
 from datetime import date, datetime
 from dataclasses import asdict, is_dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 from uuid import UUID
 
+from pydantic import BaseModel
 from azure.identity.aio import (
     AzureCliCredential,
     ChainedTokenCredential,
@@ -321,3 +323,21 @@ def build_llm(audit_writer: AuditWriter | None = None):
         return AzureOpenAIService(audit_writer=audit_writer)
     except Exception:
         return LocalFallbackLLM()
+
+
+def _json_default(value: Any) -> Any:
+    """Serializer for json.dumps(..., default=_json_default).
+
+    Mirrors _ContextEncoder for callers that prefer a default function.
+    """
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
+    if is_dataclass(value) and not isinstance(value, type):
+        return asdict(value)
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, UUID):
+        return str(value)
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    raise TypeError(f"Unsupported prompt context type: {type(value).__name__}")

@@ -43,21 +43,45 @@ class ContextBuilder:
         previous_assistant_question=None,
     ):
         recent = recent_messages[-8:] if recent_messages else []
+        last_student = next(
+            (m for m in reversed(recent) if _role(m) == "student"), None
+        )
+        from app.services.question_policy import classify_reply
+        from app.services.question_library import BY_KEY
+
+        target_key = (
+            target.get("key")
+            if isinstance(target, dict)
+            else getattr(target, "key", None)
+        )
+        target_kind = (
+            target.get("kind")
+            if isinstance(target, dict)
+            else getattr(target, "kind", None)
+        )
         payload = {
             "selected_target": _target(target),
-            "target_kind": getattr(target, "kind", None)
-            if not isinstance(target, dict)
-            else target.get("kind"),
-            "target_key": getattr(target, "key", None)
-            if not isinstance(target, dict)
-            else target.get("key"),
+            "target_kind": target_kind,
+            "target_key": target_key,
+            "curated_intent": BY_KEY.get(target_key or ""),
             "recent_messages": [
                 m if isinstance(m, dict) or not hasattr(m, "id") else _msg(m)
                 for m in recent
             ],
+            "last_reply_signal": (
+                classify_reply(_content(last_student)).value if last_student else None
+            ),
             "memory": memory_snapshot,
             "public_profile_summary": public_profile_summary,
             "previous_assistant_question": previous_assistant_question,
+            "conversation_rules": {
+                "one_question_only": True,
+                "acknowledge_before_probe": True,
+                "never_expand_playing_into_building_or_projects": True,
+                "prefer_concrete_past_behavior_over_hypotheticals": True,
+                "repair_corrections_before_continuing": True,
+                "location_granularity": "city_or_region_and_country; never request an address",
+            },
         }
         if contradiction_sides:
             payload["contradiction_sides"] = contradiction_sides
@@ -78,3 +102,15 @@ class ContextBuilder:
             "constraints": constraints,
             "archetypes": archetypes,
         }
+
+
+def _role(message):
+    if isinstance(message, dict):
+        return message.get("role")
+    return getattr(message, "role", None)
+
+
+def _content(message):
+    if isinstance(message, dict):
+        return message.get("content", "")
+    return getattr(message, "content", "")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import exp, log2
 from typing import Any
 
 from app.services.opportunity_matcher import (
@@ -82,3 +83,23 @@ def rank_projects(profile: dict[str, Any], projects: list[dict[str, Any]]) -> li
             )
         )
     return sorted(matches, key=lambda m: (not m.eligible, -m.score, m.project_id))
+
+
+def fit_distribution(matches: list[Match], temperature: float = .2) -> dict[str, float]:
+    """Expose uncertainty over eligible project modes instead of only a ranking."""
+    eligible = [match for match in matches if match.eligible]
+    if not eligible:
+        return {}
+    scale = max(temperature, .01)
+    weights = {match.project_id: exp(match.score / scale) for match in eligible}
+    total = sum(weights.values())
+    return {key: round(value / total, 6) for key, value in weights.items()}
+
+
+def decision_entropy(distribution: dict[str, float]) -> float:
+    return -sum(probability * log2(probability) for probability in distribution.values() if probability > 0)
+
+
+def recommendation_ready(distribution: dict[str, float], *, threshold: float = .70) -> bool:
+    """Stop when a project mode is decisive; never stop merely because turns elapsed."""
+    return bool(distribution) and max(distribution.values()) >= threshold

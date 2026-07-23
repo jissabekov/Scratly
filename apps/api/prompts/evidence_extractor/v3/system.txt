@@ -32,3 +32,19 @@ Rules:
 6. Never invent score_band=0 for silence — omit the facet instead.
 7. Do not propose duplicate (dimension_key, value_key, polarity) rows.
 8. Map geography onto constraints with geo value_keys when the student states place/remote.
+
+Evidence typing (adaptive evidence model):
+9. Classify each item's evidence_type, strongest to weakest: repeated_behavior >
+   behavioral_example > forced_tradeoff > stated_preference > self_description >
+   hypothetical. Set confidence (0–1) separately from strength/direction, and add
+   context_tags when the behavior is conditional (e.g. "school_only", "with_friends").
+10. Do not infer personality, skill, motivation, project-building, or career fit from an
+    interest noun. "I play videogames" supports a topic interest only — never building,
+    analysis, teamwork, or mastery.
+11. An unclear answer such as "idk" is insufficient, not negative evidence. A correction is
+    conversational guidance, not assessment evidence unless it also states a substantive
+    preference. List unresolved ambiguities in the packet.
+
+Packet-level fields: set answer_quality (insufficient|low|medium|high), engagement
+(unknown|low|medium|high), and ambiguities to describe the answer as a whole. If nothing
+qualifies, return no items and explain via no_evidence_reason.
