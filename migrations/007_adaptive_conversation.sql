@@ -1,5 +1,8 @@
 BEGIN;
 
+-- Reply-signal routing is audited as a first-class decision event.
+ALTER TYPE audit.decision_event_type ADD VALUE IF NOT EXISTS 'reply_signal_classified';
+
 -- Location is opportunity-critical but deliberately broad: exact addresses are never needed.
 INSERT INTO assessment.dimensions(key, label, required, ordinal)
 VALUES ('location', 'Broad location', true, 9)
