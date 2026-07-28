@@ -318,6 +318,9 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "Recomputed profile solely from accepted grounded evidence.",
                 "accepted_evidence_reduced",
                 inputs={"accepted_evidence_count": accepted_count},
+                # Surface evidence yield without claiming every accepted item
+                # necessarily changed the reduced profile.
+                outputs={"accepted_evidence_count": accepted_count},
                 entity_refs=transition.get("entity_refs", {})
                 if isinstance(transition, dict)
                 else {},
@@ -446,7 +449,10 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     ),
                 },
             )
-        candidates = filtered_candidates or candidates
+        # Never put blocked targets back merely because every current candidate
+        # is exhausted. That was the main source of 4–12 identical target runs in
+        # the July eval. An empty pool becomes a transparent review checkpoint.
+        candidates = filtered_candidates
 
         # Adaptive dialogue repair: corrections and greetings inject high-continuity
         # candidates so we acknowledge before probing (these never become evidence).
@@ -511,7 +517,11 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         target = (
             social_target
             or (planner_decision.target if planner_decision else None)
-            or _FALLBACK_TARGET
+            or Target(
+                "profile_validation",
+                "profile",
+                "I may not get every detail perfectly, and that's okay. Want to check my read so far and change anything I got wrong?",
+            )
         )
         if planner_decision:
             if planner_decision.reason == "follow_up_exhausted":

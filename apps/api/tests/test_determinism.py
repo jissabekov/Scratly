@@ -135,6 +135,20 @@ def test_decision_sufficient_review_allows_provisional_execution():
  assert eligible and reason == 'decision_sufficient_review'
 
 
+def test_fatigue_bounded_review_keeps_tentative_fields_tentative():
+ statuses = {
+  'topics': 'supported', 'work_mode': 'provisional', 'motivation': 'provisional',
+  'execution': 'provisional', 'capability': 'provisional', 'assets': 'unknown',
+  'constraints': 'supported',
+ }
+ eligible, reason = evaluate_review_eligibility(
+  contradictions=0, location_ready=True, coverage_established=0.4,
+  dimension_statuses=statuses, exhausted_keys=('work_mode', 'motivation'),
+ )
+ assert eligible and reason == 'fatigue_bounded_review'
+ assert statuses['work_mode'] == 'provisional'
+
+
 def test_repetition_blocks_provisional_constraints():
  blocked = Target(
   'project_discrimination', 'constraints', 'x', asked_count=2,

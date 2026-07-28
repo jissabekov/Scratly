@@ -1,6 +1,8 @@
 # Live conversation eval suite
 
-The eval suite is Scratly's **self-proving regressor**: 18 designed student personas run against a live API + Azure OpenAI + Postgres, producing full decision traces and mandatory assertions.
+The eval suite is Scratly's **self-proving regressor**: 18 fixed probes plus 3 adaptive
+end-to-end student personas run against a live API + Azure OpenAI + Postgres, producing
+full decision traces and mandatory assertions.
 
 Related: [eval-findings-and-fix-plan.md](eval-findings-and-fix-plan.md) · [system-guide.md](system-guide.md)
 
@@ -32,7 +34,8 @@ Related: [eval-findings-and-fix-plan.md](eval-findings-and-fix-plan.md) · [syst
 
 **Windows:** `$env:PYTHONIOENCODING='utf-8'` before running (scenario titles use Unicode).
 
-**Timing:** ~326–353 turns × ~8–25s/turn + admin dumps ≈ **65–80 minutes** full serial run.
+**Timing:** up to 425 turns × ~8–25s/turn + admin dumps; adaptive conversations stop
+at completion, so actual time varies.
 
 ---
 
@@ -55,7 +58,7 @@ silently compared.
 
 ---
 
-## 18 scenarios
+## 21 scenarios
 
 | ID | Stress surface |
 |---|---|
@@ -77,8 +80,25 @@ silently compared.
 | `mixed_intent_answer_plus_evidence` | Answer + evidence same turn |
 | `early_complete_attempt` | Rush to project (anti-rush gate) |
 | `bilingual_code_switch` | Code-switch / bilingual |
+| `sim_nia_creative_community` | Adaptive full journey: guarded creator + privacy |
+| `sim_eli_practical_fixing` | Adaptive full journey: terse fixer + correction |
+| `sim_luz_bilingual_food` | Adaptive full journey: bilingual organizer + assets |
 
 Scripts are inline in `scripts/eval_conversation_suite.py` → `SCENARIOS`.
+
+### How adaptive simulation differs
+
+The three `sim_*` personas fetch the committed `target_key` after each assistant turn and
+answer that actual question from a bounded persona fact bank. A third probe on the same
+dimension produces a natural boundary instead of invented evidence. Each persona critiques
+the final options and requests a smaller scope. The run stops at `complete` or 24 turns.
+
+Their rubric requires at least 14 turns, six evidence dimensions, profile review, exactly
+one offer with at least two cited options, persona-topic relevance, student feedback after
+the offer, monotonic stages, no three-target loop, one question per response, and no slang
+imitation. `A17`/`A18` make these checks release-blocking in a full suite run. See
+[teen-conversation-flow-research.md](teen-conversation-flow-research.md) for the research
+and design rationale.
 
 ---
 
@@ -103,9 +123,9 @@ The suite follows three ideas used by established chat-system evaluations:
    policy diversity, evidence yield, latency, repetition, stage monotonicity,
    and response shape separately instead of collapsing them into one score.
 
-The scripted personas are deliberately reproducible but are **open loop**: their
-next message does not adapt to the assistant's exact question. Passing this suite
-does not prove that a conversation is good. Reassessment should use:
+The 18 scripted personas are deliberately reproducible and **open loop**; the three
+adaptive personas close that gap for full journeys. Even so, passing this suite does not
+prove that a conversation is good. Reassessment should use:
 
 - this suite for deterministic regressions and auditable traces;
 - blind A/B trajectory review against the previous release for naturalness,
@@ -127,6 +147,9 @@ calibrate it against blinded human labels.
   `max_consecutive_target_repeats`
 - exact normalized assistant duplicates and multi-question responses
 - project-offer count and stage regressions
+- generated option count/citations, offer turn, persona-keyword relevance, and adaptive
+  student feedback after the offer
+- assistant response length, slang-imitation hits, and the end-to-end rubric
 - mean, p50, and p95 end-to-end turn latency
 - `assistant_leak_hits`, elicitation event counts
 - `llm_runs`, `memory_snapshots` from Postgres
@@ -153,6 +176,8 @@ calibrate it against blinded human labels.
 | A14 | Exact normalized assistant duplicate ratio ≤10% |
 | A15 | Stage path never regresses |
 | A16 | Assistant responses contain at most one question |
+| A17 | A full suite contains at least three adaptive end-to-end scenarios |
+| A18 | Every adaptive run passes length, breadth, review, grounded/relevant options, feedback, monotonicity, repetition, response-shape, and voice checks |
 
 Partial runs skip scenario-specific checks (A3/A4/A5/A7/A10) when those scenarios are not in the batch.
 
@@ -163,7 +188,7 @@ Exit code 1 if any assertion fails or any scenario errors.
 ## Proof workflow (PR / release)
 
 1. Run affected `--only` scenarios after policy changes
-2. Run full 18 when touching stage/elicitation/repetition
+2. Run all 21 when touching stage/elicitation/repetition/matching
 3. Attach `suite_report.json` diff or `eval/analyze_post_fix.py` output
 4. Quote one decision-trace excerpt per closed finding
 5. Run unit tests: `test_determinism`, `test_student_ux`, `test_reliability_regressions`

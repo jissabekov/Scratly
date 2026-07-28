@@ -62,6 +62,7 @@ The model personalizes the selected intent; it does not choose priority or stage
 Product tone: [conversation-quality.md](conversation-quality.md).  
 Student model: [student-model.md](student-model.md).  
 Scoring: [scoring-rules.md](scoring-rules.md).
+Adolescent communication grounding: [adolescent-conversation-grounding.md](adolescent-conversation-grounding.md).
 
 ---
 
@@ -118,6 +119,12 @@ See `elicitation_policy.py`, `thin_answer.py`, and [system-guide.md](system-guid
 `is_repetition_blocked()` excludes over-asked targets before `select_next`. Penalty `asked_count × 0.35`. Planner forces `follow_up_exhausted` after depth ≥ 3 on same key. Emits `question_target_blocked`.
 
 `profile_validation` candidates appear only when `coverage_established ≥ 0.9` or session is already in review/matching.
+
+If a core preference remains provisional after two good-faith probes, it is exhausted,
+not secretly promoted. Once topics are supported, feasibility is known, and the other
+decision anchors are at least tentative, the system enters a fatigue-bounded review and
+labels those fields tentative. This preserves uncertainty without trapping a student in
+an interrogation loop.
 
 ### Stage gates
 
