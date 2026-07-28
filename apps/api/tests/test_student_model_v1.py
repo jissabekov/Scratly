@@ -218,8 +218,9 @@ def test_social_intro_establishes_contract_without_intake_questions():
     first = social_intro_target(None, "hello")
     assert first is not None
     assert first.key == "conversation_contract"
-    assert "bounce" in first.fallback_template.lower()
+    assert "course project" in first.fallback_template.lower()
     assert "name" not in first.fallback_template.lower()
+    assert "in or out of school" in first.fallback_template.lower()
 
     assert social_intro_target("conversation_contract", "video games") is None
 
@@ -229,6 +230,13 @@ def test_social_intro_does_not_reask_a_volunteered_name():
     assert target is not None
     assert target.key == "conversation_contract"
     assert "name" not in target.fallback_template.lower()
+
+
+def test_social_intro_builds_on_a_substantive_first_message():
+    target = social_intro_target(None, "I spend most weekends repairing old bikes")
+    assert target is not None
+    assert "what part of what you just mentioned" in target.fallback_template.lower()
+    assert "what have you been into" not in target.fallback_template.lower()
 
 
 def test_framing_pushback_answer_is_conversational():

@@ -605,12 +605,20 @@ def social_intro_target(
     the first exchange feel like meeting a person rather than starting a form.
     """
     if last_target_key is None:
+        normalized = " ".join((student_text or "").strip().split())
+        greeting_only = classify_reply(normalized) == ReplySignal.GREETING
+        opening = (
+            "Hey — good to meet you. I’ll help you find a course project that fits "
+            "you. What have you been into lately, in or out of school?"
+            if greeting_only
+            else "Good to meet you. I’ll help you find a course project that fits "
+            "what you enjoy and what is realistic for you. What part of what you "
+            "just mentioned do you enjoy most?"
+        )
         return Target(
             "social_intro",
             "conversation_contract",
-            "I’m here to help find a course project you’d actually enjoy. I’ll bounce "
-            "around between what you like, what you’re good at, and what feels doable—"
-            "there are no right answers. What have you been into lately, even outside school?",
+            opening,
             continuity=1.0,
         )
     return None
