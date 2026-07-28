@@ -13,5 +13,4 @@ apps/web/playwright/.cache/
 .api-*.log
 .last-probe-session.txt
 eval/traces/
-eval/*.log
 sim-*.json

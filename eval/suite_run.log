@@ -1,0 +1,13 @@
+API health={'status': 'ok'} ready={'status': 'ready', 'database': 'reachable'}
+Running 18 scenarios, 353 turns -> c:\Users\jissabekov\Scratly\eval\traces
+
+=== maya_happy_path - Happy path — science/community builder to project match (18 turns) ===
+session=9ccdb099-7f4a-422a-8be1-fccff2c151c0
+  turn 01/18 stage=measurement kind=assessment_question 11562ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/18 stage=measurement kind=assessment_question 7151ms q='When that sensor setup got annoying, what did you do to keep it moving?'
+  turn 03/18 stage=measurement kind=assessment_question 7608ms q='What part of those science projects feels most worth doing to you: figuring out how they work, seein'
+  turn 04/18 stage=measurement kind=assessment_question 7547ms q='That split makes sense. When you’re in analysis mode, what’s a sign you’re in your element?'
+  turn 05/18 stage=measurement kind=assessment_question 11132ms q='When you’re working with one or two friends, what usually makes it feel manageable instead of overwh'
+  turn 06/18 stage=measurement kind=assessment_question 11714ms q='What’s the most technical thing you’ve done yourself so far with Python, spreadsheets, or sensor wir'
+  turn 07/18 stage=measurement kind=assessment_question 14184ms q='What kind of result feels most worth your time: something people in your community can use right awa'
+  turn 08/18 stage=profile_review kind=assessment_question 13850ms q='What’s the hardest technical part you’ve handled yourself so far, like wiring, Python, or spreadshee'

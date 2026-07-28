@@ -1,0 +1,252 @@
+API health={'status': 'ok'} ready={'status': 'ready', 'database': 'reachable'}
+Running 18 scenarios, 353 turns -> c:\Users\jissabekov\Scratly\eval\traces
+
+=== maya_happy_path - Happy path — science/community builder to project match (18 turns) ===
+session=11fd0f97-b5b7-44ed-b6b8-703118c27f86
+  turn 01/18 stage=measurement kind=assessment_question 4069ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/18 stage=measurement kind=assessment_question 7616ms q='What part of the sensor or the spreadsheet did you enjoy most?'
+  turn 03/18 stage=measurement kind=assessment_question 5247ms q='Here’s my read so far: you seem to like building with a practical science angle, and you work best w'
+  turn 04/18 stage=measurement kind=assessment_question 7686ms q='What kind of neighborhood data do you most want to dig into—air quality, traffic, noise, something e'
+  turn 05/18 stage=measurement kind=assessment_question 9954ms q='What feels most rewarding to you: seeing people use what you made, helping solve a real local proble'
+  turn 06/18 stage=measurement kind=assessment_question 11352ms q='When a data question gets messy or unclear, what do you usually do first?'
+  turn 07/18 stage=measurement kind=assessment_question 9869ms q='What part of making something useful for your community feels most motivating: seeing people use it,'
+  turn 08/18 stage=measurement kind=assessment_question 14424ms q='When a hard part shows up in a school project, what do you usually do first: look up examples, try a'
+  turn 09/18 stage=measurement kind=assessment_question 13022ms q='When a school project gets stuck, what do you usually do first?'
+  turn 10/18 stage=measurement kind=assessment_question 12563ms q='When you hit a snag on a school project, what do you usually do first to get moving again?'
+  turn 11/18 stage=measurement kind=assessment_question 14101ms q='What does that hour of debugging usually look like for you: reading docs, trying little fixes, compa'
+  turn 12/18 stage=measurement kind=assessment_question 15125ms q='What feels right about this read, and what should I revise?'
+  turn 13/18 stage=measurement kind=assessment_question 13342ms q='When you need to learn something new for a school project, what do you usually handle on your own fi'
+  turn 14/18 stage=profile_review kind=assessment_question 10312ms q='What’s something you’ve already done with Python that you felt confident about?'
+  turn 15/18 stage=project_matching kind=project_offer 14225ms q='Here are grounded project directions that fit your profile:\n- Seattle Neighborhood Air Quality Map: '
+  turn 16/18 stage=project_matching kind=project_offer 17245ms q='Here are grounded project directions that fit your profile:\n- Seattle Neighborhood Air Quality Map: '
+  turn 17/18 stage=project_matching kind=project_offer 14660ms q='Here are grounded project directions that fit your profile:\n- Seattle Neighborhood Air Quality Map: '
+  turn 18/18 stage=project_matching kind=project_offer 1872ms q="I'm here to help you find a real course project — something you could build as an app, product, or w"
+wrote c:\Users\jissabekov\Scratly\eval\traces\maya_happy_path.json  turns=18 events=270 errors=0
+[skip] gamer_correction_repair (already completed)
+[skip] thin_elicitation_loop (already completed)
+[skip] student_questions_and_refuse (already completed)
+[skip] true_contradiction_resolve (already completed)
+[skip] multi_value_nuance (already completed)
+[skip] hostile_terse_then_open (already completed)
+[skip] location_delayed_then_ready (already completed)
+
+=== topic_switch_frustration - Topic rejection / frustration forces switch away from dead end (19 turns) ===
+session=e0147cb6-1ce6-47bc-ac66-05efd595be4e
+  turn 01/19 stage=discovery kind=assessment_question 4202ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/19 stage=discovery kind=assessment_question 4744ms q='What kinds of things do you actually like spending time on outside school?'
+  turn 03/19 stage=measurement kind=assessment_question 9201ms q='When you’re out doing trail cleanup, what part do you enjoy most?'
+  turn 04/19 stage=measurement kind=assessment_question 6198ms q='What’s one thing you’ve actually done during trail cleanup that felt useful or satisfying?'
+  turn 05/19 stage=measurement kind=assessment_question 8358ms q='When you’re doing trail cleanup, do you usually like figuring out what’s going on, keeping notes sor'
+  turn 06/19 stage=measurement kind=assessment_question 9243ms q='What makes trail cleanup feel worth your time: seeing a clean area, helping the crew, or something e'
+  turn 07/19 stage=measurement kind=assessment_question 11655ms q='What kind of schedule fits you best for this kind of thing: mostly weekends, after school, or a mix?'
+  turn 08/19 stage=measurement kind=assessment_question 12212ms q='When a crew is doing trail cleanup, what part do you naturally step into: talking to people, keeping'
+  turn 09/19 stage=measurement kind=assessment_question 9334ms q='Can you tell me about a time you took the lead on a volunteer task or outreach piece, even a small o'
+  turn 10/19 stage=measurement kind=assessment_question 10297ms q='You’re near Minneapolis, so what kind of trail or park setup would actually fit you best to work on?'
+  turn 11/19 stage=measurement kind=assessment_question 15771ms q='When plans change on a trail cleanup, what do you usually do first?'
+  turn 12/19 stage=measurement kind=assessment_question 13401ms q='What’s the part of trail cleanup you’d most want to keep doing on a real team: talking to people, or'
+  turn 13/19 stage=measurement kind=assessment_question 10138ms q='When you need neighbors to show up for a cleanup day, what’s the first thing you usually do?'
+  turn 14/19 stage=measurement kind=assessment_question 10725ms q='Here’s my read so far: you like being outdoors, spotting trash hotspots, and taking action that visi'
+  turn 15/19 stage=measurement kind=assessment_question 10483ms q='When you need neighbors to show up for a cleanup day, what do you usually do first?'
+  turn 16/19 stage=measurement kind=assessment_question 15343ms q='Think of the last time you got people to help with something outdoors—what was the first move you ma'
+  turn 17/19 stage=measurement kind=assessment_question 12812ms q='When you’re getting people to help with an outdoor cleanup, what’s the first thing you actually do?'
+  turn 18/19 stage=measurement kind=student_answer 1880ms q="I'm checking practical fit — like sticking with hard stuff, unclear goals, reaching out to people, o"
+  turn 19/19 stage=measurement kind=assessment_question 11359ms q='When you need people to show up for a cleanup, what’s the first thing you actually do?'
+wrote c:\Users\jissabekov\Scratly\eval\traces\topic_switch_frustration.json  turns=19 events=264 errors=0
+[skip] execution_deep_dive (already completed)
+
+=== profile_review_reject_repair - Student rejects profile summary; system must repair (20 turns) ===
+session=257ae489-c9ca-4b33-a1f4-2abb087a71d9
+  turn 01/20 stage=measurement kind=assessment_question 5033ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/20 stage=measurement kind=assessment_question 6730ms q='Nice — what do you enjoy most about chemistry demos?'
+  turn 03/20 stage=measurement kind=assessment_question 10168ms q='Any must-haves I should keep in mind for the project — deadline, tools, budget, or other limits?'
+  turn 04/20 stage=measurement kind=assessment_question 6946ms q='What city or region are you in, and is remote okay too?'
+  turn 05/20 stage=measurement kind=assessment_question 8249ms q='When you’re making a video like that, what part feels easiest to you: planning the explanation, film'
+  turn 06/20 stage=measurement kind=assessment_question 8616ms q='Here’s my read so far: you make short chemistry explainers, work alone with one friend for feedback,'
+  turn 07/20 stage=measurement kind=assessment_question 15137ms q='Any hard limits I should keep in mind — deadline, tools you can use, budget, or anything else?'
+  turn 08/20 stage=measurement kind=assessment_question 10452ms q='What city or region in Miami are you in, and are you open to remote work too?'
+  turn 09/20 stage=measurement kind=assessment_question 10230ms q='Which part of making your videos feels easiest right now: planning the script, filming, editing, or '
+  turn 10/20 stage=measurement kind=assessment_question 13537ms q='You mentioned DMing teachers for demo permission — what’s the hardest part of that outreach for you?'
+  turn 11/20 stage=measurement kind=assessment_question 15130ms q='Any must-haves I should keep in mind for this, like a deadline, tools, budget, or other limits?'
+  turn 12/20 stage=measurement kind=assessment_question 14294ms q='What city or region are you in, and is remote okay too?'
+  turn 13/20 stage=measurement kind=assessment_question 13814ms q='Which part of making your videos feels easiest for you right now: planning the explanation, filming,'
+  turn 14/20 stage=measurement kind=assessment_question 12798ms q='What part of your read should I revise first: the topic, the way you like to work, or what motivates'
+  turn 15/20 stage=measurement kind=assessment_question 20297ms q='Are there any hard limits I should keep in mind, like a deadline, budget, or tools you can’t use?'
+  turn 16/20 stage=measurement kind=assessment_question 22428ms q='What city or region should I use for your options, and should I count remote-friendly ones too?'
+  turn 17/20 stage=measurement kind=student_answer 2641ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 18/20 stage=measurement kind=assessment_question 17270ms q='For that first week, what would you script and film for the demo?'
+  turn 19/20 stage=measurement kind=assessment_question 11441ms q='When you made the video, what part was the easiest for you to handle on your own?'
+  turn 20/20 stage=measurement kind=student_answer 2089ms q="Skills shape how much scaffolding we give — not whether you get a software project. You're here to l"
+wrote c:\Users\jissabekov\Scratly\eval\traces\profile_review_reject_repair.json  turns=20 events=278 errors=0
+
+=== slang_uncertain_hedging - Heavy slang + hedging; still extract usable evidence (20 turns) ===
+session=121d79a7-0250-450e-9895-7bdd4cda10bd
+  turn 01/20 stage=discovery kind=student_answer 1771ms q='Not much — I’m here to help you figure out what kind of real project could fit you. We’re just getti'
+  turn 02/20 stage=discovery kind=student_answer 3403ms q='Totally fair — I’m not locking you into a project yet. I’m just trying to learn what actually clicks'
+  turn 03/20 stage=measurement kind=assessment_question 8096ms q='What do you usually spend time on inside GarageBand—making beats, recording stuff, or mixing?'
+  turn 04/20 stage=measurement kind=assessment_question 7399ms q='Any must-haves I should keep in mind for a course project — deadline, tools, budget, or something el'
+  turn 05/20 stage=measurement kind=assessment_question 10198ms q='What city or region are you in, and is remote okay too?'
+  turn 06/20 stage=measurement kind=assessment_question 8001ms q='I’m reading you as someone who likes making music solo, cares most about finishing tracks well, and '
+  turn 07/20 stage=measurement kind=assessment_question 9850ms q='When you’re in your zone on a track, what part pulls you in most: laying down the first idea, tweaki'
+  turn 08/20 stage=measurement kind=student_answer 3713ms q='I mean the part of an activity you naturally enjoy doing. I worded that badly.\n\nAny hard limits I sh'
+  turn 09/20 stage=measurement kind=assessment_question 8709ms q='What city or region are you in, and is remote okay too?'
+  turn 10/20 stage=measurement kind=assessment_question 18681ms q='If a mix feels off, what do you usually do first: keep tweaking the same thing, save versions and co'
+  turn 11/20 stage=measurement kind=assessment_question 11789ms q='For a course project, what’s the biggest limit I should plan around: deadline, tools, budget, or whe'
+  turn 12/20 stage=profile_review kind=assessment_question 5527ms q='Nice — what’s the cousin’s DJ setup like, and what kind of help could they actually give you?'
+  turn 13/20 stage=project_matching kind=project_offer 12258ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 14/20 stage=project_matching kind=project_offer 14350ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 15/20 stage=project_matching kind=project_offer 21682ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 16/20 stage=project_matching kind=project_offer 16353ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 17/20 stage=project_matching kind=project_offer 14336ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 18/20 stage=project_matching kind=project_offer 13547ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 19/20 stage=project_matching kind=project_offer 2203ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 20/20 stage=project_matching kind=project_offer 12767ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+wrote c:\Users\jissabekov\Scratly\eval\traces\slang_uncertain_hedging.json  turns=20 events=316 errors=0
+
+=== organizer_communicate_mode - Organize/communicate work modes vs build/investigate (19 turns) ===
+session=ba667dcc-206e-4513-a778-6f2e1a4cc324
+  turn 01/19 stage=measurement kind=assessment_question 5042ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/19 stage=measurement kind=assessment_question 5429ms q='What kinds of things do you spend time on when you’re not managing the club calendar?'
+  turn 03/19 stage=measurement kind=assessment_question 7863ms q='When you have to keep a club or event running smoothly, what part do you handle best: getting people'
+  turn 04/19 stage=measurement kind=assessment_question 6647ms q='What kinds of things do you like spending time on outside debate and school stuff?'
+  turn 05/19 stage=measurement kind=assessment_question 8193ms q='You seem strongest at coordinating people and making logistics pay off. What part of that feels most'
+  turn 06/19 stage=measurement kind=assessment_question 8304ms q='In a team setting, what do you naturally take on first: setting the plan, keeping people on task, or'
+  turn 07/19 stage=measurement kind=assessment_question 11102ms q='What do you spend the most free time on lately — sports, games, videos, social media, reading, or so'
+  turn 08/19 stage=measurement kind=assessment_question 12773ms q='Here’s my read so far: you seem to like organizing people and logistics, and you’re motivated by win'
+  turn 09/19 stage=measurement kind=assessment_question 6163ms q='When you’re the one people rely on, what do you handle most naturally: keeping things on schedule, w'
+  turn 10/19 stage=gap_resolution kind=assessment_question 9200ms q='When you’re juggling a group, do you usually end up setting the structure, or keeping everyone in th'
+  turn 11/19 stage=measurement kind=assessment_question 11100ms q='When you’re working with other schools, what part do you jump into first: setting the plan, writing '
+  turn 12/19 stage=measurement kind=assessment_question 10874ms q='Outside debate and school, what do you spend the most free time on lately?'
+  turn 13/19 stage=measurement kind=assessment_question 9896ms q='What part of youth civic events logistics or debate ops do you spend the most time on: scheduling, o'
+  turn 14/19 stage=measurement kind=assessment_question 16155ms q='When there’s a fresh event to pull together, what do you handle most naturally first: setting the ti'
+  turn 15/19 stage=measurement kind=assessment_question 12105ms q='Here’s my read so far: you seem strongest at organizing and outreach, with debate and youth civic ev'
+  turn 16/19 stage=measurement kind=assessment_question 16275ms q='What’s a real task you’ve handled that shows you’re strongest at organizing or communication?'
+  turn 17/19 stage=measurement kind=assessment_question 14770ms q='What’s one specific task you’ve done that best shows your organizing or communication skills?'
+  turn 18/19 stage=measurement kind=assessment_question 14216ms q='What did you actually do in that first week to audit the no-show patterns?'
+  turn 19/19 stage=measurement kind=student_answer 1857ms q="Skills shape how much scaffolding we give — not whether you get a software project. You're here to l"
+wrote c:\Users\jissabekov\Scratly\eval\traces\organizer_communicate_mode.json  turns=19 events=265 errors=0
+
+=== capability_scaffold_gaps - Strong interest, weak skills — scaffolding must stay honest (20 turns) ===
+session=dac2b74b-55fe-4060-a4f8-86ae5afaf0ce
+  turn 01/20 stage=measurement kind=assessment_question 3957ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/20 stage=measurement kind=assessment_question 4307ms q='When a school task gets frustrating, what do you usually do next—keep pushing, take a break, or swit'
+  turn 03/20 stage=measurement kind=assessment_question 6420ms q="When you're working on something like the trail-cam photos, do you like figuring things out, setting"
+  turn 04/20 stage=measurement kind=assessment_question 5703ms q='Here’s my read so far: wildlife camera photos and machine learning interest you, and you lean toward'
+  turn 05/20 stage=measurement kind=assessment_question 8491ms q='What’s the hardest limit for a solo project—time, access to data/tools, or something else?'
+  turn 06/20 stage=measurement kind=assessment_question 12274ms q='What’s one thing you’ve already done with trail-cam photos that shows you can handle that kind of da'
+  turn 07/20 stage=measurement kind=assessment_question 8597ms q='Do you have the actual trail-cam photos, or just a few example shots?'
+  turn 08/20 stage=measurement kind=assessment_question 9724ms q='When you’re digging into wildlife photos or animal patterns, what are you usually doing first—lookin'
+  turn 09/20 stage=measurement kind=assessment_question 8405ms q='Here’s my read so far: you like investigating wildlife camera photos, you’re motivated by curiosity,'
+  turn 10/20 stage=measurement kind=assessment_question 8953ms q='When you’re looking through wildlife photos, do you usually want to sort, compare, or spot patterns '
+  turn 11/20 stage=measurement kind=assessment_question 10245ms q='When you get stuck on a wildlife-photo task, what do you usually do first—replay a tutorial, try the'
+  turn 12/20 stage=measurement kind=assessment_question 12086ms q='When you’re working with wildlife photos, which comes more naturally: sorting, labeling, comparing, '
+  turn 13/20 stage=measurement kind=assessment_question 11142ms q='When you tried reaching out to the park ranger, what exactly did you do first?'
+  turn 14/20 stage=measurement kind=assessment_question 12023ms q='Do you already have the trail-cam photos themselves, or just example shots?'
+  turn 15/20 stage=measurement kind=assessment_question 11030ms q='What’s the biggest thing that could slow you down on a solo wildlife-photo project: time, getting en'
+  turn 16/20 stage=measurement kind=assessment_question 12355ms q='What have you already done with the trail-cam photos that shows what you can handle yourself?'
+  turn 17/20 stage=measurement kind=assessment_question 12509ms q='What’s a real example of something you’ve already done when a step was confusing or messy, and you k'
+  turn 18/20 stage=measurement kind=assessment_question 13046ms q='When you hit a confusing step, what do you usually do first—pause and reread, try something small, o'
+  turn 19/20 stage=measurement kind=assessment_question 11951ms q='What trail-cam photos do you actually have access to right now—your own folder, your uncle’s, or jus'
+  turn 20/20 stage=measurement kind=student_answer 1639ms q='Unusual access — people, teams, datasets, equipment, communities — can unlock ideas a personality qu'
+wrote c:\Users\jissabekov\Scratly\eval\traces\capability_scaffold_gaps.json  turns=20 events=286 errors=0
+
+=== greeting_slow_warm_up - Long social warm-up before any substance (21 turns) ===
+session=83262a44-738f-434e-b004-fbd0fb953bb2
+  turn 01/21 stage=discovery kind=student_answer 1981ms q='Hey! I’m here to help you find a real class project that fits what you like and how you work. I’ll a'
+  turn 02/21 stage=discovery kind=student_answer 2661ms q='I’m good — thanks for asking. I’m here to learn what kinds of projects feel like a fit for you, then'
+  turn 03/21 stage=discovery kind=student_answer 2983ms q='We’re figuring out what kind of app, website, or product project would actually fit you — based on w'
+  turn 04/21 stage=discovery kind=assessment_question 2947ms q='When you’re choosing a course project, what matters most to you: something useful, something fun, or'
+  turn 05/21 stage=discovery kind=assessment_question 3577ms q='What do you usually do in study hall when you’re bored?'
+  turn 06/21 stage=discovery kind=student_answer 4155ms q='Yep — art totally counts. I’m just trying to learn what actually clicks for you, not assume you alre'
+  turn 07/21 stage=discovery kind=assessment_question 6690ms q='When you draw characters on your tablet, what part do you get most into: sketching the pose, choosin'
+  turn 08/21 stage=measurement kind=assessment_question 10709ms q='Have you ever shared your art online or with people at school, and what happened?'
+  turn 09/21 stage=measurement kind=assessment_question 11006ms q='What makes it worth spending hours on a drawing for you?'
+  turn 10/21 stage=measurement kind=assessment_question 6788ms q='When you’re making a character drawing, what part feels most natural to you: sketching, refining det'
+  turn 11/21 stage=measurement kind=assessment_question 8561ms q='Since school is part of the picture, what’s the main limit on your art time there—time, supplies, or'
+  turn 12/21 stage=measurement kind=assessment_question 7498ms q='What matters most to you when someone notices your art: the character idea, the style, or the effort'
+  turn 13/21 stage=profile_review kind=assessment_question 8203ms q='For your anatomy practice, what do you usually focus on first: proportions, hands, faces, or poses?'
+  turn 14/21 stage=project_matching kind=project_offer 10025ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 15/21 stage=project_matching kind=project_offer 14463ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 16/21 stage=project_matching kind=project_offer 12195ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 17/21 stage=project_matching kind=project_offer 12667ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 18/21 stage=project_matching kind=project_offer 11713ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 19/21 stage=project_matching kind=project_offer 11266ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+  turn 20/21 stage=project_matching kind=project_offer 4809ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 21/21 stage=project_matching kind=project_offer 10931ms q='Here are grounded project directions that fit your profile:\n- Remote Open-Source Docs Sprint: Improv'
+wrote c:\Users\jissabekov\Scratly\eval\traces\greeting_slow_warm_up.json  turns=21 events=328 errors=0
+
+=== mixed_intent_answer_plus_evidence - Turns that mix student questions with new evidence (19 turns) ===
+session=96111032-f709-4cce-a7fd-52554e1e1b7a
+  turn 01/19 stage=measurement kind=assessment_question 4500ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/19 stage=measurement kind=student_answer 6930ms q="I'm here to help you find a real course project — something you could build as an app, product, or w"
+  turn 03/19 stage=measurement kind=student_answer 4372ms q='I just mean how you choose to spend your time when nobody is assigning you anything. Games absolutel'
+  turn 04/19 stage=measurement kind=student_answer 7836ms q='Fair question. I’m not trying to analyze that one subject or turn one answer into a personality labe'
+  turn 05/19 stage=profile_review kind=student_answer 6403ms q="Where you're based (or if remote is fine) helps because some options are local.\n\nOakland works. For "
+  turn 06/19 stage=project_matching kind=project_offer 9138ms q="So far I've noted: topics: bike repair; work mode: build; motivation: impact usefulness; constraints"
+  turn 07/19 stage=project_matching kind=project_offer 9645ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 08/19 stage=project_matching kind=project_offer 11407ms q="I'm here to help you find a real course project — something you could build as an app, product, or w"
+  turn 09/19 stage=project_matching kind=project_offer 7049ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 10/19 stage=project_matching kind=project_offer 7543ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 11/19 stage=project_matching kind=project_offer 7728ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 12/19 stage=project_matching kind=project_offer 9946ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 13/19 stage=project_matching kind=project_offer 10925ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 14/19 stage=project_matching kind=project_offer 9867ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 15/19 stage=project_matching kind=project_offer 17441ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 16/19 stage=project_matching kind=project_offer 14964ms q="So far I've noted: topics: bike repair; work mode: build; motivation: impact usefulness; capability:"
+  turn 17/19 stage=project_matching kind=project_offer 10827ms q='Here are grounded project directions that fit your profile:\n- Bay Area Climate Field Guide: Investig'
+  turn 18/19 stage=project_matching kind=project_offer 29973ms q='Here are grounded project directions that fit your profile:\n- Bay Area Transit Prototype: Build and '
+  turn 19/19 stage=project_matching kind=project_offer 2012ms q="Skills shape how much scaffolding we give — not whether you get a software project. You're here to l"
+wrote c:\Users\jissabekov\Scratly\eval\traces\mixed_intent_answer_plus_evidence.json  turns=19 events=342 errors=0
+
+=== early_complete_attempt - Student tries to rush to projects before enough evidence (22 turns) ===
+session=f4ed2cb0-f94a-44f6-bec4-b7085d2e6f34
+  turn 01/22 stage=discovery kind=refusal 2557ms q='I get the impatience, but I’m not at the matching step yet. I’m first trying to learn what kinds of '
+  turn 02/22 stage=discovery kind=assessment_question 3824ms q='What part of science grabs you most right now: space, animals, the body, chemicals, or something els'
+  turn 03/22 stage=discovery kind=assessment_question 5898ms q='When you work on chemistry stuff, do you like figuring things out, setting things in order, explaini'
+  turn 04/22 stage=discovery kind=student_answer 1766ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 05/22 stage=measurement kind=assessment_question 5148ms q='That creek pH test is a helpful clue — what part of it did you actually do: collecting the sample, u'
+  turn 06/22 stage=measurement kind=student_answer 2190ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 07/22 stage=measurement kind=assessment_question 6302ms q='What made that creek test worth doing for you?'
+  turn 08/22 stage=measurement kind=assessment_question 10826ms q="When you're into a school task like that, what part feels most natural: figuring things out, making "
+  turn 09/22 stage=measurement kind=assessment_question 6276ms q='Here’s my read so far: you seem most drawn to science with a real-world impact, and you lean toward '
+  turn 10/22 stage=project_matching kind=project_offer 9478ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 11/22 stage=project_matching kind=project_offer 2698ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 12/22 stage=project_matching kind=project_offer 8476ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 13/22 stage=project_matching kind=project_offer 7824ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 14/22 stage=project_matching kind=project_offer 12995ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 15/22 stage=project_matching kind=project_offer 8529ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 16/22 stage=project_matching kind=project_offer 12636ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 17/22 stage=project_matching kind=project_offer 12564ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 18/22 stage=project_matching kind=project_offer 9103ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 19/22 stage=project_matching kind=project_offer 9239ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 20/22 stage=project_matching kind=project_offer 2353ms q="Project ideas come later, after I understand what you're into and where you're based. I won't invent"
+  turn 21/22 stage=project_matching kind=project_offer 14355ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+  turn 22/22 stage=project_matching kind=project_offer 11129ms q='Here are grounded project directions that fit your profile:\n- Remote Data Journalism Starter: Invest'
+wrote c:\Users\jissabekov\Scratly\eval\traces\early_complete_attempt.json  turns=22 events=368 errors=0
+
+=== bilingual_code_switch - Light code-switching; English answers with Spanish flavor (20 turns) ===
+session=02527eec-df20-4841-9e28-6bfe6933cc38
+  turn 01/20 stage=measurement kind=assessment_question 3913ms q='I’m here to help find a course project you’d actually enjoy. I’ll bounce around between what you lik'
+  turn 02/20 stage=measurement kind=assessment_question 8198ms q='Any must-haves I should keep in mind for a project—deadline, tools, budget, or something else?'
+  turn 03/20 stage=measurement kind=assessment_question 6213ms q='What city or region are you in, and is remote okay too?'
+  turn 04/20 stage=measurement kind=assessment_question 6447ms q='When you’re helping in the cocina, what part feels most natural to you: keeping things organized, sh'
+  turn 05/20 stage=measurement kind=assessment_question 6112ms q='When you’re helping in the cocina, what do you usually do if someone else starts doing it a differen'
+  turn 06/20 stage=measurement kind=assessment_question 12383ms q='Nice, that gives me a clear picture—what’s one time you used those skills in the cocina or at home t'
+  turn 07/20 stage=measurement kind=assessment_question 11645ms q='If you needed to make a Spanish-English flyer for family or neighbors, what would you do first?'
+  turn 08/20 stage=measurement kind=assessment_question 22787ms q='What part of cooking or making those bilingual flyers feels most like you: organizing steps, wording'
+  turn 09/20 stage=measurement kind=assessment_question 8870ms q='When a recipe doesn’t work the first time, what do you actually do next to fix it?'
+  turn 10/20 stage=measurement kind=assessment_question 11216ms q='That helps me refine it: when you make a flyer or recipe for other people, what do you check first s'
+  turn 11/20 stage=measurement kind=assessment_question 10494ms q='When you invite neighbors to taste a recipe, what do you do to get people to actually show up?'
+  turn 12/20 stage=measurement kind=assessment_question 14329ms q='Here’s my read so far: you seem strongest at organizing and communicating, especially around cooking'
+  turn 13/20 stage=measurement kind=assessment_question 12734ms q='When you’re getting people to show up for something, what’s your first move: a direct invite, a remi'
+  turn 14/20 stage=measurement kind=assessment_question 13541ms q='When you need people to actually come through, what do you do first that has worked best for you?'
+  turn 15/20 stage=measurement kind=assessment_question 12819ms q='Can you tell me about a time you got people to show up for something you organized?'
+  turn 16/20 stage=measurement kind=assessment_question 18967ms q='What’s one small thing you’ve done that actually got people to show up or respond?'
+  turn 17/20 stage=measurement kind=assessment_question 12439ms q='What do you do first when you need people to actually show up?'
+  turn 18/20 stage=measurement kind=assessment_question 13860ms q='When you’re getting ready for something like a tasting night, what’s the first concrete thing you do'
+  turn 19/20 stage=measurement kind=student_answer 2040ms q="I'm checking practical fit — like sticking with hard stuff, unclear goals, reaching out to people, o"
+  turn 20/20 stage=measurement kind=assessment_question 14425ms q='When people don’t respond right away, what do you usually do next to get a yes?'
+wrote c:\Users\jissabekov\Scratly\eval\traces\bilingual_code_switch.json  turns=20 events=279 errors=0
+
+Suite report -> c:\Users\jissabekov\Scratly\eval\traces\suite_report.json
+
+Done. 18/18 clean. Findings=2
