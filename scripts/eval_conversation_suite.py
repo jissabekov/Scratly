@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live multi-persona assessment eval suite (15–20 conversation chains).
+"""Live multi-persona assessment eval suite (scripted and adaptive chains).
 
 Each scenario is a designed student persona with 15–30 scripted turns that
 stress a different facet of the chatbot (discovery, thin answers, repair,
@@ -70,8 +70,12 @@ def _max_run(values: list[Any]) -> int:
     return longest
 
 
+def _planned_turns(scenario: dict[str, Any]) -> int:
+    return len(scenario.get("turns") or []) or int(scenario["simulator"]["max_turns"])
+
+
 # ---------------------------------------------------------------------------
-# Scenario definitions — 18 chains covering assessment surface area
+# Scenario definitions — scripted probes plus adaptive end-to-end conversations
 # ---------------------------------------------------------------------------
 
 SCENARIOS: list[dict[str, Any]] = [
@@ -668,6 +672,123 @@ SCENARIOS: list[dict[str, Any]] = [
             "Listo.",
         ],
     },
+    {
+        "id": "sim_nia_creative_community",
+        "title": "Adaptive E2E — guarded creator grows into a community-story match",
+        "aspects": ["simulated", "natural_flow", "repair", "autonomy", "full_coverage", "final_options"],
+        "simulator": {
+            "opening": "hey. my counselor said this might help but idk what project i want",
+            "min_turns": 14,
+            "max_turns": 24,
+            "project_keywords": ["photo", "story", "basketball", "community"],
+            "facts": {
+                "conversation_contract": ["Okay, but can we keep it normal and not make this a personality test?"],
+                "topics": [
+                    "I keep taking photos at neighborhood basketball games. Mostly the little moments, not action shots.",
+                    "Last month I made a photo carousel about the girls' team because nobody was covering them.",
+                    "I like noticing a story other people walked past. I don't want to become a sports influencer though.",
+                ],
+                "work_mode": [
+                    "I shoot alone, then two friends help me choose photos. Writing captions together is actually fun.",
+                    "I'm usually the one who finds the angle and edits; my friend is better at interviewing people.",
+                ],
+                "motivation": [
+                    "It matters when players repost it because they felt seen. A polished final post matters too.",
+                    "If I had to choose, making somebody feel represented beats getting lots of views.",
+                ],
+                "execution": [
+                    "I redid one carousel three nights in a row after the order felt confusing, then asked my cousin to look.",
+                    "A blank 'make media' brief would annoy me. Give me an audience and deadline and I can figure out the rest.",
+                ],
+                "capability": ["I can use Lightroom Mobile and Canva. Audio editing and a real camera are new to me."],
+                "assets": ["Phone camera, the rec center manager knows me, and two players said they'd talk to me."],
+                "constraints": [
+                    "I'm in Baltimore, bus distance only. Four weeks, phone tools, basically no budget.",
+                    "Small interviews are okay. I don't want my face on camera or my full name posted.",
+                ],
+                "profile": ["Mostly right. Make privacy a real constraint, and don't describe me as wanting attention."],
+            },
+            "project_feedback": "The photo-and-audio mini profile fits best if it can be three short stories, not a huge website. What would option two look like without showing my face?",
+        },
+    },
+    {
+        "id": "sim_eli_practical_fixing",
+        "title": "Adaptive E2E — terse practical fixer with a mid-chat correction",
+        "aspects": ["simulated", "natural_flow", "correction", "thin_recovery", "feasibility", "final_options"],
+        "simulator": {
+            "opening": "yo. i fix random stuff, that's about it",
+            "min_turns": 14,
+            "max_turns": 24,
+            "project_keywords": ["repair", "fix", "troubleshoot", "bike", "controller"],
+            "facts": {
+                "conversation_contract": ["sure, just don't ask me twenty versions of the same thing"],
+                "topics": [
+                    "Mostly bikes and controllers. I fixed my brother's stick drift last weekend.",
+                    "The satisfying part is finding the one tiny thing causing the whole problem.",
+                    "I said I like fixing them, not filming repair content or starting a business. Can we drop that angle?",
+                ],
+                "work_mode": [
+                    "I troubleshoot alone first. If I hit a wall, my shop teacher and I compare ideas.",
+                    "Hands-on testing is my part. Someone else can make the presentation look nice.",
+                ],
+                "motivation": [
+                    "Getting a dead thing working again is the win. Saving somebody money is a bonus.",
+                    "Mastering the repair matters more than people knowing I did it.",
+                ],
+                "execution": [
+                    "For the controller I cleaned it, tested it, replaced one part, and tested again. Took most of Saturday.",
+                    "I can handle figuring stuff out, but I need a clear safety boundary and a way to test each step.",
+                ],
+                "capability": ["Basic soldering, bike tools, multimeter with help. I can't code and don't know CAD."],
+                "assets": ["School workshop, repair tools, and a teacher who can supervise soldering."],
+                "constraints": [
+                    "I'm outside Milwaukee. Six weeks in shop class, under $25, no meeting strangers off campus.",
+                    "Showing the finished repair in class is fine. Public social posts aren't.",
+                ],
+                "profile": ["Yeah, practical troubleshooting is right. Keep coding and public content out of it."],
+            },
+            "project_feedback": "The repair decision guide plus three supervised repair cases feels real. I'd skip the public tutorial option. Can we choose the first one?",
+        },
+    },
+    {
+        "id": "sim_luz_bilingual_food",
+        "title": "Adaptive E2E — bilingual family-food organizer chooses scoped options",
+        "aspects": ["simulated", "natural_flow", "bilingual", "mixed_intent", "assets", "final_options"],
+        "simulator": {
+            "opening": "Hola, I help at my tía's food stall on weekends. Not sure if that counts as an interest lol",
+            "min_turns": 14,
+            "max_turns": 24,
+            "project_keywords": ["order", "food", "bilingual", "flow", "stall"],
+            "facts": {
+                "conversation_contract": ["Okay. Are you looking for what I'm good at or just what I like?"],
+                "topics": [
+                    "I keep reorganizing the handwritten orders because Saturday lunch gets chaotic.",
+                    "Two weeks ago I made color cards for pickup, delivery, and waiting. My tía kept using them.",
+                    "Cooking is part of it, pero honestly I like making the whole rush run smoother.",
+                ],
+                "work_mode": [
+                    "I watch where people get confused, make a simple system, then explain it to my cousins.",
+                    "I like organizing with people around, then making the signs or checklist alone.",
+                ],
+                "motivation": [
+                    "Less stress for my family is first. I'm also proud when a system I made actually sticks.",
+                    "Useful beats impressive. If nobody uses it, the design doesn't matter.",
+                ],
+                "execution": [
+                    "The first cards were too wordy, so I watched one rush, shortened them, and tried again next Saturday.",
+                    "I can start with a messy problem if I can observe it. A totally imaginary business brief would be harder.",
+                ],
+                "capability": ["Canva, Google Sheets basics, Spanish and English. No app building."],
+                "assets": ["The stall, real order slips, my family as testers, and a phone printer at school."],
+                "constraints": [
+                    "I'm in El Paso. Five weekends, under $30, and we can't publish customer names or sales numbers.",
+                    "I can present to class, but my tía should approve anything about the stall first.",
+                ],
+                "profile": ["Sí, organizer and explainer fits. Keep the family privacy part and don't turn it into an app."],
+            },
+            "project_feedback": "The bilingual order-flow kit is the best one. I like comparing before and after, but no customer data online. What's the smallest version?",
+        },
+    },
 ]
 
 
@@ -745,6 +866,49 @@ def _enrich_db_counts(session_id: str) -> dict[str, Any]:
     return {}
 
 
+def _latest_question_target(base: str, session_id: str) -> str | None:
+    """Read the committed target so adaptive personas answer the actual question."""
+    history = _admin(base, session_id, "question-history") or {}
+    items = history.get("items") or []
+    latest = max(items, key=lambda item: item.get("created_at") or "") if items else None
+    return latest.get("target_key") if latest else None
+
+
+def _simulated_reply(
+    simulator: dict[str, Any],
+    *,
+    target_key: str | None,
+    response: dict[str, Any],
+    used: Counter[str],
+) -> tuple[str, str]:
+    """Choose a persona-consistent answer to the question that was really asked.
+
+    This is intentionally deterministic. The assistant remains live/LLM-backed, while
+    the student is an auditable state machine rather than another model that can drift
+    out of persona or flatter the system under test.
+    """
+    if response.get("message_kind") == "project_offer":
+        return simulator["project_feedback"], "project_options"
+
+    key = target_key or "topics"
+    family = key.split(":", 1)[0]
+    if family == "conversation_contract":
+        family = "conversation_contract"
+    elif family not in (simulator.get("facts") or {}):
+        family = "topics"
+    choices = simulator["facts"].get(family) or simulator["facts"]["topics"]
+    index = used[family]
+    used[family] += 1
+    if index < len(choices):
+        return choices[index], key
+    # A repeated target gets an honest boundary, not fabricated additional evidence.
+    return (
+        "I think that's all I can say about that without repeating myself. "
+        "Can we use what I already told you or move to something that changes the options?",
+        key,
+    )
+
+
 def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
     """Derive metrics used for the post-eval report."""
     events = dump.get("decision_trace", {}).get("events") or []
@@ -802,7 +966,12 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
     info_gain_turns = 0
     for e in reduces:
         outs = e.get("outputs") or {}
-        changes = outs.get("change_count") or outs.get("changes") or 0
+        changes = (
+            outs.get("change_count")
+            or outs.get("changes")
+            or outs.get("accepted_evidence_count")
+            or 0
+        )
         if isinstance(changes, list):
             changes = len(changes)
         if changes:
@@ -883,6 +1052,47 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         for t in turns
         if (t.get("response") or {}).get("message_kind") == "project_offer"
     )
+    project_items = (dump.get("projects") or {}).get("items") or []
+    simulated_turns = [t for t in turns if t.get("simulation")]
+    answered_targets = [
+        (t.get("simulation") or {}).get("answered_target")
+        for t in simulated_turns
+        if t.get("index") != 1
+    ]
+    offer_turn = next(
+        (t.get("index") for t in turns if (t.get("response") or {}).get("message_kind") == "project_offer"),
+        None,
+    )
+    assistant_word_counts = [len(m.split()) for m in assistant_msgs]
+    forced_slang_hits = sum(
+        1 for m in assistant_msgs
+        if re.search(r"\b(no cap|bet|slaps?|lowkey|mid|vibes|fire)\b", m.lower())
+    )
+    expectations = dump.get("scenario_expectations") or {}
+    min_turns = expectations.get("min_turns")
+    project_text = " ".join(
+        f"{p.get('title', '')} {p.get('summary', '')}" for p in project_items
+    ).lower()
+    project_keywords = expectations.get("project_keywords") or []
+    end_to_end_checks = {
+        "long_enough": min_turns is None or len(turns) >= int(min_turns),
+        "broad_evidence": len(dims_touched) >= 6,
+        "profile_review_reached": "profile_review" in (stages or []),
+        "options_presented": project_offer_count == 1 and len(project_items) >= 2,
+        "options_are_grounded": bool(project_items) and all(
+            int(p.get("citation_count") or 0) >= 1 for p in project_items
+        ),
+        "options_fit_persona": not project_keywords or any(
+            keyword.lower() in project_text for keyword in project_keywords
+        ),
+        "feedback_after_options": bool(
+            offer_turn and any((t.get("simulation") or {}).get("answered_target") == "project_options" for t in turns)
+        ),
+        "no_stage_regression": stage_regressions == 0,
+        "no_target_loop": _max_run(target_keys) <= 2,
+        "one_question_at_a_time": max(question_counts, default=0) <= 1,
+        "no_forced_slang": forced_slang_hits == 0,
+    }
 
     return {
         "scenario_id": dump.get("scenario_id"),
@@ -929,6 +1139,19 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "max_questions_in_response": max(question_counts, default=0),
         "multi_question_response_count": sum(1 for count in question_counts if count > 1),
         "project_offer_count": project_offer_count,
+        "project_option_count": len(project_items),
+        "offer_turn": offer_turn,
+        "scenario_mode": dump.get("scenario_mode") or "scripted_probe",
+        "simulated_reply_target_rate": round(
+            sum(bool(x) for x in answered_targets) / max(len(answered_targets), 1), 3
+        ),
+        "assistant_mean_words": round(sum(assistant_word_counts) / max(len(assistant_word_counts), 1), 1),
+        "assistant_max_words": max(assistant_word_counts, default=0),
+        "forced_slang_hits": forced_slang_hits,
+        "end_to_end_checks": end_to_end_checks,
+        "end_to_end_pass_rate": round(
+            sum(end_to_end_checks.values()) / max(len(end_to_end_checks), 1), 3
+        ),
         "stage_regressions": stage_regressions,
         "live_llm": dump.get("live_llm"),
         "llm_runs": (dump.get("db_counts") or {}).get("llm_runs"),
@@ -963,7 +1186,9 @@ def run_scenario(
             print(f"[skip] {scenario['id']} (already completed)")
             return existing
 
-    print(f"\n=== {scenario['id']} - {scenario['title']} ({len(scenario['turns'])} turns) ===")
+    simulator = scenario.get("simulator")
+    planned_turns = _planned_turns(scenario)
+    print(f"\n=== {scenario['id']} - {scenario['title']} (up to {planned_turns} turns) ===")
     errors: list[str] = []
     started = datetime.now(timezone.utc).isoformat()
     t0 = time.perf_counter()
@@ -974,7 +1199,16 @@ def run_scenario(
     print(f"session={session_id}")
 
     turns_out: list[dict[str, Any]] = []
-    for index, text in enumerate(scenario["turns"], start=1):
+    simulated_used: Counter[str] = Counter()
+    scripted_turns = list(scenario.get("turns") or [])
+    next_simulated_text = simulator.get("opening") if simulator else None
+    for index in range(1, planned_turns + 1):
+        if simulator:
+            text = next_simulated_text
+            if not text:
+                break
+        else:
+            text = scripted_turns[index - 1]
         body = {
             "idempotency_key": f"eval-{scenario['id']}-{index:02d}-{uuid.uuid4().hex[:8]}",
             "text": text,
@@ -985,22 +1219,36 @@ def run_scenario(
                 "POST", f"{base}/v1/sessions/{session_id}/turns", body, timeout=240
             )
             duration_ms = int((time.perf_counter() - turn_t0) * 1000)
-            turns_out.append(
-                {
+            turn_record = {
                     "index": index,
                     "request": body,
                     "response_status": 200,
                     "response": response,
                     "duration_ms": duration_ms,
                 }
-            )
+            if simulator:
+                turn_record["simulation"] = {
+                    "answered_target": None if index == 1 else answered_target,
+                    "persona_reply_index": dict(simulated_used),
+                }
+            turns_out.append(turn_record)
             msg = (response.get("assistant_message") or "")[:100]
             print(
-                f"  turn {index:02d}/{len(scenario['turns'])} "
+                f"  turn {index:02d}/{planned_turns} "
                 f"stage={response.get('stage')} "
                 f"kind={response.get('message_kind')} "
                 f"{duration_ms}ms q={msg!r}"
             )
+            if simulator:
+                if response.get("stage") == "complete":
+                    break
+                target_key = _latest_question_target(base, session_id)
+                next_simulated_text, answered_target = _simulated_reply(
+                    simulator,
+                    target_key=target_key,
+                    response=response,
+                    used=simulated_used,
+                )
         except Exception as err:  # noqa: BLE001
             duration_ms = int((time.perf_counter() - turn_t0) * 1000)
             err_s = str(err)
@@ -1018,6 +1266,7 @@ def run_scenario(
             break
 
     views: dict[str, Any] = {}
+    projects: dict[str, Any] = {"items": []}
     decision_trace: dict[str, Any] = {"events": []}
     resume_session = None
     try:
@@ -1027,6 +1276,7 @@ def run_scenario(
         decision_trace = _req(
             "GET", f"{base}/v1/admin/sessions/{session_id}/decision-trace?limit=1000"
         )
+        projects = _req("GET", f"{base}/v1/sessions/{session_id}/projects")
     except Exception as err:  # noqa: BLE001
         errors.append(f"admin dump: {err}")
 
@@ -1042,6 +1292,12 @@ def run_scenario(
         "scenario_id": scenario["id"],
         "title": scenario["title"],
         "aspects": scenario["aspects"],
+        "scenario_mode": "adaptive_simulation" if simulator else "scripted_probe",
+        "scenario_expectations": {
+            "min_turns": simulator.get("min_turns"),
+            "must_present_final_options": True,
+            "project_keywords": simulator.get("project_keywords") or [],
+        } if simulator else {},
         "started_at": started,
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "elapsed_s": round(time.perf_counter() - t0, 1),
@@ -1051,6 +1307,7 @@ def run_scenario(
         "resume": resume_session,
         "turns": turns_out,
         "admin_views": views,
+        "projects": projects,
         "decision_trace": decision_trace,
         "db_counts": db_counts,
         "live_llm": live_llm,
@@ -1217,6 +1474,19 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
                 1 for m in metrics if m.get("reached_project_matching")
             ),
             "complete": sum(1 for m in metrics if m.get("reached_complete")),
+        },
+        "adaptive_end_to_end": {
+            "scenario_count": sum(1 for m in metrics if m.get("scenario_mode") == "adaptive_simulation"),
+            "all_checks_passed": sum(
+                1 for m in metrics
+                if m.get("scenario_mode") == "adaptive_simulation"
+                and all((m.get("end_to_end_checks") or {}).values())
+            ),
+            "options_presented": sum(
+                1 for m in metrics
+                if m.get("scenario_mode") == "adaptive_simulation"
+                and (m.get("end_to_end_checks") or {}).get("options_presented")
+            ),
         },
     }
 
@@ -1430,6 +1700,21 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
                 "with multiple questions"
             )
 
+    # A17–A18 — adaptive conversations must exercise the whole decision journey,
+    # not merely replay a fixed answer list regardless of what the assistant asks.
+    simulated = [m for m in metrics if m.get("scenario_mode") == "adaptive_simulation"]
+    if len(run_ids) == len(SCENARIOS) and len(simulated) < 3:
+        violations.append(f"A17: adaptive end-to-end scenarios={len(simulated)} < 3")
+    for m in simulated:
+        failed = [
+            key for key, passed in (m.get("end_to_end_checks") or {}).items()
+            if not passed
+        ]
+        if failed:
+            violations.append(
+                f"A18: {m.get('scenario_id')} failed end-to-end checks: {','.join(failed)}"
+            )
+
     return violations
 
 
@@ -1469,11 +1754,11 @@ def main() -> int:
     if args.list:
         for s in SCENARIOS:
             print(
-                f"{s['id']:32s}  turns={len(s['turns']):2d}  "
+                f"{s['id']:32s}  turns≤{_planned_turns(s):2d}  "
                 f"aspects={','.join(s['aspects'][:4])}..."
             )
         print(f"\n{len(SCENARIOS)} scenarios, "
-              f"{sum(len(s['turns']) for s in SCENARIOS)} total turns")
+              f"{sum(_planned_turns(s) for s in SCENARIOS)} maximum turns")
         return 0
 
     selected = SCENARIOS
@@ -1516,7 +1801,7 @@ def main() -> int:
     print(f"API health={health} ready={ready}")
     print(
         f"Running {len(selected)} scenarios, "
-        f"{sum(len(s['turns']) for s in selected)} turns -> {out_dir}"
+        f"up to {sum(_planned_turns(s) for s in selected)} turns -> {out_dir}"
     )
 
     dumps: list[dict[str, Any]] = []

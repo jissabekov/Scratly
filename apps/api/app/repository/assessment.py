@@ -1151,6 +1151,22 @@ class TurnTransaction:
             ),
         }
         dimension_statuses = {r["key"]: r["status"] for r in coverage_rows}
+        asked = await self.session.execute(
+            text(
+                """
+                SELECT q.target_key, count(*) AS n
+                  FROM assessment.questions q
+                 WHERE q.session_id = :session_id
+                 GROUP BY q.target_key
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        asked_counts = {r["target_key"]: int(r["n"]) for r in asked.mappings()}
+        exhausted_keys = tuple(
+            key for key, status in dimension_statuses.items()
+            if status == "provisional" and asked_counts.get(key, 0) >= 2
+        )
         total = int(row["required_total"] or 0) or 1
         established = int(row["required_supported"] or 0)
         touched = int(row["required_touched"] or 0)
@@ -1211,6 +1227,7 @@ class TurnTransaction:
             location_ready=location_ready,
             coverage_established=established / total,
             dimension_statuses=dimension_statuses,
+            exhausted_keys=exhausted_keys,
         )
         return {
             "coverage_established": established / total,
@@ -1220,6 +1237,7 @@ class TurnTransaction:
             "projects_ready": projects_ready,
             "location_ready": location_ready,
             "dimension_statuses": dimension_statuses,
+            "exhausted_keys": exhausted_keys,
             "review_eligible": review_eligible,
             "review_reason": review_reason,
         }
