@@ -1106,7 +1106,13 @@ class TurnTransaction:
             {"session_id": self._session_id},
         )
         current_stage = session_stage.scalar_one()
-        if established_ratio >= 0.9 or current_stage in {"profile_review", "project_matching"}:
+        # A review is a one-time checkpoint, not an evergreen high-priority
+        # candidate. Re-emitting it caused late conversations to ask for the same
+        # confirmation on every turn (and could starve useful project feedback).
+        if (
+            established_ratio >= 0.9
+            or current_stage in {"profile_review", "project_matching"}
+        ) and asked_by_key.get("profile", 0) == 0:
             add("profile_validation", "profile")
 
         # De-duplicate while preserving priority order from intent priority + key.

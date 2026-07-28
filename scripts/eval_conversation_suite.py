@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 import uuid
@@ -35,6 +36,38 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT_DIR = ROOT / "eval" / "traces"
+
+STAGE_RANK = {
+    "discovery": 0,
+    "measurement": 1,
+    "gap_resolution": 2,
+    "profile_review": 3,
+    "project_matching": 4,
+    "complete": 5,
+}
+
+
+def _percentile(values: list[int], percentile: float) -> int | None:
+    """Nearest-rank percentile without adding a statistics dependency."""
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = max(0, min(len(ordered) - 1, round((len(ordered) - 1) * percentile)))
+    return ordered[index]
+
+
+def _normalized_utterance(text: str) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", (text or "").lower()))
+
+
+def _max_run(values: list[Any]) -> int:
+    longest = current = 0
+    previous = object()
+    for value in values:
+        current = current + 1 if value == previous else 1
+        previous = value
+        longest = max(longest, current)
+    return longest
 
 
 # ---------------------------------------------------------------------------
@@ -833,6 +866,24 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         if t.get("duration_ms") is not None:
             turn_durations.append(t["duration_ms"])
 
+    normalized_messages = [_normalized_utterance(m) for m in assistant_msgs]
+    nonempty_messages = [m for m in normalized_messages if m]
+    duplicate_messages = len(nonempty_messages) - len(set(nonempty_messages))
+    target_keys = [t.get("target_key") for t in q_targets if t.get("target_key")]
+    stage_regressions = sum(
+        1
+        for before, after in zip(stages, stages[1:])
+        if before in STAGE_RANK
+        and after in STAGE_RANK
+        and STAGE_RANK[after] < STAGE_RANK[before]
+    )
+    question_counts = [m.count("?") for m in assistant_msgs]
+    project_offer_count = sum(
+        1
+        for t in turns
+        if (t.get("response") or {}).get("message_kind") == "project_offer"
+    )
+
     return {
         "scenario_id": dump.get("scenario_id"),
         "title": dump.get("title"),
@@ -850,6 +901,8 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "question_targets": q_targets,
         "target_kind_counts": dict(Counter(t.get("target_kind") for t in q_targets)),
         "target_key_counts": dict(Counter(t.get("target_key") for t in q_targets)),
+        "unique_target_ratio": round(len(set(target_keys)) / max(len(target_keys), 1), 3),
+        "max_consecutive_target_repeats": _max_run(target_keys),
         "n_evidence_accepted": len(accepted),
         "n_evidence_total": len(evidence_items),
         "dimensions_touched": sorted(dims_touched),
@@ -860,6 +913,7 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "n_questions_recorded": len(q_hist),
         "info_gain_turns": info_gain_turns,
         "info_gain_ratio": round(info_gain_turns / max(len(turns), 1), 3),
+        "evidence_acceptance_rate": round(len(accepted) / max(len(evidence_items), 1), 3),
         "n_intent_classified": len(intents),
         "n_thin_evaluated": len(thin_events),
         "n_elicitation_events": len(elicitation),
@@ -868,6 +922,14 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "n_quality_gates": len(quality_gates),
         "assistant_leak_hits": leak_hits,
         "generic_provisional_repeats": generic_prov,
+        "duplicate_assistant_messages": duplicate_messages,
+        "duplicate_assistant_ratio": round(
+            duplicate_messages / max(len(nonempty_messages), 1), 3
+        ),
+        "max_questions_in_response": max(question_counts, default=0),
+        "multi_question_response_count": sum(1 for count in question_counts if count > 1),
+        "project_offer_count": project_offer_count,
+        "stage_regressions": stage_regressions,
         "live_llm": dump.get("live_llm"),
         "llm_runs": (dump.get("db_counts") or {}).get("llm_runs"),
         "memory_snapshots": (dump.get("db_counts") or {}).get("memory_snapshots"),
@@ -875,6 +937,8 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "mean_turn_ms": round(sum(turn_durations) / len(turn_durations), 1)
         if turn_durations
         else None,
+        "p50_turn_ms": _percentile(turn_durations, 0.50),
+        "p95_turn_ms": _percentile(turn_durations, 0.95),
         "errors": dump.get("errors") or [],
         "profile_keys_present": sorted(
             k for k, v in profile_state.items() if v not in (None, {}, [], "")
@@ -1127,6 +1191,26 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
             sum(m.get("info_gain_ratio") or 0 for m in metrics) / max(len(metrics), 1),
             3,
         ),
+        "avg_evidence_acceptance_rate": round(
+            sum(m.get("evidence_acceptance_rate") or 0 for m in metrics)
+            / max(len(metrics), 1),
+            3,
+        ),
+        "duplicate_assistant_messages_total": sum(
+            m.get("duplicate_assistant_messages") or 0 for m in metrics
+        ),
+        "stage_regressions_total": sum(
+            m.get("stage_regressions") or 0 for m in metrics
+        ),
+        "p95_turn_ms": _percentile(
+            [
+                int(t["duration_ms"])
+                for dump in dumps
+                for t in (dump.get("turns") or [])
+                if t.get("duration_ms") is not None
+            ],
+            0.95,
+        ),
         "stage_reach": {
             "profile_review": sum(1 for m in metrics if m.get("reached_profile_review")),
             "project_matching": sum(
@@ -1155,6 +1239,41 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
     return report
 
 
+def compare_reports(current: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
+    """Produce reassessment deltas without pretending unlike scenario sets compare."""
+    current_by_id = current.get("by_id") or {}
+    baseline_by_id = baseline.get("by_id") or {}
+    shared = sorted(set(current_by_id) & set(baseline_by_id))
+    measures = (
+        "info_gain_ratio",
+        "evidence_acceptance_rate",
+        "duplicate_assistant_ratio",
+        "max_consecutive_target_repeats",
+        "multi_question_response_count",
+        "project_offer_count",
+        "p95_turn_ms",
+    )
+    per_scenario: dict[str, Any] = {}
+    for scenario_id in shared:
+        before = baseline_by_id[scenario_id]
+        after = current_by_id[scenario_id]
+        deltas = {}
+        for measure in measures:
+            old = before.get(measure)
+            new = after.get(measure)
+            if isinstance(old, (int, float)) and isinstance(new, (int, float)):
+                deltas[measure] = round(new - old, 3)
+        per_scenario[scenario_id] = deltas
+    return {
+        "baseline_generated_at": baseline.get("generated_at"),
+        "current_generated_at": current.get("generated_at"),
+        "shared_scenarios": shared,
+        "missing_from_current": sorted(set(baseline_by_id) - set(current_by_id)),
+        "new_in_current": sorted(set(current_by_id) - set(baseline_by_id)),
+        "per_scenario_deltas": per_scenario,
+    }
+
+
 STUCK_STAGE_COHORT = {
     "location_delayed_then_ready",
     "organizer_communicate_mode",
@@ -1164,7 +1283,7 @@ STUCK_STAGE_COHORT = {
 
 
 def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[str]:
-    """Mandatory self-proving assertions (A1–A12). Returns violation messages."""
+    """Mandatory trajectory assertions. Returns actionable violation messages."""
     violations: list[str] = []
     by_id = report.get("by_id") or {}
     metrics = report.get("per_scenario") or []
@@ -1181,13 +1300,11 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
     for m in metrics:
         sid = m.get("scenario_id")
         n_turns = m.get("n_turns") or 0
-        target_counts = m.get("target_key_counts") or {}
-        max_freq = max(target_counts.values()) if target_counts else 0
-
-        # A2 — max target_key frequency
-        if n_turns >= 15 and max_freq > 4:
+        # A2 — measure local loops, not legitimate revisits across a long chat.
+        max_run = m.get("max_consecutive_target_repeats") or 0
+        if n_turns >= 8 and max_run > 2:
             violations.append(
-                f"A2: {sid} max target_key frequency {max_freq} > 4 over {n_turns} turns"
+                f"A2: {sid} repeated one target {max_run} consecutive times"
             )
 
     thin = by_id.get("thin_elicitation_loop") or {}
@@ -1291,6 +1408,28 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
                 f"A12: {sid} has {null_kinds}/{total} question_target_selected with null target_kind"
             )
 
+    # A13–A16 — conversation-level failure modes visible in the supplied logs.
+    for m in metrics:
+        sid = m.get("scenario_id")
+        if (m.get("project_offer_count") or 0) > 1:
+            violations.append(
+                f"A13: {sid} emitted {m.get('project_offer_count')} project offers"
+            )
+        if (m.get("duplicate_assistant_ratio") or 0) > 0.10:
+            violations.append(
+                f"A14: {sid} duplicate assistant ratio "
+                f"{m.get('duplicate_assistant_ratio'):.0%} > 10%"
+            )
+        if (m.get("stage_regressions") or 0) > 0:
+            violations.append(
+                f"A15: {sid} has {m.get('stage_regressions')} stage regression(s)"
+            )
+        if (m.get("multi_question_response_count") or 0) > 0:
+            violations.append(
+                f"A16: {sid} has {m.get('multi_question_response_count')} response(s) "
+                "with multiple questions"
+            )
+
     return violations
 
 
@@ -1317,6 +1456,11 @@ def main() -> int:
         "--list",
         action="store_true",
         help="List scenarios and exit",
+    )
+    parser.add_argument(
+        "--baseline-report",
+        default="",
+        help="Optional prior suite_report.json; writes reassessment.json deltas",
     )
     args = parser.parse_args()
     out_dir = Path(args.out_dir)
@@ -1357,6 +1501,12 @@ def main() -> int:
                 json.dumps(d, indent=2, default=str), encoding="utf-8"
             )
         report = build_suite_report(dumps, out_dir)
+        if args.baseline_report:
+            baseline = json.loads(Path(args.baseline_report).read_text(encoding="utf-8"))
+            comparison = compare_reports(report, baseline)
+            (out_dir / "reassessment.json").write_text(
+                json.dumps(comparison, indent=2), encoding="utf-8"
+            )
         violations = assert_suite(report, dumps)
         return 0 if not violations else 1
 
@@ -1375,6 +1525,12 @@ def main() -> int:
         dumps.append(dump)
 
     report = build_suite_report(dumps, out_dir)
+    if args.baseline_report:
+        baseline = json.loads(Path(args.baseline_report).read_text(encoding="utf-8"))
+        comparison = compare_reports(report, baseline)
+        (out_dir / "reassessment.json").write_text(
+            json.dumps(comparison, indent=2), encoding="utf-8"
+        )
     violations = assert_suite(report, dumps)
     if violations:
         print("\nSuite assertion failures:", file=sys.stderr)

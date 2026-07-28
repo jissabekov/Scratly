@@ -947,7 +947,28 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 used_fallback = True
 
         # --- Project matching when stage allows ---
-        if stage == "project_matching" and stage_inputs.get("location_ready"):
+        matching_already_completed = bool(counters.get("matching_completed"))
+        existing_projects = (
+            await tx.list_generated_projects()
+            if stage in {"project_matching", "complete"}
+            else []
+        )
+        if stage == "complete":
+            # Matching is terminal for this assessment version. Do not fall back
+            # into another profile-validation question after the student reacts
+            # to the offer.
+            assistant_prefix = None
+            question = (
+                "Thanks — I’ve saved your project directions and your feedback. "
+                "They’re ready for you and your teacher to review."
+            )
+            message_kind = "student_answer"
+        elif (
+            stage == "project_matching"
+            and stage_inputs.get("location_ready")
+            and not matching_already_completed
+            and not existing_projects
+        ):
             project_blurb = await _run_project_matching(tx, llm, trace, context_builder)
             if project_blurb:
                 assistant_prefix = (
@@ -956,6 +977,35 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     else project_blurb
                 )
                 message_kind = "project_offer"
+                # Replace the assessment target selected before the stage
+                # transition. Otherwise an offer ended with an unrelated profile
+                # probe and presented two competing questions.
+                question = (
+                    "Which of these directions interests you most, or what would "
+                    "you change?"
+                )
+        elif stage == "project_matching" and existing_projects:
+            # The message following an offer is feedback/selection, not a signal
+            # to regenerate the same recommendations. Persisting the student turn
+            # already preserves that feedback; now close the matching workflow.
+            await tx.update_session_counters(matching_completed=True)
+            assistant_prefix = None
+            question = (
+                "Thanks — I’ve saved your feedback with these project directions. "
+                "They’re ready for you and your teacher to review."
+            )
+            message_kind = "student_answer"
+            await trace.record(
+                "stage_gate_evaluated",
+                "project_matching",
+                "v2",
+                "Closed matching from feedback without regenerating the existing offer.",
+                "project_feedback_received",
+                outputs={
+                    "matching_completed": True,
+                    "existing_project_count": len(existing_projects),
+                },
+            )
 
         if message_kind == "elicitation" and elicitation_spec is None:
             elicit_key = target.key
@@ -1136,7 +1186,6 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
         lines = ["Here are grounded project directions that fit your profile:"]
         for p in accepted[:3]:
             lines.append(f"- {p.title}: {p.summary}")
-        lines.append("Which of these directions interests you most, or what would you change?")
         return "\n".join(lines)
     return None
 

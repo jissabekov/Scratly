@@ -21,6 +21,11 @@ Related: [eval-findings-and-fix-plan.md](eval-findings-and-fix-plan.md) · [syst
 .venv/Scripts/python scripts/eval_conversation_suite.py \
   --analyze-only --out-dir eval/traces/post-fix
 
+# Compare the same scenarios with a prior run (writes reassessment.json)
+.venv/Scripts/python scripts/eval_conversation_suite.py \
+  --analyze-only --out-dir eval/traces/candidate \
+  --baseline-report eval/traces/baseline/suite_report.json
+
 # Summary analysis helper
 .venv/Scripts/python eval/analyze_post_fix.py post-fix-v2
 ```
@@ -44,6 +49,9 @@ Per scenario (`eval/traces/<out-dir>/<scenario_id>.json`):
 | `errors` | Turn or admin failures |
 
 Suite-level: `suite_report.json` with cross-scenario totals and findings.
+When `--baseline-report` is supplied, `reassessment.json` contains per-scenario
+deltas and explicitly lists added/removed scenarios so unlike suites are not
+silently compared.
 
 ---
 
@@ -74,11 +82,52 @@ Scripts are inline in `scripts/eval_conversation_suite.py` → `SCENARIOS`.
 
 ---
 
+## Evaluation model
+
+The suite follows three ideas used by established chat-system evaluations:
+
+1. **Evaluate trajectories, not isolated answers.** MT-Bench uses multi-turn
+   questions because failures often appear only after context accumulates
+   ([Zheng et al., 2023](https://arxiv.org/abs/2306.05685)). Scratly therefore
+   measures stage movement, consecutive target runs, elicitation recovery, and
+   repeated offers across a whole session.
+2. **Keep deterministic checks separate from subjective quality.** ACUTE-Eval
+   compares complete conversations for qualities such as engagingness rather
+   than treating a word-overlap metric as conversation quality
+   ([Li et al., 2019](https://arxiv.org/abs/1909.03087)). This suite is the
+   deterministic safety/regression layer; pairwise human review remains required
+   for naturalness and trust.
+3. **Use multiple interpretable dimensions.** FED evaluates dialogue with
+   fine-grained turn- and conversation-level qualities
+   ([Mehri and Eskenazi, 2020](https://arxiv.org/abs/2006.12719)). Scratly reports
+   policy diversity, evidence yield, latency, repetition, stage monotonicity,
+   and response shape separately instead of collapsing them into one score.
+
+The scripted personas are deliberately reproducible but are **open loop**: their
+next message does not adapt to the assistant's exact question. Passing this suite
+does not prove that a conversation is good. Reassessment should use:
+
+- this suite for deterministic regressions and auditable traces;
+- blind A/B trajectory review against the previous release for naturalness,
+  responsiveness, trust, and perceived repetition;
+- at least one human exploratory session per hostile/thin/correction persona;
+- production outcome monitoring (completion, abandonment, corrections, and
+  project-choice rate) after release.
+
+Do not use an LLM judge as the sole release gate. If one is added, preserve its
+model/version/prompt, randomize candidate order, include evidence excerpts, and
+calibrate it against blinded human labels.
+
 ## Metrics (`analyze_dump`)
 
 - `stage_path`, `final_stage`, review/matching flags
 - `target_key_counts` — **policy-only** `question_target_selected` (component `question_policy`)
 - Evidence accepted/rejected totals, dimensions touched
+- `evidence_acceptance_rate`, `unique_target_ratio`, and
+  `max_consecutive_target_repeats`
+- exact normalized assistant duplicates and multi-question responses
+- project-offer count and stage regressions
+- mean, p50, and p95 end-to-end turn latency
 - `assistant_leak_hits`, elicitation event counts
 - `llm_runs`, `memory_snapshots` from Postgres
 
@@ -89,7 +138,7 @@ Scripts are inline in `scripts/eval_conversation_suite.py` → `SCENARIOS`.
 | ID | Rule |
 |---|---|
 | A1 | All run scenarios `completed` with `errors=[]` |
-| A2 | `max(target_key frequency) ≤ 4` for sessions ≥15 turns |
+| A2 | No target appears for more than two consecutive committed questions |
 | A3 | `thin_elicitation_loop` has `elicitation_selected` |
 | A4 | `thin_elicitation_loop` has `response.elicitation` |
 | A5 | Stuck cohort ≥75% reach `profile_review` or `project_matching` |
@@ -100,6 +149,10 @@ Scripts are inline in `scripts/eval_conversation_suite.py` → `SCENARIOS`.
 | A10 | `early_complete_attempt` no matching before turn 8 |
 | A11 | (Manual) zero Postgres FK violations during suite |
 | A12 | No null `target_kind` on `question_target_selected` |
+| A13 | At most one project offer per session |
+| A14 | Exact normalized assistant duplicate ratio ≤10% |
+| A15 | Stage path never regresses |
+| A16 | Assistant responses contain at most one question |
 
 Partial runs skip scenario-specific checks (A3/A4/A5/A7/A10) when those scenarios are not in the batch.
 
