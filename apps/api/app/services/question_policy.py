@@ -320,6 +320,22 @@ def is_repetition_blocked(target: Target) -> bool:
     return False
 
 
+def should_force_review_checkpoint(
+    *,
+    candidate_count: int,
+    has_social_target: bool,
+    reviewed: bool,
+    contradictions: int,
+) -> bool:
+    """Review once all useful probes are exhausted; never synthesize another probe."""
+    return (
+        candidate_count == 0
+        and not has_social_target
+        and not reviewed
+        and contradictions == 0
+    )
+
+
 def question_value(target: Target) -> float:
     """Auditable V1 proxy for expected reduction in project-decision uncertainty."""
     value = target.value
@@ -390,16 +406,26 @@ def evaluate_review_eligibility(
     location_ready: bool | None,
     coverage_established: float,
     dimension_statuses: dict[str, str],
+    exhausted_keys: tuple[str, ...] = (),
 ) -> tuple[bool, str | None]:
-    """Decision-sufficient review latch — core anchors supported without full inventory."""
+    """Decision-sufficient review latch without pretending uncertainty is evidence.
+
+    A student must not be trapped in an interview because a repeatedly explored
+    preference remains provisional.  After two good-faith probes, review may
+    present that field as tentative and invite correction; it is *not* promoted
+    to supported and matching can still scaffold around the uncertainty.
+    """
     if contradictions > 0:
         return False, None
     if location_ready is False:
         return False, None
-    if not all(
-        dimension_statuses.get(k) == "supported" for k in CORE_REVIEW_REQUIRED_SUPPORTED
-    ):
+    exhausted = set(exhausted_keys)
+    if dimension_statuses.get("topics") != "supported":
         return False, None
+    for key in ("work_mode", "motivation"):
+        status = dimension_statuses.get(key)
+        if status != "supported" and not (status == "provisional" and key in exhausted):
+            return False, None
     if dimension_statuses.get("execution") not in {"supported", "provisional"}:
         return False, None
     secondary_ok = (
@@ -410,6 +436,8 @@ def evaluate_review_eligibility(
         return False, None
     if coverage_established >= 0.6:
         return True, "decision_sufficient_review"
+    if {"work_mode", "motivation"} & exhausted and coverage_established >= 0.4:
+        return True, "fatigue_bounded_review"
     return False, None
 
 
@@ -451,6 +479,7 @@ def derive_stage(
         location_ready=location_ready,
         coverage_established=established,
         dimension_statuses=statuses,
+        exhausted_keys=tuple(_ignored.get("exhausted_keys") or ()),
     )
     if review_eligible and contradictions == 0:
         return "profile_review"

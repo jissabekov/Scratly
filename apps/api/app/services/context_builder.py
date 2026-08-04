@@ -83,6 +83,12 @@ class ContextBuilder:
                 "prefer_concrete_past_behavior_over_hypotheticals": True,
                 "repair_corrections_before_continuing": True,
                 "location_granularity": "city_or_region_and_country; never request an address",
+                "adolescent_stance": {
+                    "voice": "calm interested adult; mirror brevity, never imitate slang",
+                    "autonomy": "uncertainty, skipping, correction, and topic changes are valid",
+                    "inference": "behavior is context, never a personality diagnosis",
+                    "burden": "ask only what can alter fit, scope, support, or feasibility",
+                },
             },
         }
         if contradiction_sides:

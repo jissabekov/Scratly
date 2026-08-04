@@ -110,15 +110,29 @@ def heuristic_classify(text: str) -> TurnIntentPacket:
 class TurnIntentClassifier:
     def __init__(self, llm):
         self.llm = llm
+        self.model_call_used = False
 
     async def classify(self, context: dict) -> TurnIntentPacket:
         text = ""
         msg = context.get("student_message") or {}
         if isinstance(msg, dict):
             text = msg.get("content") or ""
+        heuristic = heuristic_classify(text)
+        # Most assessment answers and unambiguous short questions do not need a
+        # separate model round trip. Preserve the LLM for genuinely mixed/unclear
+        # messages, where its semantic split adds value.
+        if heuristic.primary_intent != PrimaryIntent.MIXED and (
+            heuristic.confidence >= 0.65
+            or (
+                heuristic.primary_intent == PrimaryIntent.ASSESSMENT_CONTRIBUTION
+                and "?" not in text
+            )
+        ):
+            return heuristic
         try:
+            self.model_call_used = True
             return await self.llm.structured(
                 "analyzer", "turn_intent", "v1", TurnIntentPacket, context
             )
         except Exception:
-            return heuristic_classify(text)
+            return heuristic

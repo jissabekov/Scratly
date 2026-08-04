@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import json
+import asyncio
 from typing import Any
-from uuid import UUID
 
 from app.contracts import ResearchFindingPacket
 
@@ -110,17 +109,25 @@ class WebResearchClient:
         queries = build_research_queries(profile, geo)
         if not self.configured:
             return queries, [], "web_search_unconfigured"
-        all_findings: list[ResearchFindingPacket] = []
-        error: str | None = None
-        for query in queries:
+        async def run(query: str):
             try:
-                response = await self.llm.web_search(
-                    query, user_location=user_location or {}
+                response = await asyncio.wait_for(
+                    self.llm.web_search(query, user_location=user_location or {}),
+                    timeout=12,
                 )
-                all_findings.extend(findings_from_web_response(response))
+                return findings_from_web_response(response), None
             except Exception as exc:
-                error = type(exc).__name__
-                break
+                return [], type(exc).__name__
+
+        # Queries are independent. Parallel execution both lowers matching latency and
+        # lets one provider/query failure coexist with useful results from another.
+        results = await asyncio.gather(*(run(query) for query in queries))
+        all_findings: list[ResearchFindingPacket] = []
+        errors: list[str] = []
+        for findings, error in results:
+            all_findings.extend(findings)
+            if error:
+                errors.append(error)
         # Dedupe by URL preserving order
         seen: set[str] = set()
         unique: list[ResearchFindingPacket] = []
@@ -129,4 +136,5 @@ class WebResearchClient:
                 continue
             seen.add(f.url)
             unique.append(f)
+        error = ",".join(sorted(set(errors))) if errors and not unique else None
         return queries, unique[:12], error

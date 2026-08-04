@@ -27,6 +27,11 @@ from app.services.question_quality import apply_question_quality_gate
 from app.services.thin_answer import evaluate_thin_answer
 from app.services.turn_intent_classifier import heuristic_classify
 from app.services.student_answerer import answer_scope_gate, seeded_student_answer
+from app.services.project_composer import ProjectComposer
+from app.services.turn_processor import _post_match_reply
+from app.services.turn_intent_classifier import TurnIntentClassifier
+from app.services.web_research_client import WebResearchClient
+from app.repository.assessment import _profile_change_summary
 
 
 def _req(key: str) -> Target:
@@ -108,6 +113,22 @@ def test_heuristic_student_question_and_homework_refusal():
         "I like building air quality maps with Python and a couple of friends."
     )
     assert assessment.primary_intent == PrimaryIntent.ASSESSMENT_CONTRIBUTION
+
+
+async def test_obvious_assessment_answer_skips_intent_model_round_trip():
+    class LLM:
+        calls = 0
+
+        async def structured(self, *args, **kwargs):
+            self.calls += 1
+            raise AssertionError("obvious assessment answer should use heuristic")
+
+    llm = LLM()
+    result = await TurnIntentClassifier(llm).classify(
+        {"student_message": {"content": "I repair bikes with my teacher on Saturdays."}}
+    )
+    assert result.primary_intent == PrimaryIntent.ASSESSMENT_CONTRIBUTION
+    assert llm.calls == 0
 
 
 def test_answer_scope_gate_out_of_scope_without_default_question_cap():
@@ -245,6 +266,99 @@ def test_location_established_and_stage_gate():
         )
         == "project_matching"
     )
+
+
+def test_irrelevant_catalog_opportunity_is_not_eligible():
+    matches = rank_opportunities(
+        {
+            "topics": ["bike_repair"],
+            "work_modes": {"build": 4},
+            "motivations": ["impact_usefulness"],
+            "geo_regions": ["remote_ok"],
+        },
+        [{
+            "id": "generic-docs",
+            "key": "generic-docs",
+            "topics": ["documentation"],
+            "work_modes": ["build"],
+            "motivations": ["impact_usefulness"],
+            "geo_regions": ["remote_ok"],
+        }],
+    )
+    assert not matches[0].eligible
+    assert "topic_mismatch" in matches[0].failed_constraints
+
+
+def test_profile_change_summary_separates_real_changes_from_evidence_yield():
+    before = {"dimensions": [{"key": "topics", "status": "unknown"}]}
+    after = {
+        "dimensions": [{"key": "topics", "status": "provisional"}],
+        "interests": [{"topic": "bike_repair"}],
+    }
+    summary = _profile_change_summary(before, after)
+    assert summary["change_count"] > 0
+    assert summary["resolved_unknown_keys"] == ["topics"]
+    assert summary["status_transitions"] == [
+        {"key": "topics", "before": "unknown", "after": "provisional"}
+    ]
+
+
+def test_post_match_reply_is_contextual_to_feedback_and_project():
+    projects = [
+        {"title": "Neighborhood Bike Repair Guide"},
+        {"title": "Supervised Repair Log"},
+    ]
+    scoped = _post_match_reply("Can we make the first option smaller?", projects)
+    selected = _post_match_reply("I choose the first one", projects)
+    selected_second = _post_match_reply("Actually I pick the second option", projects)
+    assert "scope change" in scoped
+    assert "Neighborhood Bike Repair Guide" in scoped
+    assert "selection feedback" in selected
+    assert "Supervised Repair Log" in selected_second
+
+
+async def test_research_keeps_partial_success_when_another_query_fails():
+    class Response:
+        output = [{
+            "type": "web_search_call",
+            "action": {"sources": [{"url": "https://example.org/source"}]},
+        }]
+
+    class LLM:
+        async def web_search(self, query, user_location=None):
+            if "second" in query:
+                raise RuntimeError("provider failure")
+            return Response()
+
+    client = WebResearchClient(LLM())
+    queries, findings, error = await client.research(
+        profile={"topics": ["first", "second"]},
+        geo={"geo_places": ["seattle"], "geo_regions": []},
+    )
+    assert len(queries) == 2
+    assert [item.url for item in findings] == ["https://example.org/source"]
+    assert error is None
+
+
+async def test_research_findings_can_seed_two_grounded_topic_relevant_options():
+    class LLM:
+        async def structured(self, *args, **kwargs):
+            raise RuntimeError("use deterministic fallback")
+
+    findings = [
+        {"id": str(uuid4()), "title": "Bike source A", "snippet": "Repair access"},
+        {"id": str(uuid4()), "title": "Bike source B", "snippet": "Safety checks"},
+    ]
+    accepted, rejected = await ProjectComposer(LLM()).compose(
+        {
+            "profile": {"topics": ["bike_repair"]},
+            "opportunities": [],
+            "research_findings": findings,
+        }
+    )
+    assert len(accepted) == 2
+    assert not rejected
+    assert all(project.topic_keys == ["bike_repair"] for project in accepted)
 
 
 def test_should_not_emit_legacy_location_dimension():

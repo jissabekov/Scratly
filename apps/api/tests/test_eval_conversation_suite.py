@@ -10,6 +10,7 @@ SPEC.loader.exec_module(SUITE)
 analyze_dump = SUITE.analyze_dump
 assert_suite = SUITE.assert_suite
 compare_reports = SUITE.compare_reports
+simulated_reply = SUITE._simulated_reply
 
 
 def _dump(
@@ -112,3 +113,104 @@ def test_reassessment_compares_only_shared_scenarios_and_reports_set_changes():
         "duplicate_assistant_ratio": -0.4,
         "p95_turn_ms": 100,
     }
+
+
+def test_three_adaptive_personas_are_long_and_cover_final_options():
+    simulated = [s for s in SUITE.SCENARIOS if s.get("simulator")]
+    assert len(simulated) >= 3
+    for scenario in simulated:
+        spec = scenario["simulator"]
+        assert spec["min_turns"] >= 14
+        assert spec["max_turns"] >= spec["min_turns"]
+        assert spec["project_feedback"]
+        assert {
+            "topics", "work_mode", "motivation", "execution",
+            "capability", "assets", "constraints", "profile",
+        } <= set(spec["facts"])
+
+
+def test_simulated_persona_answers_actual_target_then_sets_repeat_boundary():
+    from collections import Counter
+
+    spec = {
+        "facts": {"topics": ["first real detail", "second real detail"]},
+        "project_feedback": "I choose option two.",
+    }
+    used = Counter()
+    assert simulated_reply(spec, target_key="topics", response={}, used=used) == (
+        "first real detail", "topics"
+    )
+    assert simulated_reply(spec, target_key="topics", response={}, used=used) == (
+        "second real detail", "topics"
+    )
+    text, target = simulated_reply(spec, target_key="topics", response={}, used=used)
+    assert target == "topics"
+    assert "without repeating myself" in text
+    assert simulated_reply(
+        spec, target_key="profile", response={"message_kind": "project_offer"}, used=used
+    ) == ("I choose option two.", "project_options")
+
+
+def test_adaptive_metrics_require_multiple_grounded_relevant_options():
+    dump = _dump(
+        ["What do you enjoy?", "Here are options. Which fits best?"],
+        keys=["topics", "profile"],
+        stages=["profile_review", "project_matching"],
+        kinds=["assessment_question", "project_offer"],
+    )
+    dump.update({
+        "scenario_mode": "adaptive_simulation",
+        "scenario_expectations": {
+            "min_turns": 2,
+            "project_keywords": ["repair"],
+        },
+        "projects": {
+            "items": [
+                {"title": "Repair guide", "summary": "Fix bikes", "citation_count": 1},
+                {"title": "Repair log", "summary": "Track fixes", "citation_count": 1},
+            ]
+        },
+    })
+    dump["turns"][1]["simulation"] = {"answered_target": "project_options"}
+    metrics = analyze_dump(dump)
+    assert metrics["project_option_count"] == 2
+    assert metrics["end_to_end_checks"]["options_presented"]
+    assert metrics["end_to_end_checks"]["options_are_grounded"]
+    assert metrics["end_to_end_checks"]["options_fit_persona"]
+
+
+def test_analysis_separates_profile_gain_ranking_changes_and_component_latency():
+    dump = _dump(["Question?", "Another question?"], keys=["topics", "work_mode"])
+    dump["decision_trace"]["events"].extend([
+        {
+            "event_type": "profile_reduced",
+            "outputs": {
+                "accepted_evidence_count": 3,
+                "change_count": 2,
+                "resolved_unknown_keys": ["topics"],
+            },
+        },
+        {
+            "event_type": "opportunities_matched",
+            "outputs": {"relevant_top_keys": ["a", "b"]},
+        },
+        {
+            "event_type": "opportunities_matched",
+            "outputs": {"relevant_top_keys": ["b", "c"]},
+        },
+        {
+            "event_type": "turn_intent_classified",
+            "outputs": {"duration_ms": 10, "model_call_used": False},
+        },
+        {
+            "event_type": "turn_completed",
+            "outputs": {"total_duration_ms": 100, "writer_duration_ms": 30},
+        },
+    ])
+    metrics = analyze_dump(dump)
+    assert metrics["info_gain_turns"] == 1
+    assert metrics["profile_change_count"] == 2
+    assert metrics["resolved_unknown_keys"] == ["topics"]
+    assert metrics["project_decision_change_count"] == 1
+    assert metrics["component_latency_ms"]["intent"]["p95"] == 10
+    assert metrics["component_latency_ms"]["writer"]["p50"] == 30

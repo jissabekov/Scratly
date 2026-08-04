@@ -556,6 +556,20 @@ class TurnTransaction:
         profile = reduce_profile(
             evidence_for_reduce, version=self._settings.reducer_version
         )
+        previous_result = await self.session.execute(
+            text(
+                """
+                SELECT version, state
+                  FROM assessment.profile_snapshots
+                 WHERE session_id = :session_id
+                 ORDER BY version DESC
+                 LIMIT 1
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        previous = previous_result.mappings().first()
+        before_state = dict(previous["state"] or {}) if previous else {}
         version_result = await self.session.execute(
             text(
                 """
@@ -569,6 +583,12 @@ class TurnTransaction:
         version = int(version_result.scalar_one())
         snapshot_id = uuid4()
         state = profile.state
+        changes = _profile_change_summary(before_state, state)
+        accepted_ids = [
+            item.evidence_id
+            for item in validated
+            if item.accepted and item.evidence_id is not None
+        ]
         now = datetime.now(timezone.utc)
         await self.session.execute(
             text(
@@ -594,14 +614,16 @@ class TurnTransaction:
                 INSERT INTO assessment.profile_changes
                     (session_id, snapshot_id, before_state, after_state, reason, accepted_evidence_ids)
                 VALUES
-                    (:session_id, :snapshot_id, CAST('{}' AS jsonb), CAST(:after_state AS jsonb),
-                     'accepted_evidence_reduced', CAST('{}' AS uuid[]))
+                    (:session_id, :snapshot_id, CAST(:before_state AS jsonb), CAST(:after_state AS jsonb),
+                     'accepted_evidence_reduced', CAST(:accepted_evidence_ids AS uuid[]))
                 """
             ),
             {
                 "session_id": self._session_id,
                 "snapshot_id": snapshot_id,
+                "before_state": json.dumps(before_state),
                 "after_state": json.dumps(state),
+                "accepted_evidence_ids": accepted_ids,
             },
         )
 
@@ -648,6 +670,7 @@ class TurnTransaction:
             "engine_version": ENGINE_VERSION,
             "active_conflict_dimensions": sorted(active_dims),
             "resolved_this_turn": sync.get("resolved", []),
+            **changes,
             "entity_refs": {
                 "profile_snapshot_ids": [str(snapshot_id)],
                 "dimension_keys": [d.key for d in profile.dimensions],
@@ -1151,6 +1174,22 @@ class TurnTransaction:
             ),
         }
         dimension_statuses = {r["key"]: r["status"] for r in coverage_rows}
+        asked = await self.session.execute(
+            text(
+                """
+                SELECT q.target_key, count(*) AS n
+                  FROM assessment.questions q
+                 WHERE q.session_id = :session_id
+                 GROUP BY q.target_key
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        asked_counts = {r["target_key"]: int(r["n"]) for r in asked.mappings()}
+        exhausted_keys = tuple(
+            key for key, status in dimension_statuses.items()
+            if status == "provisional" and asked_counts.get(key, 0) >= 2
+        )
         total = int(row["required_total"] or 0) or 1
         established = int(row["required_supported"] or 0)
         touched = int(row["required_touched"] or 0)
@@ -1211,6 +1250,7 @@ class TurnTransaction:
             location_ready=location_ready,
             coverage_established=established / total,
             dimension_statuses=dimension_statuses,
+            exhausted_keys=exhausted_keys,
         )
         return {
             "coverage_established": established / total,
@@ -1220,6 +1260,7 @@ class TurnTransaction:
             "projects_ready": projects_ready,
             "location_ready": location_ready,
             "dimension_statuses": dimension_statuses,
+            "exhausted_keys": exhausted_keys,
             "review_eligible": review_eligible,
             "review_reason": review_reason,
         }
@@ -2434,3 +2475,44 @@ class TurnTransaction:
             {"session_id": self._session_id},
         )
         return [dict(row) for row in result.mappings()]
+
+
+def _profile_change_summary(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """Return auditable leaf changes and unknown-to-known dimension transitions."""
+    changed_paths: list[str] = []
+
+    def walk(left: Any, right: Any, path: str) -> None:
+        if isinstance(left, dict) and isinstance(right, dict):
+            for key in sorted(set(left) | set(right)):
+                walk(left.get(key), right.get(key), f"{path}.{key}" if path else key)
+            return
+        if left != right:
+            changed_paths.append(path)
+
+    walk(before, after, "")
+    before_dims = {
+        d.get("key"): d.get("status")
+        for d in before.get("dimensions", [])
+        if isinstance(d, dict) and d.get("key")
+    }
+    after_dims = {
+        d.get("key"): d.get("status")
+        for d in after.get("dimensions", [])
+        if isinstance(d, dict) and d.get("key")
+    }
+    status_transitions = [
+        {"key": key, "before": before_dims.get(key, "unknown"), "after": status}
+        for key, status in sorted(after_dims.items())
+        if before_dims.get(key, "unknown") != status
+    ]
+    resolved_unknowns = [
+        item["key"]
+        for item in status_transitions
+        if item["before"] == "unknown" and item["after"] != "unknown"
+    ]
+    return {
+        "change_count": len(changed_paths),
+        "changed_paths": changed_paths[:100],
+        "status_transitions": status_transitions,
+        "resolved_unknown_keys": resolved_unknowns,
+    }
