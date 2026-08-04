@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from time import perf_counter
 
 from app.contracts import (
     PrimaryIntent,
@@ -34,6 +35,7 @@ from app.services.question_policy import (
     select_next,
     social_intro_target,
     is_topic_rejection,
+    should_force_review_checkpoint,
 )
 from app.services.question_quality import apply_question_quality_gate
 from app.services.student_answerer import (
@@ -60,6 +62,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
     if existing:
         return existing
 
+    turn_started_at = perf_counter()
     async with repo.transaction() as tx:
         turn, message = await tx.create_turn_and_student_message(
             session_id, request.idempotency_key, request.text
@@ -87,7 +90,42 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         last_q = await tx.last_question_target()
         public_profile = await tx.public_profile()
 
+        if counters.get("matching_completed"):
+            projects = await tx.list_generated_projects()
+            reply = _post_match_reply(request.text, projects)
+            await trace.record(
+                "post_match_feedback_handled",
+                "turn_processor",
+                "v1",
+                "Handled a post-completion message without rerunning assessment or research.",
+                "terminal_fast_path",
+                outputs={"project_count": len(projects)},
+            )
+            assistant = await tx.persist_question_and_complete(
+                turn,
+                Target("profile_validation", "post_match_feedback", reply),
+                reply,
+                "complete",
+                {"version": None, "contradiction_count": 0},
+                message_kind="post_match_feedback",
+                student_message_id=message.id,
+            )
+            await trace.record(
+                "turn_completed",
+                "turn_processor",
+                "v2",
+                "Persisted a contextual post-match response on the terminal fast path.",
+                "post_match_committed",
+                outputs={
+                    "stage": "complete",
+                    "message_kind": "post_match_feedback",
+                    "total_duration_ms": int((perf_counter() - turn_started_at) * 1000),
+                },
+            )
+            return assistant
+
         # --- Intent classification ---
+        intent_started_at = perf_counter()
         classifier = TurnIntentClassifier(llm)
         intent = await classifier.classify(
             {
@@ -131,6 +169,8 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "primary_intent": intent.primary_intent.value,
                 "question_topic": intent.question_topic.value,
                 "confidence": intent.confidence,
+                "duration_ms": int((perf_counter() - intent_started_at) * 1000),
+                "model_call_used": getattr(classifier, "model_call_used", None),
             },
         )
 
@@ -240,6 +280,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "skipped_no_assessment_content",
             )
         else:
+            extraction_started_at = perf_counter()
             packet = await extractor.propose(
                 context_builder.extractor(
                     message, await tx.allowed_messages(session_id), await tx.taxonomy()
@@ -266,6 +307,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 outputs={
                     "proposed_count": len(packet.items),
                     "pre_filter_dropped": pre_filter_dropped,
+                    "duration_ms": int((perf_counter() - extraction_started_at) * 1000),
                 },
                 llm_run_id=extract_run_id,
             )
@@ -493,6 +535,12 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             (last_q or {}).get("target_key"), request.text
         )
         planner_decision = None
+        force_review_checkpoint = should_force_review_checkpoint(
+            candidate_count=len(candidates),
+            has_social_target=social_target is not None,
+            reviewed=bool(stage_inputs.get("reviewed")),
+            contradictions=contradiction_count,
+        )
         if social_target is None:
             # The policy owns subject selection. The writer receives this decision
             # later and is never allowed to continue a topic on conversational instinct.
@@ -773,6 +821,11 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         )
 
         stage = derive_stage(**stage_inputs)
+        if force_review_checkpoint:
+            # Every selectable probe has hit its evidence/fatigue cap. Review the
+            # profile explicitly instead of manufacturing a fresh profile target
+            # with asked_count=0 on every subsequent turn.
+            stage = "profile_review"
         await trace.record(
             "stage_derived",
             "stage_policy",
@@ -851,6 +904,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             and target.key == "topics"
             and target.kind in {"project_critical_unknown", "provisional_dimension"}
         )
+        writer_started_at = perf_counter()
         try:
             if force_seeded_depth:
                 question = target.fallback_template
@@ -994,6 +1048,14 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     "Which of these directions interests you most, or what would "
                     "you change?"
                 )
+            else:
+                assistant_prefix = None
+                question = (
+                    "I couldn’t verify at least two relevant project directions, so I "
+                    "won’t fill the gap with generic options. Would you like to broaden "
+                    "the topic or location, or pause here?"
+                )
+                message_kind = "matching_unavailable"
         elif stage == "project_matching" and existing_projects:
             # The message following an offer is feedback/selection, not a signal
             # to regenerate the same recommendations. Persisting the student turn
@@ -1051,6 +1113,8 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "stage": stage,
                 "used_fallback": used_fallback,
                 "message_kind": message_kind,
+                "total_duration_ms": int((perf_counter() - turn_started_at) * 1000),
+                "writer_duration_ms": int((perf_counter() - writer_started_at) * 1000),
             },
             entity_refs={"assistant_message_ids": [str(assistant.id)]}
             if hasattr(assistant, "id")
@@ -1060,6 +1124,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
 
 
 async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
+    matching_started_at = perf_counter()
     profile = await tx.matching_profile()
     geo = extract_geo_from_profile(profile)
     opportunities = await tx.list_active_opportunities()
@@ -1079,6 +1144,7 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
                 1 for m in matches if "geo" in m.failed_constraints
             ),
             "top_keys": [m.opportunity_key for m in matches[:5]],
+            "relevant_top_keys": [m.opportunity_key for m in eligible[:5]],
         },
     )
 
@@ -1145,11 +1211,16 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
         opp = opp_by_id.get(match.opportunity_id)
         if opp:
             top_opps.append(opp)
-    if not top_opps:
-        # Still offer remote_ok if any
-        top_opps = [o for o in opportunities if "remote_ok" in (o.get("geo_regions") or [])][
-            :3
-        ]
+    if not top_opps and not stored_findings:
+        await trace.record(
+            "project_matching_abstained",
+            "opportunity_matcher",
+            "v1",
+            "No catalog opportunity met both feasibility and relevance thresholds.",
+            "no_relevant_opportunity",
+            outputs={"research_finding_count": len(stored_findings)},
+        )
+        return None
 
     findings_rows = stored_findings or await tx.list_research_findings()
     composer = ProjectComposer(llm)
@@ -1171,7 +1242,7 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
             rej.get("reason") or "citation_rejected",
             outputs={"reason": rej.get("reason")},
         )
-    if accepted:
+    if len(accepted) >= 2:
         stored = await tx.persist_generated_projects(accepted)
         await trace.record(
             "project_composed",
@@ -1191,13 +1262,53 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
             outputs={
                 "eligible_count": len(eligible),
                 "generated_count": len(stored),
+                "matching_duration_ms": int(
+                    (perf_counter() - matching_started_at) * 1000
+                ),
             },
         )
         lines = ["Here are grounded project directions that fit your profile:"]
         for p in accepted[:3]:
             lines.append(f"- {p.title}: {p.summary}")
         return "\n".join(lines)
+    await trace.record(
+        "project_matching_abstained",
+        "project_composer",
+        "v1",
+        "Fewer than two citation-grounded relevant choices survived composition.",
+        "insufficient_grounded_options",
+        outputs={"accepted_count": len(accepted), "rejected_count": len(rejected)},
+    )
     return None
+
+
+def _post_match_reply(student_text: str, projects: list[dict[str, Any]]) -> str:
+    """Contextual terminal response; no new assessment or generic repeated receipt."""
+    text = " ".join((student_text or "").lower().split())
+    titles = [str(p.get("title") or "").strip() for p in projects if p.get("title")]
+    selected_index = 0
+    if any(cue in text for cue in ("second", "option 2", "#2")):
+        selected_index = 1
+    elif any(cue in text for cue in ("third", "option 3", "#3")):
+        selected_index = 2
+    named = (
+        titles[min(selected_index, len(titles) - 1)]
+        if titles
+        else "your saved project direction"
+    )
+    if any(cue in text for cue in ("smaller", "scope", "simpler", "change", "instead")):
+        return (
+            f"I’ve saved that as a scope change for {named}. Your teacher can review "
+            "the updated constraint with the project directions."
+        )
+    if any(cue in text for cue in ("choose", "pick", "first", "second", "third", "go with")):
+        return f"I’ve saved your selection feedback with {named} for teacher review."
+    if "?" in student_text:
+        return (
+            f"That question belongs with the next-step planning for {named}. I’ve saved "
+            "it with your project feedback so it can be answered during scoping."
+        )
+    return f"I’ve added that final note to {named}; the assessment remains complete."
 
 
 def _explicit_preference(validated, dimension_key: str) -> bool:

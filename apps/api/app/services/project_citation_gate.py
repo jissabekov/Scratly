@@ -12,11 +12,17 @@ def filter_grounded_projects(
     *,
     opportunity_ids: set[UUID],
     research_finding_ids: set[UUID],
+    profile_topics: set[str] | None = None,
 ) -> tuple[list[ComposedProjectPacket], list[dict]]:
     """Return (accepted projects, rejection records)."""
     accepted: list[ComposedProjectPacket] = []
     rejected: list[dict] = []
     for project in output.projects:
+        if profile_topics and not (profile_topics & set(project.topic_keys)):
+            rejected.append(
+                {"title": project.title, "reason": "profile_topic_mismatch"}
+            )
+            continue
         if not project.citations:
             rejected.append(
                 {

@@ -43,6 +43,32 @@ def _seeded_compose(context: dict) -> ProjectComposeOutput:
             )
         )
     if not projects:
+        topics = list((context.get("profile") or {}).get("topics") or [])
+        topic = str(topics[0]).replace("_", " ") if topics else "student interest"
+        for index, finding in enumerate(findings[:3], start=1):
+            finding_id = finding.get("id")
+            if not finding_id:
+                continue
+            source_title = str(finding.get("title") or f"Source {index}")
+            snippet = str(finding.get("snippet") or "").strip()
+            projects.append(
+                ComposedProjectPacket(
+                    title=f"{topic.title()} source-to-project direction {index}",
+                    summary=(
+                        f"Use {source_title} as a verified starting point for a small "
+                        f"{topic} project. {snippet}"
+                    ).strip()[:2000],
+                    topic_keys=topics[:3],
+                    work_mode_keys=[],
+                    motivation_keys=[],
+                    citations=[
+                        ProjectCitation(
+                            kind="research_finding", id=UUID(str(finding_id))
+                        )
+                    ],
+                )
+            )
+    if not projects:
         raise RuntimeError("no_opportunities_to_compose")
     return ProjectComposeOutput(projects=projects)
 
@@ -70,4 +96,5 @@ class ProjectComposer:
             raw,
             opportunity_ids=opportunity_ids,
             research_finding_ids=research_ids,
+            profile_topics=set((context.get("profile") or {}).get("topics") or []),
         )

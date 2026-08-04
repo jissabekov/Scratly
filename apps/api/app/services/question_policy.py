@@ -320,6 +320,22 @@ def is_repetition_blocked(target: Target) -> bool:
     return False
 
 
+def should_force_review_checkpoint(
+    *,
+    candidate_count: int,
+    has_social_target: bool,
+    reviewed: bool,
+    contradictions: int,
+) -> bool:
+    """Review once all useful probes are exhausted; never synthesize another probe."""
+    return (
+        candidate_count == 0
+        and not has_social_target
+        and not reviewed
+        and contradictions == 0
+    )
+
+
 def question_value(target: Target) -> float:
     """Auditable V1 proxy for expected reduction in project-decision uncertainty."""
     value = target.value

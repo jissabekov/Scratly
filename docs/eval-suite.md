@@ -153,6 +153,11 @@ calibrate it against blinded human labels.
 - mean, p50, and p95 end-to-end turn latency
 - `assistant_leak_hits`, elicitation event counts
 - `llm_runs`, `memory_snapshots` from Postgres
+- actual profile change count, resolved unknown keys, project-ranking evaluations/changes
+- component timings from intent classification, extraction, writing, matching, and total turn
+
+Recommendation generation is allowed to abstain. `matching_unavailable` is preferable to
+two unrelated catalog fallbacks and should be reviewed alongside research failure traces.
 
 ---
 

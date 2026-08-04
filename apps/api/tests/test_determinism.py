@@ -3,7 +3,7 @@ from uuid import uuid4
 from app.contracts import ProposedEvidence
 from app.services.grounding_validator import validate_grounding
 from app.services.profile_reducer import reduce_profile
-from app.services.question_policy import InterviewPhase, PlannerAction, QuestionValue, ReplySignal, Target, classify_reply, derive_phase, evaluate_review_eligibility, is_repetition_blocked, plan_next, select_next, derive_stage
+from app.services.question_policy import InterviewPhase, PlannerAction, QuestionValue, ReplySignal, Target, classify_reply, derive_phase, evaluate_review_eligibility, is_repetition_blocked, plan_next, select_next, derive_stage, should_force_review_checkpoint
 from app.services.project_matcher import decision_entropy, fit_distribution, rank_projects, recommendation_ready
 from app.services.question_quality import validate_question
 from app.services.azure_openai import _json_default
@@ -93,6 +93,18 @@ def test_repetition_hard_stop_prefers_unasked_anchor():
  assert is_repetition_blocked(execution)
  assert not is_repetition_blocked(assets)
  assert select_next([execution, assets]).key == 'assets'
+
+
+def test_exhausted_candidate_pool_forces_review_instead_of_fresh_profile_probe_loop():
+ assert should_force_review_checkpoint(
+  candidate_count=0, has_social_target=False, reviewed=False, contradictions=0,
+ )
+ assert not should_force_review_checkpoint(
+  candidate_count=0, has_social_target=False, reviewed=False, contradictions=1,
+ )
+ assert not should_force_review_checkpoint(
+  candidate_count=1, has_social_target=False, reviewed=False, contradictions=0,
+ )
 
 
 def test_follow_up_exhausted_forces_switch():

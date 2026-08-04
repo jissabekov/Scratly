@@ -13,6 +13,7 @@ EXECUTION_GATE_KEYS = (
     "outreach_willingness",
     "public_visibility",
 )
+MIN_RECOMMENDATION_SCORE = 0.35
 
 
 @dataclass(frozen=True)
@@ -164,6 +165,13 @@ def rank_opportunities(
         work = _work_mode_alignment(student_modes, set(opp.get("work_modes") or []))
         motivation = _motivation_alignment(profile, set(opp.get("motivations") or []))
         score = 0.4 * topic + 0.4 * work + 0.2 * motivation
+        # A feasible opportunity is not automatically a relevant recommendation.
+        # When the student supplied topics, at least one must align; otherwise a
+        # generic remote catalog item can outrank the actual interest.
+        if topics and topic == 0.0:
+            failed.append("topic_mismatch")
+        if score < MIN_RECOMMENDATION_SCORE:
+            failed.append("low_fit_score")
         matches.append(
             OpportunityMatch(
                 opportunity_id=str(opp["id"]),

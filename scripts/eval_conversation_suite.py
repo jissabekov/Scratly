@@ -964,6 +964,8 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
     # Per-turn info gain: profile_reduced events
     reduces = [e for e in events if e.get("event_type") == "profile_reduced"]
     info_gain_turns = 0
+    profile_change_count = 0
+    resolved_unknown_keys: set[str] = set()
     for e in reduces:
         outs = e.get("outputs") or {}
         changes = (
@@ -976,6 +978,8 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
             changes = len(changes)
         if changes:
             info_gain_turns += 1
+            profile_change_count += int(changes)
+        resolved_unknown_keys.update(outs.get("resolved_unknown_keys") or [])
 
     intents = [
         e for e in events if e.get("event_type") == "turn_intent_classified"
@@ -1001,6 +1005,21 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
     quality_gates = [
         e for e in events if e.get("event_type") == "question_quality_gate"
     ]
+    component_durations: dict[str, list[int]] = defaultdict(list)
+    for event in events:
+        outputs = event.get("outputs") or {}
+        event_type = event.get("event_type")
+        if event_type == "turn_intent_classified" and outputs.get("duration_ms") is not None:
+            component_durations["intent"].append(int(outputs["duration_ms"]))
+        elif event_type == "evidence_proposed" and outputs.get("duration_ms") is not None:
+            component_durations["extraction"].append(int(outputs["duration_ms"]))
+        elif event_type == "turn_completed":
+            if outputs.get("writer_duration_ms") is not None:
+                component_durations["writer"].append(int(outputs["writer_duration_ms"]))
+            if outputs.get("total_duration_ms") is not None:
+                component_durations["total_traced"].append(int(outputs["total_duration_ms"]))
+        elif event_type == "project_fits_persisted" and outputs.get("matching_duration_ms") is not None:
+            component_durations["matching"].append(int(outputs["matching_duration_ms"]))
 
     # Leakage / UX smells in assistant text
     assistant_msgs = [
@@ -1123,6 +1142,9 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "n_questions_recorded": len(q_hist),
         "info_gain_turns": info_gain_turns,
         "info_gain_ratio": round(info_gain_turns / max(len(turns), 1), 3),
+        "profile_change_count": profile_change_count,
+        "resolved_unknown_keys": sorted(resolved_unknown_keys),
+        "resolved_unknown_count": len(resolved_unknown_keys),
         "evidence_acceptance_rate": round(len(accepted) / max(len(evidence_items), 1), 3),
         "n_intent_classified": len(intents),
         "n_thin_evaluated": len(thin_events),
@@ -1162,6 +1184,14 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         else None,
         "p50_turn_ms": _percentile(turn_durations, 0.50),
         "p95_turn_ms": _percentile(turn_durations, 0.95),
+        "component_latency_ms": {
+            key: {
+                "count": len(values),
+                "p50": _percentile(values, 0.50),
+                "p95": _percentile(values, 0.95),
+            }
+            for key, values in sorted(component_durations.items())
+        },
         "errors": dump.get("errors") or [],
         "profile_keys_present": sorted(
             k for k, v in profile_state.items() if v not in (None, {}, [], "")
