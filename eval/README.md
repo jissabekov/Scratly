@@ -19,8 +19,3 @@ Trace JSON files are large (~24MB full suite); keep locally or in CI artifacts. 
 [docs/eval-suite.md](../docs/eval-suite.md) and the
 [teen conversation-flow research](../docs/teen-conversation-flow-research.md) behind the
 adaptive end-to-end scenarios.
-
-> **Artifact warning:** the committed `traces/latest` report was generated before the
-> 21-scenario adaptive harness commit and contains only 18 scripted scenarios. It is a
-> failing baseline, not a post-change validation. See the
-> [2026-07-28 assessment](../docs/eval-assessment-2026-07-28.md).

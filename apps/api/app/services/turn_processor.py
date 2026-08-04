@@ -360,13 +360,9 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "Recomputed profile solely from accepted grounded evidence.",
                 "accepted_evidence_reduced",
                 inputs={"accepted_evidence_count": accepted_count},
-                outputs={
-                    "accepted_evidence_count": accepted_count,
-                    "change_count": transition.get("change_count", 0),
-                    "changed_paths": transition.get("changed_paths", []),
-                    "status_transitions": transition.get("status_transitions", []),
-                    "resolved_unknown_keys": transition.get("resolved_unknown_keys", []),
-                },
+                # Surface evidence yield without claiming every accepted item
+                # necessarily changed the reduced profile.
+                outputs={"accepted_evidence_count": accepted_count},
                 entity_refs=transition.get("entity_refs", {})
                 if isinstance(transition, dict)
                 else {},

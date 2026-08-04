@@ -968,7 +968,12 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
     resolved_unknown_keys: set[str] = set()
     for e in reduces:
         outs = e.get("outputs") or {}
-        changes = outs.get("change_count") or outs.get("changes") or 0
+        changes = (
+            outs.get("change_count")
+            or outs.get("changes")
+            or outs.get("accepted_evidence_count")
+            or 0
+        )
         if isinstance(changes, list):
             changes = len(changes)
         if changes:
@@ -1066,15 +1071,6 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         for t in turns
         if (t.get("response") or {}).get("message_kind") == "project_offer"
     )
-    ranking_signatures = [
-        tuple((event.get("outputs") or {}).get("relevant_top_keys") or [])
-        for event in events
-        if event.get("event_type") == "opportunities_matched"
-    ]
-    project_decision_change_count = sum(
-        before != after
-        for before, after in zip(ranking_signatures, ranking_signatures[1:])
-    )
     project_items = (dump.get("projects") or {}).get("items") or []
     simulated_turns = [t for t in turns if t.get("simulation")]
     answered_targets = [
@@ -1166,8 +1162,6 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "multi_question_response_count": sum(1 for count in question_counts if count > 1),
         "project_offer_count": project_offer_count,
         "project_option_count": len(project_items),
-        "project_ranking_evaluations": len(ranking_signatures),
-        "project_decision_change_count": project_decision_change_count,
         "offer_turn": offer_turn,
         "scenario_mode": dump.get("scenario_mode") or "scripted_probe",
         "simulated_reply_target_rate": round(
