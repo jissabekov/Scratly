@@ -1,7 +1,32 @@
 # Plan 01 — Fix the current system (Phase 1)
 
-> **Status: READY TO EXECUTE** · Owner: Devin (backend) · Depends on: nothing
-> **Goal:** take the committed Aug 4 eval state (`21/21 clean, AssertionViolations=46`) to a full-suite green run (A1–A18, zero violations) without weakening any assertion.
+> ## Execution order & verification
+
+**Status after the 2026-09-29 rerun** (`eval/traces/2026-09-29-phase1-full`, live pcoding/gpt-5.6-luna):
+
+| # | Workstream | Status | Live proof |
+|---|---|---|---|
+| 1 | W1.1 exposure caps | **DONE** — migration 013 + ledger in the sole write path + rotating fallback bank | A2 clean (0 target-loop violations; worst run ≤2) |
+| 2 | W1.2 dedup ring buffer | **DONE** | A14 clean: worst dup ratio 0.05 ≤ 0.10; metrics split assessment vs post_match |
+| 3 | W1.3 catalog-first matching + research abstraction | **DONE (code)** — catalog 21 rows incl. persona archetypes; direct-search provider path; composer catalog-first fallback. Sims: 1/3 presented options | A18 partially green |
+| 4 | W1.5 stage monotonicity | **DONE** — `derive_stage(current_stage=…)` clamp; A15 = 0 regressions | full suite |
+| 5 | W1.4 completion path | **PARTIAL** — 7/21 reach `complete` (baseline 1); 13 scripted scenarios still abstain at matching (catalog topic coverage) | — |
+| 6 | W1.6 hygiene (ruff/mypy/CI) | **DONE** — pyproject gates, Windows Makefile paths, CI with manual eval job | compileall+pytest+ruff+mypy green |
+| 7 | Full 21-scenario rerun | **RAN** — `eval/traces/2026-09-29-phase1-full`: 21/21 clean runs, 4 assertion violations (A16 ×1 two-question response — gate hardened since; A18 ×3 sims: eli/luz never reached matching, nia completed at 10 < min_turns 14) | — |
+| 8 | W1.5 latency | **NOT STARTED** — p95 turn 26.3s vs target ≤8s (prompt-prefix caching + analyzer/writer routing) | — |
+
+| 8 | W1.5 latency | **NOT STARTED** — p95 turn 26.3s vs target ≤8s (prompt-prefix caching + analyzer/writer routing) | — |
+
+**Verification commands (every workstream):**
+
+```bash
+.venv/Scripts/python -m compileall -q apps/api/app
+.venv/Scripts/python -m pytest apps/api/tests -q
+PYTHONIOENCODING=utf-8 .venv/Scripts/python scripts/eval_conversation_suite.py --out-dir eval/traces/<date-label>
+.venv/Scripts/python eval/analyze_post_fix.py <date-label>
+```
+
+**Goal:** take the committed Aug 4 eval state (`21/21 clean, AssertionViolations=46`) to a full-suite green run (A1–A18, zero violations) without weakening any assertion.
 
 Every workstream below follows the same contract: **root cause → change → unit proof → live proof → acceptance**. A workstream is done only when its live proof (eval scenario or unit test) is committed next to the fix. Never lower a threshold to pass ("fake green" — see docs/eval-findings-and-fix-plan.md §8).
 
