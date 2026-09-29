@@ -4,8 +4,7 @@ export type Stage =
   | 'gap_resolution'
   | 'profile_review'
   | 'project_matching'
-  | 'complete'
-  | string;
+  | 'complete';
 
 export type MessageKind =
   | 'assessment_question'
@@ -14,6 +13,8 @@ export type MessageKind =
   | 'elicitation'
   | 'profile_review'
   | 'project_offer'
+  | 'matching_unavailable'
+  | 'post_match_feedback'
   | null;
 
 export type ChatRole = 'student' | 'assistant' | 'system';

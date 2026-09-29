@@ -9,6 +9,8 @@ const KIND_LABELS: Partial<Record<NonNullable<MessageKind>, string>> = {
   profile_review: 'Profile review',
   project_offer: 'Project ideas',
   assessment_question: '',
+  matching_unavailable: 'Matching unavailable',
+  post_match_feedback: 'Follow-up',
 };
 
 type Props = {
@@ -43,7 +45,9 @@ export function MessageBubble({ message, onElicitation, onRetry }: Props) {
       <div
         className={`chat-bubble ${isStudent ? 'student' : 'assistant'}${
           message.message_kind === 'profile_review' ? ' review' : ''
-        }${message.message_kind === 'project_offer' ? ' project' : ''}`}
+        }${message.message_kind === 'project_offer' ? ' project' : ''}${
+          message.message_kind === 'matching_unavailable' ? ' unavailable' : ''
+        }`}
       >
         {kindLabel ? <span className="kind-label">{kindLabel}</span> : null}
         <p>{message.content}</p>

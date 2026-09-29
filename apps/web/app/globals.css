@@ -490,6 +490,11 @@
     background: var(--accent-contrast);
   }
 
+  .chat-bubble.assistant.unavailable {
+    border-style: dashed;
+    color: var(--muted);
+  }
+
   .chat-bubble.welcome {
     align-self: stretch;
     max-width: 100%;

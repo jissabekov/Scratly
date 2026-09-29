@@ -13,6 +13,7 @@ import type {
   SessionCreated,
   SessionMessages,
   SessionProjects,
+  Stage,
   StudentProject,
   ThreadMessage,
   TurnResponse,
@@ -35,7 +36,7 @@ function welcomeMessage(): ThreadMessage {
 
 export function StudentChat() {
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [stage, setStage] = useState('discovery');
+  const [stage, setStage] = useState<Stage>('discovery');
   const [messages, setMessages] = useState<ThreadMessage[]>([welcomeMessage()]);
   const [projects, setProjects] = useState<StudentProject[]>([]);
   const [draft, setDraft] = useState('');
@@ -134,7 +135,7 @@ export function StudentChat() {
 
   const sendText = useCallback(
     async (text: string) => {
-      if (!sessionId || busy || stage === 'complete') return;
+      if (!sessionId || busy) return;
       const trimmed = text.trim();
       if (!trimmed) return;
 
@@ -200,7 +201,7 @@ export function StudentChat() {
         setBusy(false);
       }
     },
-    [busy, loadProjects, sessionId, stage]
+    [busy, loadProjects, sessionId]
   );
 
   function retryFailed() {
@@ -244,7 +245,7 @@ export function StudentChat() {
                 key={message.key}
                 message={message}
                 onElicitation={
-                  !busy && !completed && message.message_kind === 'elicitation'
+                  !busy && message.message_kind === 'elicitation'
                     ? (label) => void sendText(label)
                     : undefined
                 }
@@ -280,10 +281,10 @@ export function StudentChat() {
         value={draft}
         onChange={setDraft}
         onSend={(text) => void sendText(text)}
-        disabled={busy || booting || completed || !sessionId}
+        disabled={busy || booting || !sessionId}
         placeholder={
           completed
-            ? 'This chat is complete'
+            ? 'Add a final note or question…'
             : 'Share an interest, preference, or answer…'
         }
       />
