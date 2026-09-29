@@ -720,6 +720,18 @@
     animation: msg-enter 280ms ease-out;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .enter,
+    .working-dot {
+      animation: none;
+    }
+    .stage-chip,
+    .elicit-chip,
+    .chat-composer textarea {
+      transition: none;
+    }
+  }
+
   .teacher-main .lede a {
     color: var(--accent);
   }
