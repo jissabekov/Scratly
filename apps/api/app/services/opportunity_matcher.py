@@ -14,6 +14,96 @@ EXECUTION_GATE_KEYS = (
 )
 MIN_RECOMMENDATION_SCORE = 0.35
 
+# Coarse topic buckets so curated catalog tags can meet the extractor's free-form
+# value vocabulary without either side enumerating every synonym (Plan 01 W1.4).
+# A topic maps to every bucket whose keyword appears as a substring of it.
+_TOPIC_BUCKET_RULES: tuple[tuple[str, str], ...] = (
+    ("food", "food"),
+    ("cook", "food"),
+    ("recipe", "food"),
+    ("meal", "food"),
+    ("stall", "food"),
+    ("bake", "food"),
+    ("photo", "arts_media"),
+    ("art", "arts_media"),
+    ("draw", "arts_media"),
+    ("anatomy", "arts_media"),
+    ("character", "arts_media"),
+    ("music", "arts_media"),
+    ("audio", "arts_media"),
+    ("video", "arts_media"),
+    ("film", "arts_media"),
+    ("media", "arts_media"),
+    ("story", "arts_media"),
+    ("game", "games"),
+    ("puzzle", "games"),
+    ("controller", "games"),
+    ("bike", "repair_build"),
+    ("bicycle", "repair_build"),
+    ("repair", "repair_build"),
+    ("fix", "repair_build"),
+    ("troubleshoot", "repair_build"),
+    ("solder", "repair_build"),
+    ("robot", "technology"),
+    ("code", "technology"),
+    ("website", "technology"),
+    ("web", "technology"),
+    ("software", "technology"),
+    ("computer", "technology"),
+    ("sensor", "technology"),
+    ("dashboard", "technology"),
+    ("data", "technology"),
+    ("engineering", "technology"),
+    ("science", "science"),
+    ("chemistry", "science"),
+    ("physics", "science"),
+    ("biology", "science"),
+    ("experiment", "science"),
+    ("water", "environment"),
+    ("air", "environment"),
+    ("environment", "environment"),
+    ("climate", "environment"),
+    ("wildlife", "environment"),
+    ("trail", "environment"),
+    ("cleanup", "environment"),
+    ("pollution", "environment"),
+    ("community", "community_civic"),
+    ("volunteer", "community_civic"),
+    ("event", "community_civic"),
+    ("civic", "community_civic"),
+    ("debate", "community_civic"),
+    ("organiz", "community_civic"),
+    ("neighborhood", "community_civic"),
+    ("write", "writing"),
+    ("essay", "writing"),
+    ("journalism", "writing"),
+    ("blog", "writing"),
+    ("docs", "writing"),
+    ("history", "humanities"),
+    ("culture", "humanities"),
+    ("language", "humanities"),
+)
+
+
+def topic_buckets(topics: Any) -> set[str]:
+    """Map free-form topic strings onto coarse curated buckets.
+
+    Unmatched topics map to themselves so exact catalog tags keep working.
+    """
+    buckets: set[str] = set()
+    for key in topics or []:
+        normalized = str(key or "").strip().lower()
+        if not normalized:
+            continue
+        matched = False
+        for needle, bucket in _TOPIC_BUCKET_RULES:
+            if needle in normalized:
+                buckets.add(bucket)
+                matched = True
+        if not matched:
+            buckets.add(normalized)
+    return buckets
+
 
 @dataclass(frozen=True)
 class OpportunityMatch:
@@ -118,7 +208,7 @@ def _execution_gates(profile: dict[str, Any], hard: dict[str, Any]) -> list[str]
 def rank_opportunities(
     profile: dict[str, Any], opportunities: list[dict[str, Any]]
 ) -> list[OpportunityMatch]:
-    topics = set(profile.get("topics") or [])
+    topics = topic_buckets(profile.get("topics"))
     # Prefer structured work_modes map; fall back to tag set.
     raw_modes = profile.get("work_modes")
     if isinstance(raw_modes, dict):
@@ -154,7 +244,7 @@ def rank_opportunities(
 
         failed.extend(_execution_gates(profile, hard))
 
-        topic = _overlap(topics, set(opp.get("topics") or []))
+        topic = _overlap(topics, topic_buckets(opp.get("topics")))
         work = _work_mode_alignment(student_modes, set(opp.get("work_modes") or []))
         motivation = _motivation_alignment(profile, set(opp.get("motivations") or []))
         score = 0.4 * topic + 0.4 * work + 0.2 * motivation
