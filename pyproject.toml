@@ -2,3 +2,38 @@
 pythonpath=["apps/api"]
 testpaths=["apps/api/tests"]
 asyncio_mode="auto"
+
+# W1.6 engineering hygiene: lint + format gate (see docs/plan/01-fix-current-system.md).
+# Pragmatic ruleset: ruff's classic default rules (E4/E7/E9/F) plus import
+# sorting ("I"). Pinned explicitly because newer ruff defaults enable more
+# rule families (B/BLE/SIM/S/UP/RUF) that would require behavior-adjacent
+# rewrites (e.g. B008 -> Annotated Depends) — not adopted yet.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Deliberate star re-export of the contract surface; converting to explicit
+# imports would change the public namespace — leave as-is (W1.6).
+"apps/api/app/contracts/__init__.py" = ["F403"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+# Type check gate: intentionally lenient so it is adoptable (plan W1.6 gates on
+# the gate existing and running, not on zero errors). Tighten incrementally.
+[tool.mypy]
+python_version = "3.12"
+files = ["apps/api/app"]
+ignore_missing_imports = true
+
+# Owned by other workstreams in docs/plan/01 (W1.1–W1.5); do not edit them here.
+# Remaining known findings: question_policy arg-type x4 (Target | None into
+# PlannerDecision), assessment union-attr/assignment x2 — silence until those
+# workstreams land.
+[[tool.mypy.overrides]]
+module = ["app.services.question_policy", "app.repository.assessment"]
+disable_error_code = ["arg-type", "union-attr", "assignment"]

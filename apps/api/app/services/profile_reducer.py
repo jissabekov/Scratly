@@ -55,7 +55,8 @@ RELIABILITY = {
 
 
 def _evidence_weight(item: ValidatedEvidence) -> float:
-    reliability = RELIABILITY.get(getattr(item, "evidence_type", None), 0.60)
+    # evidence_type may be absent/None at runtime; .get default handles it (W1.6).
+    reliability = RELIABILITY.get(getattr(item, "evidence_type", None), 0.60)  # type: ignore[arg-type]
     confidence = getattr(item, "confidence", 1.0)
     try:
         confidence = float(confidence)
@@ -106,9 +107,7 @@ class FacetSummary:
     oppose_count: int
 
 
-def reduce_profile(
-    evidence: list[ValidatedEvidence], version: str = "v2"
-) -> ReducedProfile:
+def reduce_profile(evidence: list[ValidatedEvidence], version: str = "v2") -> ReducedProfile:
     accepted = [item for item in evidence if item.accepted]
 
     interest_summaries = _summaries_for_dimension(accepted, "topics")
@@ -132,9 +131,7 @@ def reduce_profile(
     }
     work_mode_status = {
         key: (
-            work_mode_summaries[key].status
-            if key in work_mode_summaries
-            else ProfileStatus.UNKNOWN
+            work_mode_summaries[key].status if key in work_mode_summaries else ProfileStatus.UNKNOWN
         )
         for key in WORK_MODE_KEYS
     }
@@ -143,17 +140,15 @@ def reduce_profile(
         accepted, "motivation", allowed_keys=MOTIVATION_KEYS
     )
     motivation_ranked = [
-        summary
-        for summary in _ordered_summaries(motivation_summaries)
-        if summary.support_count > 0
+        summary for summary in _ordered_summaries(motivation_summaries) if summary.support_count > 0
     ]
+    # value_key is the same motivation vocabulary MotivationPair expects; the
+    # Literal narrowing lives only in the model (W1.6).
     motivation = MotivationPair(
-        primary=motivation_ranked[0].value_key if motivation_ranked else None,
-        secondary=motivation_ranked[1].value_key if len(motivation_ranked) > 1 else None,
+        primary=motivation_ranked[0].value_key if motivation_ranked else None,  # type: ignore[arg-type]
+        secondary=motivation_ranked[1].value_key if len(motivation_ranked) > 1 else None,  # type: ignore[arg-type]
         status=_dimension_status(motivation_summaries.values()),
-        evidence_count=sum(
-            summary.evidence_count for summary in motivation_summaries.values()
-        ),
+        evidence_count=sum(summary.evidence_count for summary in motivation_summaries.values()),
     )
 
     execution_summaries = _summaries_for_dimension(
@@ -165,16 +160,12 @@ def reduce_profile(
     }
     execution_status = {
         key: (
-            execution_summaries[key].status
-            if key in execution_summaries
-            else ProfileStatus.UNKNOWN
+            execution_summaries[key].status if key in execution_summaries else ProfileStatus.UNKNOWN
         )
         for key in EXECUTION_KEYS
     }
 
-    capability_summaries = _summaries_for_dimension(
-        accepted, "capability", max_band=3
-    )
+    capability_summaries = _summaries_for_dimension(accepted, "capability", max_band=3)
     capabilities = [
         CapabilityRecord(
             name=summary.value_key,
@@ -257,18 +248,10 @@ def _summarize_bucket(
         status = ProfileStatus.CONTRADICTED
     elif support_bands:
         score = _clamp(round(_weighted_mean(support)), 0, max_band)
-        status = (
-            ProfileStatus.SUPPORTED
-            if len(support_bands) >= 2
-            else ProfileStatus.PROVISIONAL
-        )
+        status = ProfileStatus.SUPPORTED if len(support_bands) >= 2 else ProfileStatus.PROVISIONAL
     elif oppose_bands:
         score = 0
-        status = (
-            ProfileStatus.SUPPORTED
-            if len(oppose_bands) >= 2
-            else ProfileStatus.PROVISIONAL
-        )
+        status = ProfileStatus.SUPPORTED if len(oppose_bands) >= 2 else ProfileStatus.PROVISIONAL
     else:
         score = None
         status = ProfileStatus.UNKNOWN
@@ -388,7 +371,9 @@ def _build_dimensions(
         DimensionState(
             key="constraints",
             status=profile.constraints.status.value,
-            value=(profile.constraints.geo or profile.constraints.details or [None])[0],
+            # Intentional [None] terminal fallback; DimensionState.value is loosely
+            # typed at runtime here (W1.6).
+            value=(profile.constraints.geo or profile.constraints.details or [None])[0],  # type: ignore[list-item]
             confidence=STATUS_CONFIDENCE[profile.constraints.status],
             values=tuple(profile.constraints.geo + profile.constraints.details),
         ),

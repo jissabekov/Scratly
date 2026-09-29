@@ -26,15 +26,12 @@ def _seeded_compose(context: dict) -> ProjectComposeOutput:
         if findings:
             fid = findings[0].get("id")
             if fid:
-                citations.append(
-                    ProjectCitation(kind="research_finding", id=UUID(str(fid)))
-                )
+                citations.append(ProjectCitation(kind="research_finding", id=UUID(str(fid))))
         projects.append(
             ComposedProjectPacket(
                 title=str(opp.get("title") or "Matched opportunity"),
                 summary=str(
-                    opp.get("summary")
-                    or "A project shaped from a curated local opportunity."
+                    opp.get("summary") or "A project shaped from a curated local opportunity."
                 ),
                 topic_keys=list(opp.get("topics") or []),
                 work_mode_keys=list(opp.get("work_modes") or []),
@@ -61,11 +58,7 @@ def _seeded_compose(context: dict) -> ProjectComposeOutput:
                     topic_keys=topics[:3],
                     work_mode_keys=[],
                     motivation_keys=[],
-                    citations=[
-                        ProjectCitation(
-                            kind="research_finding", id=UUID(str(finding_id))
-                        )
-                    ],
+                    citations=[ProjectCitation(kind="research_finding", id=UUID(str(finding_id)))],
                 )
             )
     if not projects:
@@ -82,9 +75,7 @@ class ProjectComposer:
             UUID(str(o["id"])) for o in (context.get("opportunities") or []) if o.get("id")
         }
         research_ids = {
-            UUID(str(f["id"]))
-            for f in (context.get("research_findings") or [])
-            if f.get("id")
+            UUID(str(f["id"])) for f in (context.get("research_findings") or []) if f.get("id")
         }
         try:
             raw = await self.llm.structured(

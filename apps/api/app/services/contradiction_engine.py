@@ -73,9 +73,7 @@ def find_contradictions(items: list[ValidatedEvidence]) -> list[Contradiction]:
     return out
 
 
-def _conflict_for_dimension(
-    dimension: str, group: list[ValidatedEvidence]
-) -> Contradiction | None:
+def _conflict_for_dimension(dimension: str, group: list[ValidatedEvidence]) -> Contradiction | None:
     by_value: dict[str, list[ValidatedEvidence]] = {}
     for item in group:
         if not item.value_key:
@@ -130,9 +128,7 @@ def _conflict_for_dimension(
     if incompatible_pairs:
         involved = {v for pair in incompatible_pairs for v in pair}
         ids = tuple(
-            _evidence_id(x)
-            for x in supports
-            if x.value_key in involved and _evidence_id(x)
+            _evidence_id(x) for x in supports if x.value_key in involved and _evidence_id(x)
         )
         return Contradiction(
             dimension_key=dimension,
@@ -176,9 +172,7 @@ def pick_resolution_evidence(
 ) -> ValidatedEvidence | None:
     """Newest accepted evidence on the target dimension wins clarification."""
     candidates = [
-        x
-        for x in items
-        if x.accepted and x.dimension_key == dimension_key and x.value_key
+        x for x in items if x.accepted and x.dimension_key == dimension_key and x.value_key
     ]
     if not candidates:
         return None

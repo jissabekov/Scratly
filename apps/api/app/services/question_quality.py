@@ -18,9 +18,7 @@ from app.services.question_policy import (
     required_fallback,
 )
 
-_GENERIC_CONTRADICTION = re.compile(
-    r"i heard two different preferences", re.IGNORECASE
-)
+_GENERIC_CONTRADICTION = re.compile(r"i heard two different preferences", re.IGNORECASE)
 _MULTI_QUESTION = re.compile(r"\?\s+.+\?")
 _INTERNAL_JARGON = re.compile(
     r"\b(provisional|supported|score_band|curated opportunities|"

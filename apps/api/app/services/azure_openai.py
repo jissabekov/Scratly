@@ -9,14 +9,13 @@ from __future__ import annotations
 import json
 import os
 from contextvars import ContextVar
-from datetime import date, datetime
 from dataclasses import asdict, is_dataclass
+from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Awaitable, Callable
 from uuid import UUID
 
-from pydantic import BaseModel
 from azure.identity.aio import (
     AzureCliCredential,
     ChainedTokenCredential,
@@ -24,6 +23,7 @@ from azure.identity.aio import (
     get_bearer_token_provider,
 )
 from openai import AsyncAzureOpenAI
+from pydantic import BaseModel
 
 from app.config import get_settings
 from app.contracts import MemorySnapshotOutput, QuestionResponse
@@ -68,9 +68,7 @@ def _build_credential():
     secret = os.getenv("AZURE_CLIENT_SECRET", "").strip()
     if tenant and client_id and secret:
         credentials.append(
-            ClientSecretCredential(
-                tenant_id=tenant, client_id=client_id, client_secret=secret
-            )
+            ClientSecretCredential(tenant_id=tenant, client_id=client_id, client_secret=secret)
         )
     credentials.append(AzureCliCredential())
     if len(credentials) == 1:
@@ -243,7 +241,7 @@ class AzureOpenAIService:
         if user_location:
             tool_cfg["user_location"] = user_location
             tools = [tool_cfg]
-        response = await self.client.responses.create(
+        response = await self.client.responses.create(  # type: ignore[attr-defined]  # openai 1.59 stubs don't expose AsyncAzureOpenAI.responses; valid at runtime
             model=deployment_name,
             tools=tools,
             include=["web_search_call.action.sources"],
@@ -287,9 +285,7 @@ class LocalFallbackLLM:
 
         name = getattr(model, "__name__", "")
         if model is EvidencePacket or name == "EvidencePacket":
-            return EvidencePacket(
-                items=[], no_evidence_reason="azure_openai_not_configured"
-            )
+            return EvidencePacket(items=[], no_evidence_reason="azure_openai_not_configured")
         if model is TurnIntentPacket or name == "TurnIntentPacket":
             text = ""
             msg = (context or {}).get("student_message") or {}
@@ -306,9 +302,7 @@ class LocalFallbackLLM:
             if isinstance(intent, dict):
                 intent = TIP.model_validate(intent)
             elif not isinstance(intent, TIP):
-                intent = TIP(
-                    primary_intent="student_question", question_topic="process"
-                )
+                intent = TIP(primary_intent="student_question", question_topic="process")
             return seeded_student_answer(
                 intent,
                 public_profile=(context or {}).get("public_profile_summary"),

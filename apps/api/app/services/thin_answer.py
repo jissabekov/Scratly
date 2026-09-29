@@ -42,10 +42,7 @@ def evaluate_thin_answer(
     # First open: greetings / name intros are warm entry, not thin answers.
     if prior_assistant_questions == 0 and (
         _GREETING_PATTERNS.match(raw)
-        or (
-            len(tokens) <= 8
-            and any(t.lower() in {"i'm", "im", "my", "name"} for t in tokens)
-        )
+        or (len(tokens) <= 8 and any(t.lower() in {"i'm", "im", "my", "name"} for t in tokens))
     ):
         return ThinAnswerSignal(is_thin=False, reason_codes=["social_opener"])
 

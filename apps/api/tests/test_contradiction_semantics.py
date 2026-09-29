@@ -134,9 +134,7 @@ def test_stage_uses_established_not_touched_for_gap():
 
 def test_legacy_coverage_kwarg_still_works():
     assert (
-        derive_stage(
-            coverage=0.95, contradictions=0, reviewed=False, projects_ready=False
-        )
+        derive_stage(coverage=0.95, contradictions=0, reviewed=False, projects_ready=False)
         == "profile_review"
     )
 

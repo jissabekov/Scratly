@@ -1,7 +1,6 @@
 import importlib.util
 from pathlib import Path
 
-
 SUITE_PATH = Path(__file__).resolve().parents[3] / "scripts" / "eval_conversation_suite.py"
 SPEC = importlib.util.spec_from_file_location("eval_conversation_suite", SUITE_PATH)
 assert SPEC and SPEC.loader
@@ -124,8 +123,14 @@ def test_three_adaptive_personas_are_long_and_cover_final_options():
         assert spec["max_turns"] >= spec["min_turns"]
         assert spec["project_feedback"]
         assert {
-            "topics", "work_mode", "motivation", "execution",
-            "capability", "assets", "constraints", "profile",
+            "topics",
+            "work_mode",
+            "motivation",
+            "execution",
+            "capability",
+            "assets",
+            "constraints",
+            "profile",
         } <= set(spec["facts"])
 
 
@@ -138,10 +143,12 @@ def test_simulated_persona_answers_actual_target_then_sets_repeat_boundary():
     }
     used = Counter()
     assert simulated_reply(spec, target_key="topics", response={}, used=used) == (
-        "first real detail", "topics"
+        "first real detail",
+        "topics",
     )
     assert simulated_reply(spec, target_key="topics", response={}, used=used) == (
-        "second real detail", "topics"
+        "second real detail",
+        "topics",
     )
     text, target = simulated_reply(spec, target_key="topics", response={}, used=used)
     assert target == "topics"
@@ -158,19 +165,21 @@ def test_adaptive_metrics_require_multiple_grounded_relevant_options():
         stages=["profile_review", "project_matching"],
         kinds=["assessment_question", "project_offer"],
     )
-    dump.update({
-        "scenario_mode": "adaptive_simulation",
-        "scenario_expectations": {
-            "min_turns": 2,
-            "project_keywords": ["repair"],
-        },
-        "projects": {
-            "items": [
-                {"title": "Repair guide", "summary": "Fix bikes", "citation_count": 1},
-                {"title": "Repair log", "summary": "Track fixes", "citation_count": 1},
-            ]
-        },
-    })
+    dump.update(
+        {
+            "scenario_mode": "adaptive_simulation",
+            "scenario_expectations": {
+                "min_turns": 2,
+                "project_keywords": ["repair"],
+            },
+            "projects": {
+                "items": [
+                    {"title": "Repair guide", "summary": "Fix bikes", "citation_count": 1},
+                    {"title": "Repair log", "summary": "Track fixes", "citation_count": 1},
+                ]
+            },
+        }
+    )
     dump["turns"][1]["simulation"] = {"answered_target": "project_options"}
     metrics = analyze_dump(dump)
     assert metrics["project_option_count"] == 2

@@ -85,8 +85,7 @@ def build_elicitation_spec(dimension_key: str) -> ElicitationSpec:
         )
     else:
         template = (
-            f"For {dimension_key.replace('_', ' ').replace(':', ' ')}, "
-            "which option fits best?"
+            f"For {dimension_key.replace('_', ' ').replace(':', ' ')}, which option fits best?"
         )
     return ElicitationSpec(
         options=options,

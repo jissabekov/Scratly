@@ -10,6 +10,7 @@ from app.contracts import (
     QuestionTopic,
     TurnIntentPacket,
 )
+from app.repository.assessment import _profile_change_summary
 from app.services.elicitation_policy import (
     build_elicitation_spec,
     elicitation_options_present,
@@ -22,16 +23,14 @@ from app.services.location_policy import (
 )
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.project_citation_gate import filter_grounded_projects
-from app.services.question_policy import Target, derive_stage, select_next, required_fallback
-from app.services.question_quality import apply_question_quality_gate
-from app.services.thin_answer import evaluate_thin_answer
-from app.services.turn_intent_classifier import heuristic_classify
-from app.services.student_answerer import answer_scope_gate, seeded_student_answer
 from app.services.project_composer import ProjectComposer
+from app.services.question_policy import Target, derive_stage, required_fallback, select_next
+from app.services.question_quality import apply_question_quality_gate
+from app.services.student_answerer import answer_scope_gate, seeded_student_answer
+from app.services.thin_answer import evaluate_thin_answer
+from app.services.turn_intent_classifier import TurnIntentClassifier, heuristic_classify
 from app.services.turn_processor import _post_match_reply
-from app.services.turn_intent_classifier import TurnIntentClassifier
 from app.services.web_research_client import WebResearchClient
-from app.repository.assessment import _profile_change_summary
 
 
 def _req(key: str) -> Target:
@@ -71,9 +70,10 @@ def test_required_fallback_avoids_non_negotiable_opener():
         assert "non-negotiable" not in text
     topics = required_fallback("topics").lower()
     assert "free time" in topics or "spending" in topics or "into" in topics
-    assert "must-have" in required_fallback("constraints").lower() or "deadline" in required_fallback(
-        "constraints"
-    ).lower()
+    assert (
+        "must-have" in required_fallback("constraints").lower()
+        or "deadline" in required_fallback("constraints").lower()
+    )
     assert "project" not in required_fallback("work_mode").lower()
 
 
@@ -144,9 +144,7 @@ def test_answer_scope_gate_out_of_scope_without_default_question_cap():
         question_topic=QuestionTopic.PROCESS,
     )
     assert answer_scope_gate(process, consecutive_student_questions=20) is None
-    capped = answer_scope_gate(
-        process, consecutive_student_questions=2, max_consecutive=2
-    )
+    capped = answer_scope_gate(process, consecutive_student_questions=2, max_consecutive=2)
     assert capped is not None and capped.refusal_reason_code == "consecutive_question_cap"
 
     seeded = seeded_student_answer(process, last_target_key="work_mode")
@@ -229,9 +227,7 @@ def test_location_established_and_stage_gate():
     assert location_established_from_values(["oklahoma"])
     assert location_established_from_values(["bristow"])
     profile = {
-        "dimensions": [
-            {"key": "constraints", "status": "supported", "value": "seattle_metro"}
-        ]
+        "dimensions": [{"key": "constraints", "status": "supported", "value": "seattle_metro"}]
     }
     assert location_established_from_profile(profile)
     freeform = {
@@ -276,14 +272,16 @@ def test_irrelevant_catalog_opportunity_is_not_eligible():
             "motivations": ["impact_usefulness"],
             "geo_regions": ["remote_ok"],
         },
-        [{
-            "id": "generic-docs",
-            "key": "generic-docs",
-            "topics": ["documentation"],
-            "work_modes": ["build"],
-            "motivations": ["impact_usefulness"],
-            "geo_regions": ["remote_ok"],
-        }],
+        [
+            {
+                "id": "generic-docs",
+                "key": "generic-docs",
+                "topics": ["documentation"],
+                "work_modes": ["build"],
+                "motivations": ["impact_usefulness"],
+                "geo_regions": ["remote_ok"],
+            }
+        ],
     )
     assert not matches[0].eligible
     assert "topic_mismatch" in matches[0].failed_constraints
@@ -319,10 +317,12 @@ def test_post_match_reply_is_contextual_to_feedback_and_project():
 
 async def test_research_keeps_partial_success_when_another_query_fails():
     class Response:
-        output = [{
-            "type": "web_search_call",
-            "action": {"sources": [{"url": "https://example.org/source"}]},
-        }]
+        output = [
+            {
+                "type": "web_search_call",
+                "action": {"sources": [{"url": "https://example.org/source"}]},
+            }
+        ]
 
     class LLM:
         async def web_search(self, query, user_location=None):

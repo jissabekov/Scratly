@@ -37,9 +37,7 @@ def rank_projects(profile: dict[str, Any], projects: list[dict[str, Any]]) -> li
     topics = set(profile.get("topics") or [])
     raw_modes = profile.get("work_modes")
     if isinstance(raw_modes, dict):
-        student_modes = {
-            k: (int(v) if v is not None else None) for k, v in raw_modes.items()
-        }
+        student_modes = {k: (int(v) if v is not None else None) for k, v in raw_modes.items()}
     else:
         student_modes = {k: 3 for k in (raw_modes or []) if k in WORK_MODE_KEYS}
 
@@ -63,12 +61,8 @@ def rank_projects(profile: dict[str, Any], projects: list[dict[str, Any]]) -> li
         failed.extend(_execution_gates(profile, hard))
 
         topic = _overlap(topics, set(project.get("topics") or []))
-        work = _work_mode_alignment(
-            student_modes, set(project.get("work_modes") or [])
-        )
-        motivation = _motivation_alignment(
-            profile, set(project.get("motivations") or [])
-        )
+        work = _work_mode_alignment(student_modes, set(project.get("work_modes") or []))
+        motivation = _motivation_alignment(profile, set(project.get("motivations") or []))
         score = 0.4 * topic + 0.4 * work + 0.2 * motivation
         matches.append(
             Match(
@@ -85,21 +79,23 @@ def rank_projects(profile: dict[str, Any], projects: list[dict[str, Any]]) -> li
     return sorted(matches, key=lambda m: (not m.eligible, -m.score, m.project_id))
 
 
-def fit_distribution(matches: list[Match], temperature: float = .2) -> dict[str, float]:
+def fit_distribution(matches: list[Match], temperature: float = 0.2) -> dict[str, float]:
     """Expose uncertainty over eligible project modes instead of only a ranking."""
     eligible = [match for match in matches if match.eligible]
     if not eligible:
         return {}
-    scale = max(temperature, .01)
+    scale = max(temperature, 0.01)
     weights = {match.project_id: exp(match.score / scale) for match in eligible}
     total = sum(weights.values())
     return {key: round(value / total, 6) for key, value in weights.items()}
 
 
 def decision_entropy(distribution: dict[str, float]) -> float:
-    return -sum(probability * log2(probability) for probability in distribution.values() if probability > 0)
+    return -sum(
+        probability * log2(probability) for probability in distribution.values() if probability > 0
+    )
 
 
-def recommendation_ready(distribution: dict[str, float], *, threshold: float = .70) -> bool:
+def recommendation_ready(distribution: dict[str, float], *, threshold: float = 0.70) -> bool:
     """Stop when a project mode is decisive; never stop merely because turns elapsed."""
     return bool(distribution) and max(distribution.values()) >= threshold

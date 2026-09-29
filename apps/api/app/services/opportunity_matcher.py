@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-
 WORK_MODE_KEYS = ("investigate", "build", "organize", "communicate")
 EXECUTION_GATE_KEYS = (
     "persistence",
@@ -35,9 +34,7 @@ def _overlap(wanted: set[str], offered: set[str]) -> float:
     return len(wanted & offered) / max(1, len(wanted))
 
 
-def _work_mode_alignment(
-    student_modes: dict[str, int | None], offered: set[str]
-) -> float:
+def _work_mode_alignment(student_modes: dict[str, int | None], offered: set[str]) -> float:
     """Weight student facet scores against opportunity work_mode tags."""
     if not offered:
         return 0.0
@@ -93,9 +90,7 @@ def _geo_eligible(
     return False
 
 
-def _execution_gates(
-    profile: dict[str, Any], hard: dict[str, Any]
-) -> list[str]:
+def _execution_gates(profile: dict[str, Any], hard: dict[str, Any]) -> list[str]:
     """PASS/FAIL execution minima. Unknown (null) does not fail."""
     failed: list[str] = []
     execution = profile.get("execution") or {}
@@ -127,9 +122,7 @@ def rank_opportunities(
     # Prefer structured work_modes map; fall back to tag set.
     raw_modes = profile.get("work_modes")
     if isinstance(raw_modes, dict):
-        student_modes = {
-            k: (int(v) if v is not None else None) for k, v in raw_modes.items()
-        }
+        student_modes = {k: (int(v) if v is not None else None) for k, v in raw_modes.items()}
     else:
         student_modes = {k: 3 for k in (raw_modes or []) if k in WORK_MODE_KEYS}
 
@@ -185,6 +178,4 @@ def rank_opportunities(
                 scope_adjustments=adjustments,
             )
         )
-    return sorted(
-        matches, key=lambda m: (not m.eligible, -m.score, m.opportunity_key)
-    )
+    return sorted(matches, key=lambda m: (not m.eligible, -m.score, m.opportunity_key))

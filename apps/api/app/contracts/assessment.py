@@ -5,9 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-Quote = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)
-]
+Quote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 
 
 class StrictModel(BaseModel):

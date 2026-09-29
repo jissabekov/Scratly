@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
 from time import perf_counter
+from typing import Any
+from uuid import UUID
 
 from app.contracts import (
     PrimaryIntent,
@@ -29,13 +30,13 @@ from app.services.question_policy import (
     classify_reply,
     derive_stage,
     interest_depth_fallback,
+    is_topic_rejection,
     plan_next,
     question_value,
     repetition_block_reason,
     select_next,
-    social_intro_target,
-    is_topic_rejection,
     should_force_review_checkpoint,
+    social_intro_target,
 )
 from app.services.question_quality import apply_question_quality_gate
 from app.services.student_answerer import (
@@ -47,7 +48,6 @@ from app.services.student_answerer import (
 from app.services.thin_answer import evaluate_thin_answer
 from app.services.turn_intent_classifier import TurnIntentClassifier
 from app.services.web_research_client import WebResearchClient
-from uuid import UUID
 
 # Distinct validation probes used when every scored candidate is exhausted.
 # Each entry is its own exposure dimension so the deterministic rotation below
@@ -256,9 +256,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             evidence_summaries = await tx.accepted_evidence_summaries()
             allowed_ids = {UUID(e["id"]) for e in evidence_summaries}
             allowed_fields = {
-                d.get("key")
-                for d in (public_profile.get("dimensions") or [])
-                if d.get("key")
+                d.get("key") for d in (public_profile.get("dimensions") or []) if d.get("key")
             }
             if forced is not None:
                 answer = forced
@@ -406,16 +404,12 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     "accepted_count": accepted_count,
                     "rejected_count": len(validated) - accepted_count,
                     "rejection_reason_counts": rejected_reasons,
-                    "evidence_yield": round(
-                        accepted_count / max(len(validated), 1), 4
-                    ),
+                    "evidence_yield": round(accepted_count / max(len(validated), 1), 4),
                 },
             )
 
             prior_open = set(await tx.open_contradiction_dimensions())
-            transition = await tx.apply_evidence_reduce_contradictions_snapshot(
-                validated
-            )
+            transition = await tx.apply_evidence_reduce_contradictions_snapshot(validated)
             await trace.record(
                 "profile_reduced",
                 "profile_reducer",
@@ -496,9 +490,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             outputs={
                 "open_contradiction_count": contradiction_count,
                 "engine_version": (
-                    transition.get("engine_version")
-                    if isinstance(transition, dict)
-                    else "v2"
+                    transition.get("engine_version") if isinstance(transition, dict) else "v2"
                 ),
                 "active_conflict_dimensions": (
                     transition.get("active_conflict_dimensions", [])
@@ -516,14 +508,16 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             "location_policy",
             "v1",
             "Checked whether geo constraints are established.",
-            "location_ready"
-            if stage_inputs.get("location_ready")
-            else "location_missing",
+            "location_ready" if stage_inputs.get("location_ready") else "location_missing",
             outputs={"location_ready": bool(stage_inputs.get("location_ready"))},
         )
 
         candidates = await tx.question_candidates()
-        exposure = counters.get("dim_ask_counts") if isinstance(counters.get("dim_ask_counts"), dict) else {}
+        exposure = (
+            counters.get("dim_ask_counts")
+            if isinstance(counters.get("dim_ask_counts"), dict)
+            else {}
+        )
         blocked_candidates: list[dict[str, Any]] = []
         filtered_candidates: list[Target] = []
         for candidate in candidates:
@@ -580,9 +574,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             outputs={"reply_signal": reply_signal.value},
         )
 
-        social_target = social_intro_target(
-            (last_q or {}).get("target_key"), request.text
-        )
+        social_target = social_intro_target((last_q or {}).get("target_key"), request.text)
         planner_decision = None
         force_review_checkpoint = should_force_review_checkpoint(
             candidate_count=len(candidates),
@@ -601,9 +593,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 block_topic = getattr(tx, "reject_topic", None)
                 if block_topic:
                     await block_topic((last_q or {})["target_key"])
-                blocked_topics = tuple(
-                    sorted(set(blocked_topics) | {(last_q or {})["target_key"]})
-                )
+                blocked_topics = tuple(sorted(set(blocked_topics) | {(last_q or {})["target_key"]}))
             planner_decision = plan_next(
                 candidates,
                 last_target_key=(last_q or {}).get("target_key"),
@@ -653,8 +643,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
 
         # Framing pushback ("I just play — why a project?") → stay on interest depth.
         if is_framing_pushback(request.text) and not (
-            planner_decision
-            and planner_decision.reason in {"friction_detected", "topic_rejected"}
+            planner_decision and planner_decision.reason in {"friction_detected", "topic_rejected"}
         ):
             topics_status = next(
                 (
@@ -737,9 +726,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "project_discrimination",
                 "contradiction",
                 "elicitation",
-            } or (
-                target.kind == "behavioral_anchor" and prior_assistant_questions >= 1
-            )
+            } or (target.kind == "behavioral_anchor" and prior_assistant_questions >= 1)
             if not can_recover:
                 await trace.record(
                     "elicitation_skipped_not_recoverable",
@@ -800,7 +787,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     for c in candidates
                     if not (c.kind == target.kind and c.key == target.key)
                     and c.key != elicit_key
-                    and c.key != f"constraints:geo"
+                    and c.key != "constraints:geo"
                 ]
                 target = select_next(remaining) or _exposure_fallback(exposure)
                 await tx.update_session_counters(
@@ -856,9 +843,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 "asked_count": target.asked_count,
                 "continuity": target.continuity,
                 "candidate_count": len(candidates),
-                "planner_action": (
-                    planner_decision.action.value if planner_decision else None
-                ),
+                "planner_action": (planner_decision.action.value if planner_decision else None),
             },
         )
 
@@ -951,9 +936,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             role = msg.get("role") if isinstance(msg, dict) else getattr(msg, "role", None)
             if role == "assistant":
                 previous_assistant = (
-                    msg.get("content")
-                    if isinstance(msg, dict)
-                    else getattr(msg, "content", None)
+                    msg.get("content") if isinstance(msg, dict) else getattr(msg, "content", None)
                 )
                 break
 
@@ -1015,9 +998,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 if opening_mode:
                     writer_context["opening_mode"] = opening_mode
                 if target.kind == "elicitation":
-                    writer_context["elicitation"] = build_elicitation_spec(
-                        target.key
-                    ).model_dump()
+                    writer_context["elicitation"] = build_elicitation_spec(target.key).model_dump()
                 question = await writer.write(writer_context)
                 write_run_id = getattr(llm, "last_llm_run_id", None) if llm else None
                 await trace.record(
@@ -1077,9 +1058,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         matching_feedback_closed = False
         matching_already_completed = bool(counters.get("matching_completed"))
         existing_projects = (
-            await tx.list_generated_projects()
-            if stage in {"project_matching", "complete"}
-            else []
+            await tx.list_generated_projects() if stage in {"project_matching", "complete"} else []
         )
         if stage == "complete":
             # Matching is terminal for this assessment version. Do not fall back
@@ -1100,18 +1079,13 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             project_blurb = await _run_project_matching(tx, llm, trace, context_builder)
             if project_blurb:
                 assistant_prefix = (
-                    f"{assistant_prefix}\n\n{project_blurb}"
-                    if assistant_prefix
-                    else project_blurb
+                    f"{assistant_prefix}\n\n{project_blurb}" if assistant_prefix else project_blurb
                 )
                 message_kind = "project_offer"
                 # Replace the assessment target selected before the stage
                 # transition. Otherwise an offer ended with an unrelated profile
                 # probe and presented two competing questions.
-                question = (
-                    "Which of these directions interests you most, or what would "
-                    "you change?"
-                )
+                question = "Which of these directions interests you most, or what would you change?"
             else:
                 assistant_prefix = None
                 question = (
@@ -1221,9 +1195,7 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
         outputs={
             "match_count": len(matches),
             "eligible_count": len(eligible),
-            "failed_geo_count": sum(
-                1 for m in matches if "geo" in m.failed_constraints
-            ),
+            "failed_geo_count": sum(1 for m in matches if "geo" in m.failed_constraints),
             "top_keys": [m.opportunity_key for m in matches[:5]],
             "relevant_top_keys": [m.opportunity_key for m in eligible[:5]],
         },
@@ -1343,9 +1315,7 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
             outputs={
                 "eligible_count": len(eligible),
                 "generated_count": len(stored),
-                "matching_duration_ms": int(
-                    (perf_counter() - matching_started_at) * 1000
-                ),
+                "matching_duration_ms": int((perf_counter() - matching_started_at) * 1000),
             },
         )
         lines = ["Here are grounded project directions that fit your profile:"]
@@ -1373,9 +1343,7 @@ def _post_match_reply(student_text: str, projects: list[dict[str, Any]]) -> str:
     elif any(cue in text for cue in ("third", "option 3", "#3")):
         selected_index = 2
     named = (
-        titles[min(selected_index, len(titles) - 1)]
-        if titles
-        else "your saved project direction"
+        titles[min(selected_index, len(titles) - 1)] if titles else "your saved project direction"
     )
     if any(cue in text for cue in ("smaller", "scope", "simpler", "change", "instead")):
         return (
@@ -1419,12 +1387,8 @@ async def _maybe_compact_memory(tx, context_builder, llm, trace) -> None:
     stats = await tx.student_response_stats()
     settings = getattr(tx, "_settings", None)
     interval = getattr(settings, "memory_response_interval", 8) if settings else 8
-    token_threshold = (
-        getattr(settings, "memory_token_threshold", 6000) if settings else 6000
-    )
-    compactor = MemoryCompactor(
-        llm, interval=interval, token_threshold=token_threshold
-    )
+    token_threshold = getattr(settings, "memory_token_threshold", 6000) if settings else 6000
+    compactor = MemoryCompactor(llm, interval=interval, token_threshold=token_threshold)
     raw = await tx.allowed_messages(tx._session_id)
     raw_dicts = [
         {

@@ -43,21 +43,13 @@ class ContextBuilder:
         previous_assistant_question=None,
     ):
         recent = recent_messages[-8:] if recent_messages else []
-        last_student = next(
-            (m for m in reversed(recent) if _role(m) == "student"), None
-        )
-        from app.services.question_policy import classify_reply
+        last_student = next((m for m in reversed(recent) if _role(m) == "student"), None)
         from app.services.question_library import BY_KEY
+        from app.services.question_policy import classify_reply
 
-        target_key = (
-            target.get("key")
-            if isinstance(target, dict)
-            else getattr(target, "key", None)
-        )
+        target_key = target.get("key") if isinstance(target, dict) else getattr(target, "key", None)
         target_kind = (
-            target.get("kind")
-            if isinstance(target, dict)
-            else getattr(target, "kind", None)
+            target.get("kind") if isinstance(target, dict) else getattr(target, "kind", None)
         )
         payload = {
             "selected_target": _target(target),
@@ -65,8 +57,7 @@ class ContextBuilder:
             "target_key": target_key,
             "curated_intent": BY_KEY.get(target_key or ""),
             "recent_messages": [
-                m if isinstance(m, dict) or not hasattr(m, "id") else _msg(m)
-                for m in recent
+                m if isinstance(m, dict) or not hasattr(m, "id") else _msg(m) for m in recent
             ],
             "last_reply_signal": (
                 classify_reply(_content(last_student)).value if last_student else None

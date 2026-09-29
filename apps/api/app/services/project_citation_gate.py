@@ -19,9 +19,7 @@ def filter_grounded_projects(
     rejected: list[dict] = []
     for project in output.projects:
         if profile_topics and not (profile_topics & set(project.topic_keys)):
-            rejected.append(
-                {"title": project.title, "reason": "profile_topic_mismatch"}
-            )
+            rejected.append({"title": project.title, "reason": "profile_topic_mismatch"})
             continue
         if not project.citations:
             rejected.append(

@@ -5,7 +5,6 @@ from uuid import uuid4
 from app.contracts import (
     Polarity,
     PrimaryIntent,
-    ProposedEvidence,
     QuestionTopic,
     TurnIntentPacket,
     ValidatedEvidence,
@@ -19,8 +18,8 @@ from app.services.question_policy import (
     select_next,
     social_intro_target,
 )
-from app.services.thin_answer import evaluate_thin_answer
 from app.services.student_answerer import seeded_student_answer
+from app.services.thin_answer import evaluate_thin_answer
 from app.services.turn_intent_classifier import heuristic_classify
 
 
@@ -254,9 +253,7 @@ def test_framing_pushback_answer_is_conversational():
     assert "curated opportunities" not in lowered
     assert "bounded web research" not in lowered
 
-    intent = heuristic_classify(
-        "I said I play, why are u asking me about gaming project"
-    )
+    intent = heuristic_classify("I said I play, why are u asking me about gaming project")
     assert intent.primary_intent == PrimaryIntent.STUDENT_QUESTION
     assert intent.question_topic == QuestionTopic.PROCESS
 

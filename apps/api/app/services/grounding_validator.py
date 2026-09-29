@@ -43,8 +43,7 @@ def validate_grounding(
         elif any(mid not in owned for mid in item.source_message_ids):
             reason = "source_message_unavailable_or_not_owned"
         elif not any(
-            item.exact_source_quote in owned[mid].content
-            for mid in item.source_message_ids
+            item.exact_source_quote in owned[mid].content for mid in item.source_message_ids
         ):
             reason = "exact_quote_not_found"
         elif (
@@ -62,8 +61,6 @@ def validate_grounding(
         payload = item.model_dump()
         payload["strength"] = strength
         result.append(
-            ValidatedEvidence(
-                **payload, accepted=reason is None, rejection_reason=reason
-            )
+            ValidatedEvidence(**payload, accepted=reason is None, rejection_reason=reason)
         )
     return result

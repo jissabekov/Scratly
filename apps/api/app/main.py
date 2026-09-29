@@ -4,8 +4,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db import get_db
-from .routes.public import router as public_router
 from .routes.admin import router as admin_router
+from .routes.public import router as public_router
 
 app = FastAPI(title="Scratly API", version="0.1.0")
 

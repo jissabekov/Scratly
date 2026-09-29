@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -122,7 +123,7 @@ async def _profile(db: AsyncSession, session_id: UUID) -> list[dict]:
             import json
 
             state = json.loads(state)
-        dim_state = next(
+        dim_state: dict[str, Any] = next(
             (d for d in state.get("dimensions", []) if d.get("key") == row["key"]),
             {},
         )

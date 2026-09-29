@@ -1,6 +1,6 @@
 """Structured, privacy-aware records explaining deterministic turn decisions."""
+
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -9,7 +9,9 @@ class TracePrivacyError(ValueError):
     pass
 
 
-_FORBIDDEN_KEYS = frozenset({"content", "message", "raw_text", "student_text", "transcript", "exact_source_quote"})
+_FORBIDDEN_KEYS = frozenset(
+    {"content", "message", "raw_text", "student_text", "transcript", "exact_source_quote"}
+)
 
 
 def _assert_no_raw_text(value: Any, path: str = "payload") -> None:

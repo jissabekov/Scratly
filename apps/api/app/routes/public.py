@@ -13,9 +13,9 @@ from app.contracts import (
 )
 from app.deps import get_context_builder, get_extractor, get_repo, get_writer
 from app.repository import AssessmentRepository, TurnOutcome
+from app.services.azure_openai import QuestionWriter
 from app.services.context_builder import ContextBuilder
 from app.services.evidence_extractor import EvidenceExtractor
-from app.services.azure_openai import QuestionWriter
 from app.services.turn_processor import process_student_turn
 
 router = APIRouter(tags=["student"])
@@ -32,9 +32,7 @@ async def start_session(repo: AssessmentRepository = Depends(get_repo)):
 
 
 @router.get("/sessions/{session_id}")
-async def resume_session(
-    session_id: UUID, repo: AssessmentRepository = Depends(get_repo)
-):
+async def resume_session(session_id: UUID, repo: AssessmentRepository = Depends(get_repo)):
     session = await repo.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -48,12 +46,8 @@ async def resume_session(
     }
 
 
-@router.get(
-    "/sessions/{session_id}/messages", response_model=SessionMessagesResponse
-)
-async def list_session_messages(
-    session_id: UUID, repo: AssessmentRepository = Depends(get_repo)
-):
+@router.get("/sessions/{session_id}/messages", response_model=SessionMessagesResponse)
+async def list_session_messages(session_id: UUID, repo: AssessmentRepository = Depends(get_repo)):
     session = await repo.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -66,12 +60,8 @@ async def list_session_messages(
     )
 
 
-@router.get(
-    "/sessions/{session_id}/projects", response_model=SessionProjectsResponse
-)
-async def list_session_projects(
-    session_id: UUID, repo: AssessmentRepository = Depends(get_repo)
-):
+@router.get("/sessions/{session_id}/projects", response_model=SessionProjectsResponse)
+async def list_session_projects(session_id: UUID, repo: AssessmentRepository = Depends(get_repo)):
     session = await repo.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")

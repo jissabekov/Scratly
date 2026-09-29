@@ -16,9 +16,7 @@ def build_research_queries(profile: dict[str, Any], geo: dict[str, list[str]]) -
     base = f"{topic} {place} youth OR student project OR internship OR open data OR community challenge"
     queries = [base]
     if len(topics) > 1:
-        queries.append(
-            f"{topics[1]} {place} student OR youth community project"
-        )
+        queries.append(f"{topics[1]} {place} student OR youth community project")
     if "remote_ok" in (geo.get("geo_regions") or []):
         queries.append(f"{topic} remote student open source OR open data project")
     return queries[:3]
@@ -29,7 +27,9 @@ def findings_from_web_response(response: Any) -> list[ResearchFindingPacket]:
     findings: list[ResearchFindingPacket] = []
     seen: set[str] = set()
 
-    def add(url: str, title: str = "", snippet: str = "", publisher: str | None = None, rank: int = 0):
+    def add(
+        url: str, title: str = "", snippet: str = "", publisher: str | None = None, rank: int = 0
+    ):
         url = (url or "").strip()
         if not url or url in seen:
             return
@@ -48,18 +48,24 @@ def findings_from_web_response(response: Any) -> list[ResearchFindingPacket]:
     output = getattr(response, "output", None) or []
     rank = 0
     for item in output:
-        item_type = getattr(item, "type", None) or (item.get("type") if isinstance(item, dict) else None)
+        item_type = getattr(item, "type", None) or (
+            item.get("type") if isinstance(item, dict) else None
+        )
         if item_type == "web_search_call":
             action = getattr(item, "action", None) or (
                 item.get("action") if isinstance(item, dict) else None
             )
-            sources = []
+            sources: list[Any] = []
             if action is not None:
-                sources = getattr(action, "sources", None) or (
-                    action.get("sources") if isinstance(action, dict) else []
-                ) or []
+                sources = (
+                    getattr(action, "sources", None)
+                    or (action.get("sources") if isinstance(action, dict) else [])
+                    or []
+                )
             for src in sources or []:
-                url = getattr(src, "url", None) or (src.get("url") if isinstance(src, dict) else None)
+                url = getattr(src, "url", None) or (
+                    src.get("url") if isinstance(src, dict) else None
+                )
                 rank += 1
                 add(str(url or ""), rank=rank)
         if item_type == "message":
@@ -94,9 +100,7 @@ class WebResearchClient:
 
     @property
     def configured(self) -> bool:
-        return hasattr(self.llm, "web_search") and callable(
-            getattr(self.llm, "web_search", None)
-        )
+        return hasattr(self.llm, "web_search") and callable(getattr(self.llm, "web_search", None))
 
     async def research(
         self,
@@ -109,6 +113,7 @@ class WebResearchClient:
         queries = build_research_queries(profile, geo)
         if not self.configured:
             return queries, [], "web_search_unconfigured"
+
         async def run(query: str):
             try:
                 response = await asyncio.wait_for(

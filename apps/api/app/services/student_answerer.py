@@ -6,6 +6,7 @@ import re
 from uuid import UUID
 
 from app.contracts import (
+    PrimaryIntent,
     QuestionTopic,
     StudentAnswerMode,
     StudentAnswerOutput,
@@ -27,9 +28,7 @@ _PROCESS_TEMPLATES = {
         "I'm trying to learn what kind of win matters most to you — mastering something, "
         "beating a target, helping people, being noticed, or people counting on you."
     ),
-    "work_mode": (
-        "I mean the part of an activity you naturally enjoy doing. I worded that badly."
-    ),
+    "work_mode": ("I mean the part of an activity you naturally enjoy doing. I worded that badly."),
     "execution": (
         "I'm checking practical fit — like sticking with hard stuff, unclear goals, "
         "reaching out to people, or presenting in public — so we don't suggest something "
@@ -207,13 +206,9 @@ def seeded_student_answer(
             ),
         )
     # process — mission / purpose / why we ask
-    asks_mission = any(
-        token in lowered for token in ("mission", "purpose", "what are you for")
-    )
+    asks_mission = any(token in lowered for token in ("mission", "purpose", "what are you for"))
     asks_why = bool(re.search(r"why (are|do) (you|u) ask|why ask", lowered))
-    dim_text = _PROCESS_TEMPLATES.get(
-        last_target_key or "default", _PROCESS_TEMPLATES["default"]
-    )
+    dim_text = _PROCESS_TEMPLATES.get(last_target_key or "default", _PROCESS_TEMPLATES["default"])
     if asks_mission:
         text = _PURPOSE
         if last_target_key and last_target_key not in {"default", "profile"}:
@@ -244,14 +239,10 @@ class StudentAnswerer:
             packet = TurnIntentPacket.model_validate(intent)
         else:
             packet = TurnIntentPacket(
-                primary_intent="student_question",
-                question_topic="process",
+                primary_intent=PrimaryIntent.STUDENT_QUESTION,
+                question_topic=QuestionTopic.PROCESS,
             )
-        student_text = (
-            context.get("student_text")
-            or context.get("latest_student_message")
-            or ""
-        )
+        student_text = context.get("student_text") or context.get("latest_student_message") or ""
         # Deterministic repair for framing pushback — don't let the model dump process jargon.
         if is_framing_pushback(student_text):
             return seeded_student_answer(
