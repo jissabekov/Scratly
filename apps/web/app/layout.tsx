@@ -1,4 +1,4 @@
-import './style.css';
+import './globals.css';
 
 export const metadata = {
   title: 'Scratly',
