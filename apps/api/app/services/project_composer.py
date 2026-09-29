@@ -77,15 +77,33 @@ class ProjectComposer:
         research_ids = {
             UUID(str(f["id"])) for f in (context.get("research_findings") or []) if f.get("id")
         }
+        profile_topics = set((context.get("profile") or {}).get("topics") or [])
         try:
             raw = await self.llm.structured(
                 "writer", "project_composer", "v2", ProjectComposeOutput, context
             )
         except Exception:
             raw = _seeded_compose(context)
-        return filter_grounded_projects(
+        accepted, rejected = filter_grounded_projects(
             raw,
             opportunity_ids=opportunity_ids,
             research_finding_ids=research_ids,
-            profile_topics=set((context.get("profile") or {}).get("topics") or []),
+            profile_topics=profile_topics,
         )
+        if len(accepted) < 2 and opportunity_ids:
+            # Catalog-first guarantee (Plan 01 W1.3): when the model-composed
+            # offer did not survive the citation gate but the curated catalog
+            # holds eligible, topic-aligned opportunities, fall back to the
+            # deterministic opportunity-cited composition instead of abstaining.
+            seeded_accepted, _ = filter_grounded_projects(
+                _seeded_compose(context),
+                opportunity_ids=opportunity_ids,
+                research_finding_ids=research_ids,
+                profile_topics=profile_topics,
+            )
+            merged = accepted + [
+                p for p in seeded_accepted if p.title not in {q.title for q in accepted}
+            ]
+            if len(merged) >= 2:
+                return merged, rejected
+        return accepted, rejected

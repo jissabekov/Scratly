@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     memory_response_interval: int = 8
     memory_token_threshold: int = 6000
     reducer_version: str = "v2"
+    # Direct web-search provider for the research path (W1.3). The Azure
+    # Responses API web_search tool is used when the resource supports it;
+    # otherwise a configured search API (tavily | brave | bing) is used.
+    web_research_provider: str = ""
+    web_research_api_key: str = ""
 
 
 @lru_cache
