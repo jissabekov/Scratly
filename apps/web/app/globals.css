@@ -21,9 +21,13 @@
   --tint-sand: #efe4d2;
   --paper-raised: #f7f3ea;
 
+  /* Input/interactive boundaries (WCAG 1.4.11 >= 3:1). Decorative panel
+     borders keep canon --line; only control boundaries use --line-strong. */
+  --line-strong: #8a8266;
+
   /* Status colors (W2.3) — AA on paper/panel; tints are wash backgrounds. */
   --success: #3f6d4e;
-  --warning: #8a6d1f;
+  --warning: #755c17;
   --info: #2f5470;
   --success-tint: #e3eee2;
   --warning-tint: #f2ecd7;
@@ -54,6 +58,7 @@
   --paper: #151811;
   --panel: #1e231a;
   --line: #3f4536;
+  --line-strong: #6e7562;
   --accent: #93c3ae;
   --muted: #a7af9e;
   --warn: #dfa070;
@@ -235,7 +240,7 @@
   .toolbar textarea {
     min-width: 16rem;
     padding: 0.45rem 0.55rem;
-    border: 1px solid var(--line);
+    border: 1px solid var(--line-strong);
     background: var(--panel);
     color: var(--ink);
     font: inherit;
@@ -681,7 +686,7 @@
     max-height: 9rem;
     resize: vertical;
     padding: 0.7rem 0.8rem;
-    border: 1px solid var(--line);
+    border: 1px solid var(--line-strong);
     background: var(--panel);
     color: var(--ink);
     font: inherit;
