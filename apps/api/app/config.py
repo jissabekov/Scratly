@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost/scratly"
     azure_openai_endpoint: str = ""
+    azure_openai_api_key: str = ""
     azure_openai_api_version: str = "2024-12-01-preview"
     azure_openai_analyzer_deployment: str = "gpt-5.4-mini"
     azure_openai_writer_deployment: str = "gpt-5.4-mini"

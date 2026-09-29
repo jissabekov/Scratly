@@ -61,3 +61,23 @@ def test_azure_openai_contextvars_are_isolated():
 
     ctx_a.run(set_a)
     assert ctx_b.run(read_b) is None
+
+
+def test_api_key_auth_skips_entra_credential(monkeypatch):
+    import asyncio
+
+    from app.config import get_settings
+    from app.services import azure_openai as az
+
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://example.cognitiveservices.azure.com/")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "unit-test-key")
+    for var in ("AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET"):
+        monkeypatch.delenv(var, raising=False)
+    get_settings.cache_clear()
+    try:
+        service = az.AzureOpenAIService()
+        assert service._credential is None
+        assert service.client.api_key == "unit-test-key"
+        asyncio.run(service.close())
+    finally:
+        get_settings.cache_clear()

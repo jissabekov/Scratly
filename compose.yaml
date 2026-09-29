@@ -47,6 +47,7 @@ services:
       # Inside Compose the DB host is the service name, not localhost.
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-scratly}:${POSTGRES_PASSWORD:-scratly_local_only}@postgres:5432/${POSTGRES_DB:-scratly}
       AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
       AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-12-01-preview}
       AZURE_OPENAI_ANALYZER_DEPLOYMENT: ${AZURE_OPENAI_ANALYZER_DEPLOYMENT:-gpt-5.4-mini}
       AZURE_OPENAI_WRITER_DEPLOYMENT: ${AZURE_OPENAI_WRITER_DEPLOYMENT:-gpt-5.4-mini}

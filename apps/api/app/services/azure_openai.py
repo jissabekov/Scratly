@@ -1,4 +1,4 @@
-"""Azure OpenAI client via Entra (DefaultAzureCredential).
+"""Azure OpenAI client via API key (preferred) or Entra (fallback).
 
 Uses the Responses API when api_version >= 2025-03-01-preview; otherwise
 falls back to chat.completions structured parse (needed for 2024-12-01-preview).
@@ -117,17 +117,26 @@ class AzureOpenAIService:
         if not settings.azure_openai_endpoint:
             raise ValueError("AZURE_OPENAI_ENDPOINT is required for AzureOpenAIService")
         _sanitize_empty_azure_env()
-        self._credential = _build_credential()
-        token = get_bearer_token_provider(
-            self._credential, "https://cognitiveservices.azure.com/.default"
-        )
+        self._credential = None
         self.api_version = settings.azure_openai_api_version
         self.use_responses = _supports_responses_api(self.api_version)
-        self.client = AsyncAzureOpenAI(
-            azure_endpoint=settings.azure_openai_endpoint,
-            azure_ad_token_provider=token,
-            api_version=self.api_version,
-        )
+        api_key = settings.azure_openai_api_key.strip()
+        if api_key:
+            self.client = AsyncAzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                api_key=api_key,
+                api_version=self.api_version,
+            )
+        else:
+            self._credential = _build_credential()
+            token = get_bearer_token_provider(
+                self._credential, "https://cognitiveservices.azure.com/.default"
+            )
+            self.client = AsyncAzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                azure_ad_token_provider=token,
+                api_version=self.api_version,
+            )
         self.deployments = {
             "analyzer": settings.azure_openai_analyzer_deployment,
             "writer": settings.azure_openai_writer_deployment,
@@ -161,7 +170,8 @@ class AzureOpenAIService:
 
     async def close(self) -> None:
         await self.client.close()
-        await self._credential.close()
+        if self._credential is not None:
+            await self._credential.close()
 
     async def structured(self, deployment, prompt_name, prompt_version, model, context):
         deployment_name = self.deployments[deployment]
