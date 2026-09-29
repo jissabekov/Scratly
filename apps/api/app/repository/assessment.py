@@ -1986,7 +1986,8 @@ class TurnTransaction:
                        elicitation_target_key,
                        profile_reviewed,
                        matching_completed,
-                       dim_ask_counts
+                       dim_ask_counts,
+                       assistant_recent
                   FROM core.sessions
                  WHERE id = :session_id
                 """
@@ -2001,6 +2002,13 @@ class TurnTransaction:
             except ValueError:
                 raw_exposure = {}
         counters["dim_ask_counts"] = raw_exposure if isinstance(raw_exposure, dict) else {}
+        raw_recent = counters.get("assistant_recent")
+        if isinstance(raw_recent, str):
+            try:
+                raw_recent = json.loads(raw_recent)
+            except ValueError:
+                raw_recent = []
+        counters["assistant_recent"] = raw_recent if isinstance(raw_recent, list) else []
         return counters
 
     async def update_session_counters(
@@ -2013,6 +2021,7 @@ class TurnTransaction:
         profile_reviewed: bool | None = None,
         matching_completed: bool | None = None,
         dim_ask_counts: dict[str, Any] | None = None,
+        assistant_recent: list[str] | None = None,
     ) -> None:
         assert self._session_id is not None
         sets: list[str] = ["updated_at = now()"]
@@ -2037,6 +2046,9 @@ class TurnTransaction:
         if dim_ask_counts is not None:
             sets.append("dim_ask_counts = CAST(:dac AS jsonb)")
             params["dac"] = json.dumps(dim_ask_counts)
+        if assistant_recent is not None:
+            sets.append("assistant_recent = CAST(:arc AS jsonb)")
+            params["arc"] = json.dumps(assistant_recent)
         await self.session.execute(
             text(f"UPDATE core.sessions SET {', '.join(sets)} WHERE id = :session_id"),
             params,

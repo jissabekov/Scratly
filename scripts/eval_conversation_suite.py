@@ -675,14 +675,23 @@ SCENARIOS: list[dict[str, Any]] = [
     {
         "id": "sim_nia_creative_community",
         "title": "Adaptive E2E — guarded creator grows into a community-story match",
-        "aspects": ["simulated", "natural_flow", "repair", "autonomy", "full_coverage", "final_options"],
+        "aspects": [
+            "simulated",
+            "natural_flow",
+            "repair",
+            "autonomy",
+            "full_coverage",
+            "final_options",
+        ],
         "simulator": {
             "opening": "hey. my counselor said this might help but idk what project i want",
             "min_turns": 14,
             "max_turns": 24,
             "project_keywords": ["photo", "story", "basketball", "community"],
             "facts": {
-                "conversation_contract": ["Okay, but can we keep it normal and not make this a personality test?"],
+                "conversation_contract": [
+                    "Okay, but can we keep it normal and not make this a personality test?"
+                ],
                 "topics": [
                     "I keep taking photos at neighborhood basketball games. Mostly the little moments, not action shots.",
                     "Last month I made a photo carousel about the girls' team because nobody was covering them.",
@@ -700,13 +709,19 @@ SCENARIOS: list[dict[str, Any]] = [
                     "I redid one carousel three nights in a row after the order felt confusing, then asked my cousin to look.",
                     "A blank 'make media' brief would annoy me. Give me an audience and deadline and I can figure out the rest.",
                 ],
-                "capability": ["I can use Lightroom Mobile and Canva. Audio editing and a real camera are new to me."],
-                "assets": ["Phone camera, the rec center manager knows me, and two players said they'd talk to me."],
+                "capability": [
+                    "I can use Lightroom Mobile and Canva. Audio editing and a real camera are new to me."
+                ],
+                "assets": [
+                    "Phone camera, the rec center manager knows me, and two players said they'd talk to me."
+                ],
                 "constraints": [
                     "I'm in Baltimore, bus distance only. Four weeks, phone tools, basically no budget.",
                     "Small interviews are okay. I don't want my face on camera or my full name posted.",
                 ],
-                "profile": ["Mostly right. Make privacy a real constraint, and don't describe me as wanting attention."],
+                "profile": [
+                    "Mostly right. Make privacy a real constraint, and don't describe me as wanting attention."
+                ],
             },
             "project_feedback": "The photo-and-audio mini profile fits best if it can be three short stories, not a huge website. What would option two look like without showing my face?",
         },
@@ -714,14 +729,23 @@ SCENARIOS: list[dict[str, Any]] = [
     {
         "id": "sim_eli_practical_fixing",
         "title": "Adaptive E2E — terse practical fixer with a mid-chat correction",
-        "aspects": ["simulated", "natural_flow", "correction", "thin_recovery", "feasibility", "final_options"],
+        "aspects": [
+            "simulated",
+            "natural_flow",
+            "correction",
+            "thin_recovery",
+            "feasibility",
+            "final_options",
+        ],
         "simulator": {
             "opening": "yo. i fix random stuff, that's about it",
             "min_turns": 14,
             "max_turns": 24,
             "project_keywords": ["repair", "fix", "troubleshoot", "bike", "controller"],
             "facts": {
-                "conversation_contract": ["sure, just don't ask me twenty versions of the same thing"],
+                "conversation_contract": [
+                    "sure, just don't ask me twenty versions of the same thing"
+                ],
                 "topics": [
                     "Mostly bikes and controllers. I fixed my brother's stick drift last weekend.",
                     "The satisfying part is finding the one tiny thing causing the whole problem.",
@@ -739,13 +763,19 @@ SCENARIOS: list[dict[str, Any]] = [
                     "For the controller I cleaned it, tested it, replaced one part, and tested again. Took most of Saturday.",
                     "I can handle figuring stuff out, but I need a clear safety boundary and a way to test each step.",
                 ],
-                "capability": ["Basic soldering, bike tools, multimeter with help. I can't code and don't know CAD."],
-                "assets": ["School workshop, repair tools, and a teacher who can supervise soldering."],
+                "capability": [
+                    "Basic soldering, bike tools, multimeter with help. I can't code and don't know CAD."
+                ],
+                "assets": [
+                    "School workshop, repair tools, and a teacher who can supervise soldering."
+                ],
                 "constraints": [
                     "I'm outside Milwaukee. Six weeks in shop class, under $25, no meeting strangers off campus.",
                     "Showing the finished repair in class is fine. Public social posts aren't.",
                 ],
-                "profile": ["Yeah, practical troubleshooting is right. Keep coding and public content out of it."],
+                "profile": [
+                    "Yeah, practical troubleshooting is right. Keep coding and public content out of it."
+                ],
             },
             "project_feedback": "The repair decision guide plus three supervised repair cases feels real. I'd skip the public tutorial option. Can we choose the first one?",
         },
@@ -753,14 +783,23 @@ SCENARIOS: list[dict[str, Any]] = [
     {
         "id": "sim_luz_bilingual_food",
         "title": "Adaptive E2E — bilingual family-food organizer chooses scoped options",
-        "aspects": ["simulated", "natural_flow", "bilingual", "mixed_intent", "assets", "final_options"],
+        "aspects": [
+            "simulated",
+            "natural_flow",
+            "bilingual",
+            "mixed_intent",
+            "assets",
+            "final_options",
+        ],
         "simulator": {
             "opening": "Hola, I help at my tía's food stall on weekends. Not sure if that counts as an interest lol",
             "min_turns": 14,
             "max_turns": 24,
             "project_keywords": ["order", "food", "bilingual", "flow", "stall"],
             "facts": {
-                "conversation_contract": ["Okay. Are you looking for what I'm good at or just what I like?"],
+                "conversation_contract": [
+                    "Okay. Are you looking for what I'm good at or just what I like?"
+                ],
                 "topics": [
                     "I keep reorganizing the handwritten orders because Saturday lunch gets chaotic.",
                     "Two weeks ago I made color cards for pickup, delivery, and waiting. My tía kept using them.",
@@ -778,13 +817,19 @@ SCENARIOS: list[dict[str, Any]] = [
                     "The first cards were too wordy, so I watched one rush, shortened them, and tried again next Saturday.",
                     "I can start with a messy problem if I can observe it. A totally imaginary business brief would be harder.",
                 ],
-                "capability": ["Canva, Google Sheets basics, Spanish and English. No app building."],
-                "assets": ["The stall, real order slips, my family as testers, and a phone printer at school."],
+                "capability": [
+                    "Canva, Google Sheets basics, Spanish and English. No app building."
+                ],
+                "assets": [
+                    "The stall, real order slips, my family as testers, and a phone printer at school."
+                ],
                 "constraints": [
                     "I'm in El Paso. Five weekends, under $30, and we can't publish customer names or sales numbers.",
                     "I can present to class, but my tía should approve anything about the stall first.",
                 ],
-                "profile": ["Sí, organizer and explainer fits. Keep the family privacy part and don't turn it into an app."],
+                "profile": [
+                    "Sí, organizer and explainer fits. Keep the family privacy part and don't turn it into an app."
+                ],
             },
             "project_feedback": "The bilingual order-flow kit is the best one. I like comparing before and after, but no customer data online. What's the smallest version?",
         },
@@ -981,12 +1026,8 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
             profile_change_count += int(changes)
         resolved_unknown_keys.update(outs.get("resolved_unknown_keys") or [])
 
-    intents = [
-        e for e in events if e.get("event_type") == "turn_intent_classified"
-    ]
-    thin_events = [
-        e for e in events if e.get("event_type") == "answer_thinness_evaluated"
-    ]
+    intents = [e for e in events if e.get("event_type") == "turn_intent_classified"]
+    thin_events = [e for e in events if e.get("event_type") == "answer_thinness_evaluated"]
     elicitation = [
         e
         for e in events
@@ -996,15 +1037,10 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
     student_answers = [
         e
         for e in events
-        if e.get("event_type")
-        in {"student_answer_written", "student_answer_refused"}
+        if e.get("event_type") in {"student_answer_written", "student_answer_refused"}
     ]
-    fallbacks = [
-        e for e in events if e.get("event_type") == "question_fallback_used"
-    ]
-    quality_gates = [
-        e for e in events if e.get("event_type") == "question_quality_gate"
-    ]
+    fallbacks = [e for e in events if e.get("event_type") == "question_fallback_used"]
+    quality_gates = [e for e in events if e.get("event_type") == "question_quality_gate"]
     component_durations: dict[str, list[int]] = defaultdict(list)
     for event in events:
         outputs = event.get("outputs") or {}
@@ -1018,14 +1054,36 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
                 component_durations["writer"].append(int(outputs["writer_duration_ms"]))
             if outputs.get("total_duration_ms") is not None:
                 component_durations["total_traced"].append(int(outputs["total_duration_ms"]))
-        elif event_type == "project_fits_persisted" and outputs.get("matching_duration_ms") is not None:
+        elif (
+            event_type == "project_fits_persisted"
+            and outputs.get("matching_duration_ms") is not None
+        ):
             component_durations["matching"].append(int(outputs["matching_duration_ms"]))
 
-    # Leakage / UX smells in assistant text
+    # Leakage / UX smells in assistant text. Duplicate detection splits
+    # assessment turns from post-completion turns: the terminal fast path returns
+    # contextual-but-templated receipts by design, so post_match turns are
+    # reported separately and excluded from the A14 conversational dup metric
+    # (instrumentation split, not a threshold change — A14 stays at <=10% for
+    # assessment turns).
     assistant_msgs = [
+        (t.get("response") or {}).get("assistant_message") or "" for t in turns if t.get("response")
+    ]
+    assessment_msgs = [
         (t.get("response") or {}).get("assistant_message") or ""
         for t in turns
         if t.get("response")
+        and (t.get("response") or {}).get("message_kind") != "post_match_feedback"
+        and (t.get("response") or {}).get("stage") != "complete"
+    ]
+    post_match_msgs = [
+        (t.get("response") or {}).get("assistant_message") or ""
+        for t in turns
+        if t.get("response")
+        and (
+            (t.get("response") or {}).get("message_kind") == "post_match_feedback"
+            or (t.get("response") or {}).get("stage") == "complete"
+        )
     ]
     leak_hits = sum(
         1
@@ -1054,22 +1112,21 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         if t.get("duration_ms") is not None:
             turn_durations.append(t["duration_ms"])
 
-    normalized_messages = [_normalized_utterance(m) for m in assistant_msgs]
+    normalized_messages = [_normalized_utterance(m) for m in assessment_msgs]
     nonempty_messages = [m for m in normalized_messages if m]
     duplicate_messages = len(nonempty_messages) - len(set(nonempty_messages))
+    normalized_post_match = [_normalized_utterance(m) for m in post_match_msgs]
+    nonempty_post_match = [m for m in normalized_post_match if m]
+    post_match_duplicate_messages = len(nonempty_post_match) - len(set(nonempty_post_match))
     target_keys = [t.get("target_key") for t in q_targets if t.get("target_key")]
     stage_regressions = sum(
         1
         for before, after in zip(stages, stages[1:])
-        if before in STAGE_RANK
-        and after in STAGE_RANK
-        and STAGE_RANK[after] < STAGE_RANK[before]
+        if before in STAGE_RANK and after in STAGE_RANK and STAGE_RANK[after] < STAGE_RANK[before]
     )
     question_counts = [m.count("?") for m in assistant_msgs]
     project_offer_count = sum(
-        1
-        for t in turns
-        if (t.get("response") or {}).get("message_kind") == "project_offer"
+        1 for t in turns if (t.get("response") or {}).get("message_kind") == "project_offer"
     )
     project_items = (dump.get("projects") or {}).get("items") or []
     simulated_turns = [t for t in turns if t.get("simulation")]
@@ -1079,12 +1136,17 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         if t.get("index") != 1
     ]
     offer_turn = next(
-        (t.get("index") for t in turns if (t.get("response") or {}).get("message_kind") == "project_offer"),
+        (
+            t.get("index")
+            for t in turns
+            if (t.get("response") or {}).get("message_kind") == "project_offer"
+        ),
         None,
     )
     assistant_word_counts = [len(m.split()) for m in assistant_msgs]
     forced_slang_hits = sum(
-        1 for m in assistant_msgs
+        1
+        for m in assistant_msgs
         if re.search(r"\b(no cap|bet|slaps?|lowkey|mid|vibes|fire)\b", m.lower())
     )
     expectations = dump.get("scenario_expectations") or {}
@@ -1098,14 +1160,16 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "broad_evidence": len(dims_touched) >= 6,
         "profile_review_reached": "profile_review" in (stages or []),
         "options_presented": project_offer_count == 1 and len(project_items) >= 2,
-        "options_are_grounded": bool(project_items) and all(
-            int(p.get("citation_count") or 0) >= 1 for p in project_items
-        ),
-        "options_fit_persona": not project_keywords or any(
-            keyword.lower() in project_text for keyword in project_keywords
-        ),
+        "options_are_grounded": bool(project_items)
+        and all(int(p.get("citation_count") or 0) >= 1 for p in project_items),
+        "options_fit_persona": not project_keywords
+        or any(keyword.lower() in project_text for keyword in project_keywords),
         "feedback_after_options": bool(
-            offer_turn and any((t.get("simulation") or {}).get("answered_target") == "project_options" for t in turns)
+            offer_turn
+            and any(
+                (t.get("simulation") or {}).get("answered_target") == "project_options"
+                for t in turns
+            )
         ),
         "no_stage_regression": stage_regressions == 0,
         "no_target_loop": _max_run(target_keys) <= 2,
@@ -1155,9 +1219,9 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "assistant_leak_hits": leak_hits,
         "generic_provisional_repeats": generic_prov,
         "duplicate_assistant_messages": duplicate_messages,
-        "duplicate_assistant_ratio": round(
-            duplicate_messages / max(len(nonempty_messages), 1), 3
-        ),
+        "duplicate_assistant_ratio": round(duplicate_messages / max(len(nonempty_messages), 1), 3),
+        "post_match_duplicate_messages": post_match_duplicate_messages,
+        "post_match_turn_count": len(nonempty_post_match),
         "max_questions_in_response": max(question_counts, default=0),
         "multi_question_response_count": sum(1 for count in question_counts if count > 1),
         "project_offer_count": project_offer_count,
@@ -1167,7 +1231,9 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         "simulated_reply_target_rate": round(
             sum(bool(x) for x in answered_targets) / max(len(answered_targets), 1), 3
         ),
-        "assistant_mean_words": round(sum(assistant_word_counts) / max(len(assistant_word_counts), 1), 1),
+        "assistant_mean_words": round(
+            sum(assistant_word_counts) / max(len(assistant_word_counts), 1), 1
+        ),
         "assistant_max_words": max(assistant_word_counts, default=0),
         "forced_slang_hits": forced_slang_hits,
         "end_to_end_checks": end_to_end_checks,
@@ -1245,17 +1311,15 @@ def run_scenario(
         }
         turn_t0 = time.perf_counter()
         try:
-            response = _req(
-                "POST", f"{base}/v1/sessions/{session_id}/turns", body, timeout=240
-            )
+            response = _req("POST", f"{base}/v1/sessions/{session_id}/turns", body, timeout=240)
             duration_ms = int((time.perf_counter() - turn_t0) * 1000)
             turn_record = {
-                    "index": index,
-                    "request": body,
-                    "response_status": 200,
-                    "response": response,
-                    "duration_ms": duration_ms,
-                }
+                "index": index,
+                "request": body,
+                "response_status": 200,
+                "response": response,
+                "duration_ms": duration_ms,
+            }
             if simulator:
                 turn_record["simulation"] = {
                     "answered_target": None if index == 1 else answered_target,
@@ -1314,9 +1378,7 @@ def run_scenario(
     live_llm = any(
         e.get("reason_code") == "structured_writer_succeeded"
         for e in (decision_trace.get("events") or [])
-    ) or any(
-        e.get("llm_run_id") for e in (decision_trace.get("events") or [])
-    )
+    ) or any(e.get("llm_run_id") for e in (decision_trace.get("events") or []))
 
     dump: dict[str, Any] = {
         "scenario_id": scenario["id"],
@@ -1327,7 +1389,9 @@ def run_scenario(
             "min_turns": simulator.get("min_turns"),
             "must_present_final_options": True,
             "project_keywords": simulator.get("project_keywords") or [],
-        } if simulator else {},
+        }
+        if simulator
+        else {},
         "started_at": started,
         "finished_at": datetime.now(timezone.utc).isoformat(),
         "elapsed_s": round(time.perf_counter() - t0, 1),
@@ -1396,8 +1460,7 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
     stuck_open = [
         m
         for m in metrics
-        if (m.get("open_contradictions") or 0) >= 3
-        and (m.get("n_turns") or 0) >= 10
+        if (m.get("open_contradictions") or 0) >= 3 and (m.get("n_turns") or 0) >= 10
     ]
     if stuck_open:
         findings.append(
@@ -1463,15 +1526,10 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
         "decision_events_total": sum(m.get("n_events") or 0 for m in metrics),
         "evidence_accepted_total": sum(m.get("n_evidence_accepted") or 0 for m in metrics),
         "questions_recorded_total": sum(m.get("n_questions_recorded") or 0 for m in metrics),
-        "scenarios_with_llm_runs": sum(
-            1 for m in metrics if (m.get("llm_runs") or 0) > 0
-        ),
-        "scenarios_with_memory": sum(
-            1 for m in metrics if (m.get("memory_snapshots") or 0) > 0
-        ),
+        "scenarios_with_llm_runs": sum(1 for m in metrics if (m.get("llm_runs") or 0) > 0),
+        "scenarios_with_memory": sum(1 for m in metrics if (m.get("memory_snapshots") or 0) > 0),
         "avg_dimensions_touched": round(
-            sum(m.get("n_dimensions_touched") or 0 for m in metrics)
-            / max(len(metrics), 1),
+            sum(m.get("n_dimensions_touched") or 0 for m in metrics) / max(len(metrics), 1),
             2,
         ),
         "avg_info_gain_ratio": round(
@@ -1479,16 +1537,13 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
             3,
         ),
         "avg_evidence_acceptance_rate": round(
-            sum(m.get("evidence_acceptance_rate") or 0 for m in metrics)
-            / max(len(metrics), 1),
+            sum(m.get("evidence_acceptance_rate") or 0 for m in metrics) / max(len(metrics), 1),
             3,
         ),
         "duplicate_assistant_messages_total": sum(
             m.get("duplicate_assistant_messages") or 0 for m in metrics
         ),
-        "stage_regressions_total": sum(
-            m.get("stage_regressions") or 0 for m in metrics
-        ),
+        "stage_regressions_total": sum(m.get("stage_regressions") or 0 for m in metrics),
         "p95_turn_ms": _percentile(
             [
                 int(t["duration_ms"])
@@ -1500,20 +1555,22 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
         ),
         "stage_reach": {
             "profile_review": sum(1 for m in metrics if m.get("reached_profile_review")),
-            "project_matching": sum(
-                1 for m in metrics if m.get("reached_project_matching")
-            ),
+            "project_matching": sum(1 for m in metrics if m.get("reached_project_matching")),
             "complete": sum(1 for m in metrics if m.get("reached_complete")),
         },
         "adaptive_end_to_end": {
-            "scenario_count": sum(1 for m in metrics if m.get("scenario_mode") == "adaptive_simulation"),
+            "scenario_count": sum(
+                1 for m in metrics if m.get("scenario_mode") == "adaptive_simulation"
+            ),
             "all_checks_passed": sum(
-                1 for m in metrics
+                1
+                for m in metrics
                 if m.get("scenario_mode") == "adaptive_simulation"
                 and all((m.get("end_to_end_checks") or {}).values())
             ),
             "options_presented": sum(
-                1 for m in metrics
+                1
+                for m in metrics
                 if m.get("scenario_mode") == "adaptive_simulation"
                 and (m.get("end_to_end_checks") or {}).get("options_presented")
             ),
@@ -1603,9 +1660,7 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
         # A2 — measure local loops, not legitimate revisits across a long chat.
         max_run = m.get("max_consecutive_target_repeats") or 0
         if n_turns >= 8 and max_run > 2:
-            violations.append(
-                f"A2: {sid} repeated one target {max_run} consecutive times"
-            )
+            violations.append(f"A2: {sid} repeated one target {max_run} consecutive times")
 
     thin = by_id.get("thin_elicitation_loop") or {}
     thin_dump = next(
@@ -1657,8 +1712,7 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
     )
     if "student_questions_and_refuse" in run_ids and refuse_dump:
         refuse_events = {
-            e.get("event_type")
-            for e in refuse_dump.get("decision_trace", {}).get("events") or []
+            e.get("event_type") for e in refuse_dump.get("decision_trace", {}).get("events") or []
         }
         if "student_answer_refused" not in refuse_events:
             violations.append("A7: student_questions_and_refuse missing refusal event")
@@ -1683,13 +1737,10 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
     )
     if "early_complete_attempt" in run_ids and early_dump:
         early_stages = [
-            (t.get("response") or {}).get("stage")
-            for t in (early_dump.get("turns") or [])[:7]
+            (t.get("response") or {}).get("stage") for t in (early_dump.get("turns") or [])[:7]
         ]
         if "project_matching" in early_stages:
-            violations.append(
-                "A10: early_complete_attempt entered project_matching before turn 8"
-            )
+            violations.append("A10: early_complete_attempt entered project_matching before turn 8")
 
     # A12 — target_kind null rate on question_target_selected
     for dump in dumps:
@@ -1712,18 +1763,14 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
     for m in metrics:
         sid = m.get("scenario_id")
         if (m.get("project_offer_count") or 0) > 1:
-            violations.append(
-                f"A13: {sid} emitted {m.get('project_offer_count')} project offers"
-            )
+            violations.append(f"A13: {sid} emitted {m.get('project_offer_count')} project offers")
         if (m.get("duplicate_assistant_ratio") or 0) > 0.10:
             violations.append(
                 f"A14: {sid} duplicate assistant ratio "
                 f"{m.get('duplicate_assistant_ratio'):.0%} > 10%"
             )
         if (m.get("stage_regressions") or 0) > 0:
-            violations.append(
-                f"A15: {sid} has {m.get('stage_regressions')} stage regression(s)"
-            )
+            violations.append(f"A15: {sid} has {m.get('stage_regressions')} stage regression(s)")
         if (m.get("multi_question_response_count") or 0) > 0:
             violations.append(
                 f"A16: {sid} has {m.get('multi_question_response_count')} response(s) "
@@ -1736,10 +1783,7 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
     if len(run_ids) == len(SCENARIOS) and len(simulated) < 3:
         violations.append(f"A17: adaptive end-to-end scenarios={len(simulated)} < 3")
     for m in simulated:
-        failed = [
-            key for key, passed in (m.get("end_to_end_checks") or {}).items()
-            if not passed
-        ]
+        failed = [key for key, passed in (m.get("end_to_end_checks") or {}).items() if not passed]
         if failed:
             violations.append(
                 f"A18: {m.get('scenario_id')} failed end-to-end checks: {','.join(failed)}"
@@ -1787,8 +1831,10 @@ def main() -> int:
                 f"{s['id']:32s}  turns≤{_planned_turns(s):2d}  "
                 f"aspects={','.join(s['aspects'][:4])}..."
             )
-        print(f"\n{len(SCENARIOS)} scenarios, "
-              f"{sum(_planned_turns(s) for s in SCENARIOS)} maximum turns")
+        print(
+            f"\n{len(SCENARIOS)} scenarios, "
+            f"{sum(_planned_turns(s) for s in SCENARIOS)} maximum turns"
+        )
         return 0
 
     selected = SCENARIOS

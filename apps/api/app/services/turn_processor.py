@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from time import perf_counter
 from typing import Any
 from uuid import UUID
@@ -117,6 +118,73 @@ def _exposure_fallback(exposure: dict[str, Any]) -> Target:
         ),
     )
     return ranked[0]
+
+
+# Outgoing duplicate control (W1.2): the ring holds the last assistant texts per
+# session; an outgoing reply matching one of them verbatim or near-verbatim is
+# rewritten before it is persisted.
+_DEDUP_RING_SIZE = 8
+_NEAR_DUP_JACCARD = 0.7
+_SHORT_REPLY_WORDS = 12
+
+_TRANSITION_LINES = (
+    "Setting that aside — {question}",
+    "Different angle on the same thing: {question}",
+    "Before we keep going, one thing would help me: {question}",
+    "Let me ask that another way — {question}",
+)
+
+_ABSTENTION_LINES = (
+    (
+        "I couldn’t verify at least two relevant project directions, so I won’t fill "
+        "the gap with generic options. Would you like to broaden the topic or location, "
+        "or pause here?"
+    ),
+    (
+        "I don’t have two grounded directions worth your time yet, and I’d rather not "
+        "guess. Should we look at a different topic or area, or leave it here for now?"
+    ),
+    (
+        "Nothing I could verify gave me two solid directions yet — I’d rather not fill "
+        "the gap with generic ideas. Want to try a broader topic, adjust the location, "
+        "or pick this up later?"
+    ),
+    (
+        "I only found one direction that held up, which isn’t enough to offer fairly. "
+        "We can widen the topic, look at another location, or stop here for now."
+    ),
+)
+
+_WORD_RE = re.compile(r"[a-z0-9']+")
+
+
+def _normalized_words(text: str) -> list[str]:
+    return _WORD_RE.findall((text or "").lower())
+
+
+def _near_duplicate_reason(content: str, recent: list[str]) -> str | None:
+    """Why ``content`` repeats a recent reply: exact, near-dup, or None."""
+    words = _normalized_words(content)
+    if not words:
+        return None
+    joined = " ".join(words)
+    for previous in recent:
+        prev = _normalized_words(str(previous))
+        if not prev:
+            continue
+        if joined == " ".join(prev):
+            return "exact_repeat"
+        if len(words) <= _SHORT_REPLY_WORDS or len(prev) <= _SHORT_REPLY_WORDS:
+            a, b = set(words), set(prev)
+            union = a | b
+            if union and len(a & b) / len(union) >= _NEAR_DUP_JACCARD:
+                return "near_duplicate"
+    return None
+
+
+def _transition_line(rotation: int, question: str) -> str:
+    """Deterministic varied lead-in that still asks exactly one question."""
+    return _TRANSITION_LINES[rotation % len(_TRANSITION_LINES)].format(question=question)
 
 
 async def process_student_turn(repo, extractor, writer, context_builder, session_id, request):
@@ -943,6 +1011,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         used_fallback = False
         azure_succeeded = False
         opening_mode = None
+        writer_context: dict[str, Any] | None = None
         if "social_opener" in (thin.reason_codes or []):
             opening_mode = "social_opener"
         force_seeded_depth = (
@@ -1088,11 +1157,10 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 question = "Which of these directions interests you most, or what would you change?"
             else:
                 assistant_prefix = None
-                question = (
-                    "I couldn’t verify at least two relevant project directions, so I "
-                    "won’t fill the gap with generic options. Would you like to broaden "
-                    "the topic or location, or pause here?"
-                )
+                question = _ABSTENTION_LINES[
+                    len([m for m in counters.get("assistant_recent") or [] if isinstance(m, str)])
+                    % len(_ABSTENTION_LINES)
+                ]
                 message_kind = "matching_unavailable"
         elif stage == "project_matching" and existing_projects:
             # The message following an offer is feedback/selection, not a signal
@@ -1139,6 +1207,48 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             )
             exposure = _bump_exposure(probe_dim, exposure)
             await tx.update_session_counters(dim_ask_counts=exposure)
+
+        # Outgoing duplicate control (W1.2): the ring holds the last 8 assistant
+        # texts; a near-duplicate reply is regenerated once with a steering note,
+        # then substituted from a transition bank if it still repeats.
+        recent_replies = [m for m in (counters.get("assistant_recent") or []) if isinstance(m, str)]
+        candidate_content = (
+            f"{assistant_prefix.rstrip()}\n\n{question}" if assistant_prefix else question
+        )
+        dup_reason = _near_duplicate_reason(candidate_content, recent_replies)
+        if dup_reason and message_kind not in {"project_offer", "post_match_feedback"}:
+            rewrite_mode = "transition_line"
+            if azure_succeeded and not used_fallback and writer_context is not None:
+                try:
+                    retry_context = dict(writer_context)
+                    retry_context["avoid_repeating"] = candidate_content
+                    retry_question = await writer.write(retry_context)
+                    if _near_duplicate_reason(retry_question, recent_replies) is None:
+                        question = retry_question
+                        rewrite_mode = "writer_retry"
+                        dup_reason = None
+                except Exception:
+                    rewrite_mode = None
+            if dup_reason:
+                assistant_prefix = None
+                question = _transition_line(len(recent_replies), target.fallback_template)
+            candidate_content = (
+                f"{assistant_prefix.rstrip()}\n\n{question}" if assistant_prefix else question
+            )
+            await trace.record(
+                "assistant_duplicate_rewritten",
+                "turn_processor",
+                "v1",
+                "Rewrote an outgoing reply that repeated a recent assistant message.",
+                dup_reason or "near_duplicate",
+                outputs={"rewrite_mode": rewrite_mode},
+            )
+        await tx.update_session_counters(
+            assistant_recent=[
+                *recent_replies[-(_DEDUP_RING_SIZE - 1) :],
+                candidate_content,
+            ]
+        )
 
         assistant = await tx.persist_question_and_complete(
             turn,

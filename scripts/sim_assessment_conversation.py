@@ -91,9 +91,7 @@ def run_assertions(dump: dict[str, Any]) -> list[str]:
 
     # P0: no false multi-support opens on Maya-like openings.
     false_dims = {"motivation", "topics", "capability"}
-    open_false = [
-        c for c in open_rows if c.get("dimension_key") in false_dims
-    ]
+    open_false = [c for c in open_rows if c.get("dimension_key") in false_dims]
     if open_false and len(dump["turns"]) >= 1:
         # After full Maya script these should not remain open from false multi-support.
         failures.append(
@@ -112,9 +110,7 @@ def run_assertions(dump: dict[str, Any]) -> list[str]:
     events = dump.get("decision_trace", {}).get("events", [])
     if events:
         extract_write = [
-            e
-            for e in events
-            if e.get("event_type") in {"evidence_proposed", "question_written"}
+            e for e in events if e.get("event_type") in {"evidence_proposed", "question_written"}
         ]
         linked = [e for e in extract_write if e.get("llm_run_id")]
         if dump.get("live_llm") and extract_write and not linked:
@@ -139,9 +135,7 @@ def run_assertions(dump: dict[str, Any]) -> list[str]:
         if t.get("response")
     ]
     generic_prov = sum(
-        1
-        for m in fallback_msgs
-        if m == "Could you give a concrete example of that preference?"
+        1 for m in fallback_msgs if m == "Could you give a concrete example of that preference?"
     )
     if generic_prov >= 3:
         failures.append(f"provisional fallback repeated {generic_prov} times")
@@ -160,11 +154,7 @@ def run_assertions(dump: dict[str, Any]) -> list[str]:
             failures.append("student-questions probe missing refuse for homework ask")
         # Pure process question should not invent evidence on that turn alone —
         # check the first probe turn evidence delta via decision reasons.
-        skipped = [
-            e
-            for e in events
-            if e.get("event_type") == "evidence_extraction_skipped"
-        ]
+        skipped = [e for e in events if e.get("event_type") == "evidence_extraction_skipped"]
         if not skipped:
             failures.append("expected evidence_extraction_skipped for pure student Q")
 
@@ -201,11 +191,7 @@ def run_assertions(dump: dict[str, Any]) -> list[str]:
         pf_items = dump["admin_views"]["project-fit"]["items"]
         if not isinstance(pf_items, list):
             failures.append("project-fit admin view should return a list")
-        geo_events = [
-            e
-            for e in events
-            if e.get("event_type") == "location_readiness_checked"
-        ]
+        geo_events = [e for e in events if e.get("event_type") == "location_readiness_checked"]
         if not geo_events:
             failures.append("project-matching probe missing location_readiness_checked")
         ready = [e for e in events if e.get("reason_code") == "location_ready"]
@@ -272,9 +258,7 @@ def main() -> int:
             "idempotency_key": f"live-turn-{index:02d}-{uuid.uuid4().hex[:8]}",
             "text": text,
         }
-        response = _req(
-            "POST", f"{args.base}/v1/sessions/{session_id}/turns", body
-        )
+        response = _req("POST", f"{args.base}/v1/sessions/{session_id}/turns", body)
         turns_out.append(
             {
                 "request": body,
@@ -301,9 +285,7 @@ def main() -> int:
     ):
         views[view] = _admin(args.base, session_id, view)
 
-    decision_trace = _req(
-        "GET", f"{args.base}/v1/admin/sessions/{session_id}/decision-trace"
-    )
+    decision_trace = _req("GET", f"{args.base}/v1/admin/sessions/{session_id}/decision-trace")
 
     # Direct DB-ish admin counts via contradictions + optional SQL through docker is
     # outside HTTP; approximate llm/memory via decision-trace + postgres helper later.
@@ -311,9 +293,7 @@ def main() -> int:
         e.get("reason_code") == "structured_writer_succeeded"
         for e in decision_trace.get("events", [])
     )
-    linked_runs = sum(
-        1 for e in decision_trace.get("events", []) if e.get("llm_run_id")
-    )
+    linked_runs = sum(1 for e in decision_trace.get("events", []) if e.get("llm_run_id"))
 
     dump: dict[str, Any] = {
         "mode": "host API + compose postgres",
