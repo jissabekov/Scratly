@@ -1,35 +1,75 @@
-"""Plan 04 boundary: quiz delivery and attempts are not implemented yet.
+"""Module quiz delivery and submission (Plan 04 W4.4).
 
-Phase 3 builds the module path and the *shape* of the quiz gate only (the hub
-reports ``quiz_gate_locked`` and the module detail reports a locked gate). The
-4/5 + critical-objective pass rule, remediation, and BKT mastery are Plan 04.
-These endpoints exist so the boundary is explicit and routable.
+``GET`` draws (or resumes) the current form's 5 items; ``POST`` scores one
+attempt idempotently by ``request_id`` and returns the gate decision. Both
+write only to ``learning.*`` — quiz answers are learning evidence, never
+assessment evidence (hard rules 2/4).
 """
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.contracts.learning_quiz import (
+    QuizAttemptRequest,
+    QuizAttemptResponse,
+    QuizDrawResponse,
+    QuizItemCheckRequest,
+    QuizItemCheckResponse,
+)
+from app.deps import get_quiz_repo
+from app.repository.learning_quiz import QuizConflictError, QuizRepository
 
 router = APIRouter(tags=["learning"])
 
 
-def _not_implemented(endpoint: str, phase: int) -> HTTPException:
-    return HTTPException(
-        status_code=501,
-        detail={
-            "error": "not_implemented",
-            "endpoint": endpoint,
-            "planned_phase": phase,
-            "note": "Quiz gating (4/5 + critical objective) lands in Plan 04.",
-        },
-    )
+@router.get(
+    "/sessions/{session_id}/learning/modules/{module_id}/quiz",
+    response_model=QuizDrawResponse,
+)
+async def next_quiz_attempt(
+    session_id: UUID,
+    module_id: UUID,
+    repo: QuizRepository = Depends(get_quiz_repo),
+):
+    result = await repo.draw(session_id, module_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Module not found for this session")
+    return result
 
 
-@router.get("/sessions/{session_id}/learning/modules/{module_id}/quiz")
-async def next_quiz_attempt(session_id: UUID, module_id: UUID):
-    raise _not_implemented("GET module quiz", 4)
+@router.post(
+    "/sessions/{session_id}/learning/quiz-attempts/{attempt_id}/responses",
+    response_model=QuizItemCheckResponse,
+)
+async def check_quiz_item(
+    session_id: UUID,
+    attempt_id: UUID,
+    body: QuizItemCheckRequest,
+    repo: QuizRepository = Depends(get_quiz_repo),
+):
+    try:
+        result = await repo.check_item(session_id, attempt_id, body)
+    except QuizConflictError as err:
+        raise HTTPException(status_code=409, detail=str(err)) from None
+    if result is None:
+        raise HTTPException(status_code=404, detail="Quiz item not found for this attempt")
+    return result
 
 
-@router.post("/sessions/{session_id}/learning/quiz-attempts")
-async def submit_quiz_attempt(session_id: UUID):
-    raise _not_implemented("POST quiz-attempts", 4)
+@router.post(
+    "/sessions/{session_id}/learning/quiz-attempts",
+    response_model=QuizAttemptResponse,
+)
+async def submit_quiz_attempt(
+    session_id: UUID,
+    body: QuizAttemptRequest,
+    repo: QuizRepository = Depends(get_quiz_repo),
+):
+    try:
+        result = await repo.submit(session_id, body)
+    except QuizConflictError as err:
+        raise HTTPException(status_code=409, detail=str(err)) from None
+    if result is None:
+        raise HTTPException(status_code=404, detail="Quiz attempt not found for this session")
+    return result

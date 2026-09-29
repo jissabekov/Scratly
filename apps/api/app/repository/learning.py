@@ -142,21 +142,57 @@ class LearningRepository:
         )
         return [row["day"] for row in result.mappings()]
 
+    async def _quiz_passed(self, session_id: UUID) -> dict[UUID, bool]:
+        """Modules whose quiz gate is cleared (strict or provisional pass)."""
+        result = await self.session.execute(
+            text(
+                """
+                SELECT module_id
+                  FROM learning.quiz_attempts
+                 WHERE session_id = :session_id AND (passed OR provisional)
+                 GROUP BY module_id
+                """
+            ),
+            {"session_id": session_id},
+        )
+        return {row[0]: True for row in result.all()}
+
+    async def _modules_with_quizzes(self, module_ids: list[UUID]) -> set[UUID]:
+        if not module_ids:
+            return set()
+        result = await self.session.execute(
+            text(
+                """
+                SELECT DISTINCT module_id FROM learning.quiz_items
+                 WHERE module_id = ANY(:module_ids)
+                """
+            ),
+            {"module_ids": module_ids},
+        )
+        return {row[0] for row in result.all()}
+
     async def _resolved_modules(
         self, session_id: UUID
-    ) -> tuple[str, list[dict[str, Any]], dict[UUID, int]]:
+    ) -> tuple[str, list[dict[str, Any]], dict[UUID, int], dict[UUID, bool]]:
         archetype_key = await self.resolve_archetype_key(session_id)
         rows = await self._module_rows(archetype_key)
         if not rows and archetype_key != GENERIC_ARCHETYPE_KEY:
             archetype_key = GENERIC_ARCHETYPE_KEY
             rows = await self._module_rows(archetype_key)
-        return archetype_key, rows, await self._completion_counts(session_id)
+        return (
+            archetype_key,
+            rows,
+            await self._completion_counts(session_id),
+            await self._quiz_passed(session_id),
+        )
 
     async def hub(self, session_id: UUID) -> LearningHubResponse | None:
         session = await self.session_student(session_id)
         if session is None:
             return None
-        archetype_key, rows, completed_by_module = await self._resolved_modules(session_id)
+        archetype_key, rows, completed_by_module, quiz_passed = await self._resolved_modules(
+            session_id
+        )
 
         views = [
             ModuleProgressView(
@@ -167,7 +203,7 @@ class LearningRepository:
             )
             for row in rows
         ]
-        states = derive_module_states(views)
+        states = derive_module_states(views, quiz_passed)
         modules = [
             LearningModuleSummary(
                 id=row["id"],
@@ -180,7 +216,7 @@ class LearningRepository:
                 slides_total=row["slides_total"],
                 slides_completed=view.slides_completed,
                 progress_pct=progress_pct(view.slides_completed, row["slides_total"]),
-                quiz_gate_locked=state is not ModuleState.PASSED,
+                quiz_gate_locked=not quiz_passed.get(row["id"], False),
             )
             for row, view, state in zip(rows, views, states, strict=True)
         ]
@@ -236,6 +272,19 @@ class LearningRepository:
             for index, row in enumerate(result.mappings(), start=1)
         ]
         current = next((slide.index for slide in slides if not slide.completed), len(slides) or 1)
+        passed = module_id in (await self._quiz_passed(session_id))
+        has_quiz = module_id in (await self._modules_with_quizzes([module_id]))
+        unlocked = summary.state in (
+            ModuleState.AVAILABLE,
+            ModuleState.IN_PROGRESS,
+            ModuleState.PASSED,
+        )
+        if passed:
+            quiz = QuizGate(state="passed", available=False)
+        elif has_quiz and unlocked:
+            quiz = QuizGate(state="available", available=True)
+        else:
+            quiz = QuizGate(state="locked", available=False)
         return ModuleDetailResponse(
             session_id=session_id,
             module=summary,
@@ -245,7 +294,7 @@ class LearningRepository:
                 slides_completed=summary.slides_completed,
                 current_slide_index=current,
             ),
-            quiz=QuizGate(state="locked", available=False, planned_phase=4),
+            quiz=quiz,
         )
 
     async def _slide_context(self, slide_id: UUID) -> dict[str, Any] | None:

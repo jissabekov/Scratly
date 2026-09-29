@@ -16,6 +16,8 @@ export type LessonPlayerProps = {
   module: LearningModuleSummary;
   slides: SlideItem[];
   initialIndex: number;
+  /** Set when the module quiz is open, so the completion panel can link to it. */
+  quizHref?: string | null;
 };
 
 const variants = {
@@ -34,7 +36,13 @@ function clamp(value: number, min: number, max: number): number {
  * which is the only state authority — nothing is persisted in the browser.
  * Keyboard: ←/→ navigate, 1–4 pick options, Enter is the primary CTA.
  */
-export function LessonPlayer({ sessionId, module, slides, initialIndex }: LessonPlayerProps) {
+export function LessonPlayer({
+  sessionId,
+  module,
+  slides,
+  initialIndex,
+  quizHref = null,
+}: LessonPlayerProps) {
   const total = slides.length;
   const reduced = useReducedMotion();
   const hubHref = `/modules?session=${encodeURIComponent(sessionId)}`;
@@ -254,7 +262,9 @@ export function LessonPlayer({ sessionId, module, slides, initialIndex }: Lesson
           {error}
         </p>
       ) : null}
-      {celebrating ? <ModuleCelebration moduleTitle={module.title} hubHref={hubHref} /> : null}
+      {celebrating ? (
+        <ModuleCelebration moduleTitle={module.title} hubHref={hubHref} quizHref={quizHref} />
+      ) : null}
 
       <FlowActionBar
         onBack={index > 1 ? () => goTo(index - 1, -1) : undefined}

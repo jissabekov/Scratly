@@ -30,6 +30,15 @@ export function ModulePath({ hub, sessionId }: { hub: LearningHub; sessionId: st
           module.slides_completed + 1,
           Math.max(1, module.slides_total)
         );
+        // All slides done but the gate is still closed → the node leads to the quiz.
+        const quizReady =
+          !locked &&
+          module.quiz_gate_locked &&
+          module.slides_total > 0 &&
+          module.slides_completed >= module.slides_total;
+        const href = quizReady
+          ? `/modules/${module.id}/quiz?session=${encodeURIComponent(sessionId)}`
+          : moduleHref(module.id, sessionId, nextSlide);
 
         const body = (
           <>
@@ -70,10 +79,14 @@ export function ModulePath({ hub, sessionId }: { hub: LearningHub; sessionId: st
                   className="mt-1 h-1.5"
                 />
               ) : null}
-              {module.quiz_gate_locked ? (
+              {quizReady ? (
+                <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-ink">
+                  Quiz ready — pass it to unlock the next module
+                </span>
+              ) : module.quiz_gate_locked ? (
                 <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
                   <Lock className="size-3" aria-hidden="true" />
-                  Quiz gate locked (Plan 04)
+                  Quiz gate locked
                 </span>
               ) : null}
             </span>
@@ -95,7 +108,7 @@ export function ModulePath({ hub, sessionId }: { hub: LearningHub; sessionId: st
               </div>
             ) : (
               <Link
-                href={moduleHref(module.id, sessionId, nextSlide)}
+                href={href}
                 className="flex items-start gap-3 border border-line bg-panel p-4 transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {body}

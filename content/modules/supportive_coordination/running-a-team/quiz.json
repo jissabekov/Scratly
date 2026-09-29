@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "slug": "running-a-team",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "share_the_plan",
+          "kind": "mcq",
+          "stem": "Where should a team plan live, according to the module?",
+          "options": [
+            { "key": "a", "label": "In the place your team already checks" },
+            { "key": "b", "label": "Only in your head" },
+            { "key": "c", "label": "In a private note no one sees" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "A plan helps only when the team can see it.",
+          "feedback_correct": "Yes. Write the plan where the team already looks so they can see it.",
+          "feedback_wrong": "A plan helps only when the team can see it, so write it where they already look. A plan kept in your head or a private note cannot be helped with.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "share_the_plan",
+          "kind": "mcq",
+          "stem": "Which version of a plan can a team actually use?",
+          "options": [
+            { "key": "a", "label": "A shared list with names and dates" },
+            { "key": "b", "label": "A plan you remember and explain when asked" },
+            { "key": "c", "label": "A rough feeling about who is busy" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "Look for the plan anyone can check.",
+          "feedback_correct": "Right. Names and dates let anyone spot a gap and offer help.",
+          "feedback_wrong": "Names and dates let anyone spot a gap and offer help. A remembered plan or a vague feeling cannot be checked or shared.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "share_the_plan",
+          "kind": "select_all",
+          "stem": "Which details make a plan visible and usable? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Who is responsible for each task" },
+            { "key": "b", "label": "When each task is due" },
+            { "key": "c", "label": "A task list kept only in your memory" },
+            { "key": "d", "label": "Where the team can read the plan" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.45,
+          "hint_text": "A usable plan names owners, dates, and a place to read it.",
+          "feedback_correct": "Yes. Owners, due dates, and a shared place make the plan usable.",
+          "feedback_wrong": "A usable plan names who does what, by when, in a place the team can read. Keeping the list only in your memory makes it invisible to everyone else.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "ask_for_help",
+          "kind": "mcq",
+          "stem": "When is asking for help planning rather than an emergency?",
+          "options": [
+            { "key": "a", "label": "Early, before the deadline nears" },
+            { "key": "b", "label": "On the last day" },
+            { "key": "c", "label": "After the deadline has passed" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Help needs time to work.",
+          "feedback_correct": "Correct. Asking early gives people time to help and keeps the plan on track.",
+          "feedback_wrong": "Asking early gives people time to help and keeps the plan on track. Asking on the last day or after the deadline turns help into an emergency.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "ask_for_help",
+          "kind": "select_all",
+          "stem": "Which actions show a team leader asking for help in time? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Flag a task at risk days before it is due" },
+            { "key": "b", "label": "Ask a teammate to take one task early" },
+            { "key": "c", "label": "Wait until the deadline to mention a problem" },
+            { "key": "d", "label": "Hide the delay to look confident" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "Asking early means raising a risk before it is urgent.",
+          "feedback_correct": "Right. Flagging a risk and sharing work early are both asking in time.",
+          "feedback_wrong": "Asking early means raising a risk and sharing work before it is urgent. Waiting until the deadline or hiding a delay removes the team's chance to help.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "share_the_plan",
+          "kind": "mcq",
+          "stem": "Why write down who does what and by when?",
+          "options": [
+            { "key": "a", "label": "So anyone can spot a gap and help" },
+            { "key": "b", "label": "So you can keep it secret" },
+            { "key": "c", "label": "So no one else needs to look" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "A written plan is meant to be shared.",
+          "feedback_correct": "Yes. A written plan is shared so the team can see gaps and offer help.",
+          "feedback_wrong": "A written plan is shared so the team can see gaps and offer help. Keeping it secret or keeping others out defeats the purpose.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "share_the_plan",
+          "kind": "mcq",
+          "stem": "A plan that lives only in your head has what problem?",
+          "options": [
+            { "key": "a", "label": "It cannot be helped with" },
+            { "key": "b", "label": "It is always more accurate" },
+            { "key": "c", "label": "It saves everyone time" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "No one else can see a plan in your head.",
+          "feedback_correct": "Correct. If the plan is only in your head, no one else can see it or help with it.",
+          "feedback_wrong": "If the plan is only in your head, no one else can see it or help with it. That does not make it more accurate or save the team time.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "share_the_plan",
+          "kind": "select_all",
+          "stem": "Which plans can a team use? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "A shared list showing each task's owner" },
+            { "key": "b", "label": "A schedule with due dates everyone can read" },
+            { "key": "c", "label": "A plan you explain only when asked" },
+            { "key": "d", "label": "A private guess about who is free" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "A usable plan shows owners and dates where the team can read them.",
+          "feedback_correct": "Right. A shared list of owners and a readable schedule are both usable.",
+          "feedback_wrong": "A usable plan shows owners and due dates where the team can read them. A plan kept private or explained only on request stays invisible to the team.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "ask_for_help",
+          "kind": "mcq",
+          "stem": "A task is behind schedule three days before it is due. What should you do?",
+          "options": [
+            { "key": "a", "label": "Ask for help now" },
+            { "key": "b", "label": "Wait and hope it catches up" },
+            { "key": "c", "label": "Say nothing until it is due" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Earlier asking leaves time to help.",
+          "feedback_correct": "Yes. Asking three days early gives the team time to help and adjust.",
+          "feedback_wrong": "Asking three days early gives the team time to help and adjust the plan. Waiting or staying silent turns a small risk into a missed deadline.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "ask_for_help",
+          "kind": "mcq",
+          "stem": "Which sentence matches the module's view of asking for help?",
+          "options": [
+            { "key": "a", "label": "Asking on Monday is planning, asking on Friday is an emergency." },
+            { "key": "b", "label": "Asking for help always looks weak." },
+            { "key": "c", "label": "A good leader never asks for help." }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "The module frames early asking as planning.",
+          "feedback_correct": "Correct. Early asking is planning; late asking is an emergency.",
+          "feedback_wrong": "The module frames early asking as planning, not weakness. Leaders who never ask remove the team's ability to help before it is too late.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     memory_response_interval: int = 8
     memory_token_threshold: int = 6000
     reducer_version: str = "v2"
+    # Plan 04: pause after a failed quiz attempt before the alternate form is
+    # offered (>=10 min by default). Set to 0 to exercise the retry/cap loop in
+    # tests without waiting (the e2e suite launches the API this way).
+    learning_quiz_cooldown_seconds: int = 600
     # Direct web-search provider for the research path (W1.3). The Azure
     # Responses API web_search tool is used when the resource supports it;
     # otherwise a configured search API (tavily | brave | bing) is used.

@@ -180,6 +180,89 @@ export type SlideCompleteResult = {
   next_slide_index: number | null;
 };
 
+/* --- Module quizzes (Plan 04) -------------------------------------------- */
+
+export type QuizGateState = 'available' | 'cooldown' | 'handoff' | 'passed' | 'unavailable';
+
+export type QuizOption = { key: string; label: string };
+
+export type QuizItemView = {
+  id: string;
+  seq: number;
+  objective_code: string;
+  kind: string;
+  stem: string;
+  options: QuizOption[];
+  hint_text: string;
+  is_critical: boolean;
+};
+
+export type QuizAttemptView = {
+  attempt_id: string;
+  attempt_no: number;
+  form_id: number;
+  item_count: number;
+  threshold: number;
+  pass_rule: string;
+  items: QuizItemView[];
+};
+
+export type QuizDraw = {
+  session_id: string;
+  module_id: string;
+  gate: QuizGateState;
+  attempts_used: number;
+  max_attempts: number;
+  retry_after_seconds: number | null;
+  attempt: QuizAttemptView | null;
+};
+
+export type QuizItemCheck = {
+  item_id: string;
+  correct: boolean;
+  feedback: string;
+  correct_answer: string[];
+};
+
+export type QuizMissedItem = {
+  item_id: string;
+  objective_code: string;
+  stem: string;
+  feedback_wrong: string;
+  slide_ref: number | null;
+  selected: string[];
+  correct: string[];
+};
+
+export type QuizRemediation = {
+  objectives: string[];
+  slide_refs: number[];
+  cooldown_seconds: number;
+};
+
+export type ObjectiveMastery = {
+  objective_code: string;
+  p_mastery: number;
+  state: string;
+};
+
+export type QuizAttemptResult = {
+  attempt_id: string;
+  attempt_no: number;
+  form_id: number;
+  score: number;
+  item_count: number;
+  threshold: number;
+  passed: boolean;
+  critical_missed: string[];
+  missed: QuizMissedItem[];
+  next_action: 'unlock_next' | 'retry' | 'walkthrough' | 'handoff';
+  next_form_id: number | null;
+  remediation: QuizRemediation | null;
+  mastery: ObjectiveMastery[];
+  unlocked_module_id: string | null;
+};
+
 /** Client-only thread row (includes optimistic / welcome). */
 export type ThreadMessage = {
   key: string;

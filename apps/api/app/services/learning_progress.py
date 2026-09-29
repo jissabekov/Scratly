@@ -17,9 +17,14 @@ from app.contracts.learning import ModuleState
 
 XAPI_VERB_COMPLETED = "http://adlnet.gov/expapi/verbs/completed"
 XAPI_VERB_EXPERIENCED = "http://adlnet.gov/expapi/verbs/experienced"
+XAPI_VERB_ATTEMPTED = "http://adlnet.gov/expapi/verbs/attempted"
+XAPI_VERB_ANSWERED = "http://adlnet.gov/expapi/verbs/answered"
+XAPI_VERB_PASSED = "http://adlnet.gov/expapi/verbs/passed"
+XAPI_VERB_FAILED = "http://adlnet.gov/expapi/verbs/failed"
 XAPI_OBJECT_SLIDE = "https://scratly.dev/xapi/activity/slide"
 XAPI_OBJECT_LESSON = "https://scratly.dev/xapi/activity/lesson"
 XAPI_OBJECT_MODULE = "https://scratly.dev/xapi/activity/module"
+XAPI_OBJECT_QUIZ_ITEM = "https://scratly.dev/xapi/activity/quiz-item"
 XAPI_ACTOR_HOME = "https://scratly.dev"
 
 

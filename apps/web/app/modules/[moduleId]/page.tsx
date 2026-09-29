@@ -50,6 +50,11 @@ export default async function ModulePage({
         module={detail.module}
         slides={detail.slides}
         initialIndex={initialIndex}
+        quizHref={
+          detail.quiz.available
+            ? `/modules/${encodeURIComponent(moduleId)}/quiz?session=${encodeURIComponent(session)}`
+            : null
+        }
       />
     </Suspense>
   );

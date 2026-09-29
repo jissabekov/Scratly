@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "slug": "next-steps",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "scope_small",
+          "kind": "mcq",
+          "stem": "You have a big idea for a community garden. Which action is small enough to finish this week?",
+          "options": [
+            { "key": "a", "label": "Sketch one garden bed layout on paper" },
+            { "key": "b", "label": "Build the entire garden this month" },
+            { "key": "c", "label": "Wait until you have funding and tools" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Pick the option you could finish in one sitting.",
+          "feedback_correct": "Yes. A single paper sketch is one sitting of work and gives you something to react to.",
+          "feedback_wrong": "Building the whole garden or waiting for perfect tools are both too large for one week. A first step should be small enough to finish soon so you actually start.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "scope_small",
+          "kind": "select_all",
+          "stem": "Which of these count as a good first step for a new project? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Finish one small task this week" },
+            { "key": "b", "label": "Design the final version completely" },
+            { "key": "c", "label": "Write down the single next action" },
+            { "key": "d", "label": "Launch to all users at once" }
+          ],
+          "answer": ["a", "c"],
+          "difficulty": 0.4,
+          "hint_text": "A first step is doable now, not the finished product.",
+          "feedback_correct": "Right. One small task plus a written next action are both first steps you can finish this week.",
+          "feedback_wrong": "A good first step is small and doable this week. Designing the final version or launching to everyone is the whole project, not a first step.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "check_progress",
+          "kind": "mcq",
+          "stem": "Why does the module say that progress you can see matters?",
+          "options": [
+            { "key": "a", "label": "Visible progress makes it easier to keep going" },
+            { "key": "b", "label": "It proves the project is finished" },
+            { "key": "c", "label": "It replaces the need for a plan" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Think about momentum, not completion.",
+          "feedback_correct": "Correct. Seeing progress supports momentum and gives you something to build on.",
+          "feedback_wrong": "Seeing progress supports momentum and adjustment, not completion. A visible step is not the finished project, and it still needs a plan around it.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 4,
+          "objective": "check_progress",
+          "kind": "select_all",
+          "stem": "Which actions help you notice progress and adjust? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Mark off what you finished this week" },
+            { "key": "b", "label": "Compare the result to your first step" },
+            { "key": "c", "label": "Ignore results until the very end" },
+            { "key": "d", "label": "Decide one change for next week" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.45,
+          "hint_text": "Progress means reviewing what happened, not ignoring it.",
+          "feedback_correct": "Yes. Reviewing what you finished, comparing it, and choosing a change all help you adjust.",
+          "feedback_wrong": "Noticing progress means reviewing what you finished and adjusting from it. Waiting until the end hides problems and leaves no chance to change course.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "scope_small",
+          "kind": "mcq",
+          "stem": "A teammate suggests adding three features before the first demo. What is the better scoping move?",
+          "options": [
+            { "key": "a", "label": "Pick one feature to finish first" },
+            { "key": "b", "label": "Build all three at once" },
+            { "key": "c", "label": "Drop the demo entirely" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Which choice keeps the step finishable this week?",
+          "feedback_correct": "Right. Choosing one feature keeps the step small and finishable this week.",
+          "feedback_wrong": "Trying to build all three at once spreads effort and delays any result. Choosing one feature to finish first keeps the step small and done this week.",
+          "slide_ref": 2,
+          "is_critical": true
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "scope_small",
+          "kind": "mcq",
+          "stem": "Which statement best describes a good first step?",
+          "options": [
+            { "key": "a", "label": "Small enough to finish this week" },
+            { "key": "b", "label": "Big enough to impress everyone" },
+            { "key": "c", "label": "Perfect before anyone sees it" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Judge the step by when you can finish it.",
+          "feedback_correct": "Correct. A first step is judged by whether you can finish it soon.",
+          "feedback_wrong": "A first step is judged by whether you can finish it soon, not by how impressive or perfect it looks. Big or flawless steps usually never get started.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "scope_small",
+          "kind": "mcq",
+          "stem": "You want to start a study group. Which action is a first step rather than the whole project?",
+          "options": [
+            { "key": "a", "label": "Ask two classmates to meet once this week" },
+            { "key": "b", "label": "Run a study group for the whole semester" },
+            { "key": "c", "label": "Write the full rules for every session" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Which action fits into a single week?",
+          "feedback_correct": "Yes. One meeting with two people is something you can do this week.",
+          "feedback_wrong": "One meeting with two people is something you can do this week. Running a semester-long group or writing every rule is the whole project, not a first step.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "scope_small",
+          "kind": "select_all",
+          "stem": "Which of these are first steps you could finish this week? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Draft one paragraph of the proposal" },
+            { "key": "b", "label": "Interview one potential user" },
+            { "key": "c", "label": "Finish the entire finished product" },
+            { "key": "d", "label": "Complete the whole budget forecast" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.4,
+          "hint_text": "A first step is a small piece, not the finished whole.",
+          "feedback_correct": "Right. One paragraph and one interview are both finishable this week.",
+          "feedback_wrong": "A first step is small and finishable this week. A complete product or a full budget forecast is the whole project, not the first move.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "check_progress",
+          "kind": "mcq",
+          "stem": "You finished only part of your first step. What does the module suggest?",
+          "options": [
+            { "key": "a", "label": "Look at what you did and adjust the next step" },
+            { "key": "b", "label": "Abandon the idea completely" },
+            { "key": "c", "label": "Pretend the step is complete" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Partial progress still carries information.",
+          "feedback_correct": "Correct. Partial progress is still progress you can review and use.",
+          "feedback_wrong": "Partial progress is still progress you can review and use. Quitting or pretending hides the information you need to adjust the next step.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "check_progress",
+          "kind": "mcq",
+          "stem": "Why look back at a finished step before choosing the next one?",
+          "options": [
+            { "key": "a", "label": "It shows what worked and what to change" },
+            { "key": "b", "label": "It adds more tasks to the list" },
+            { "key": "c", "label": "It proves the goal is reached" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Looking back is about learning, not finishing.",
+          "feedback_correct": "Yes. Looking back tells you what worked so you can steer the next step.",
+          "feedback_wrong": "Looking back is about learning from the result to steer the next step. It does not add tasks or prove the goal is finished.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

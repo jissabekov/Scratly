@@ -14,6 +14,7 @@ from pathlib import Path
 from uuid import UUID, uuid5
 
 from app.contracts.learning import LearningModuleContent
+from app.contracts.learning_quiz import LearningQuizContent
 
 # Fixed namespace for every learning-content id. Changing it would orphan all
 # completions, so treat it as immutable once shipped.
@@ -47,6 +48,22 @@ def slide_id(lesson_id: UUID, seq: int) -> UUID:
     return uuid5(LEARNING_NAMESPACE, f"slide:{lesson_id}:{seq}")
 
 
+def quiz_item_id(module_id: UUID, form_id: int, seq: int) -> UUID:
+    """Stable id for a quiz item identified by its module, form and sequence."""
+    return uuid5(LEARNING_NAMESPACE, f"quiz_item:{module_id}:{form_id}:{seq}")
+
+
+def ordered_slide_ids(archetype_key: str, module: LearningModuleContent) -> list[UUID]:
+    """Slide ids in player order (lesson seq, then slide seq) — index 1-based."""
+    mid = module_id(archetype_key, module.slug)
+    ids: list[UUID] = []
+    for lesson in sorted(module.lessons, key=lambda lesson: lesson.seq):
+        lid = lesson_id(mid, lesson.seq)
+        for slide in sorted(lesson.slides, key=lambda slide: slide.seq):
+            ids.append(slide_id(lid, slide.seq))
+    return ids
+
+
 def parse_module_content(payload: object) -> LearningModuleContent:
     """Validate raw content JSON into the typed module model.
 
@@ -54,6 +71,49 @@ def parse_module_content(payload: object) -> LearningModuleContent:
     file fails the seed loudly instead of shipping broken slides.
     """
     return LearningModuleContent.model_validate(payload)
+
+
+def parse_quiz_content(payload: object) -> LearningQuizContent:
+    """Validate raw quiz JSON into the typed quiz model."""
+    return LearningQuizContent.model_validate(payload)
+
+
+def validate_quiz_against_module(quiz: LearningQuizContent, module: LearningModuleContent) -> None:
+    """Cross-file invariants the quiz cannot check alone.
+
+    Every item must name a real objective, ``slide_ref`` must point at a real
+    slide, and every critical objective must appear in every form — otherwise
+    the pass rule ("at least one on every critical objective") is unsatisfiable.
+    """
+    if quiz.slug != module.slug:
+        raise ValueError(f"quiz slug {quiz.slug!r} does not match module {module.slug!r}")
+    slide_count = sum(len(lesson.slides) for lesson in module.lessons)
+    objective_by_code = {objective.code: objective for objective in module.objectives}
+    critical = {code for code, objective in objective_by_code.items() if objective.is_critical}
+    for form in quiz.forms:
+        covered = {item.objective for item in form.items}
+        unknown = covered - set(objective_by_code)
+        if unknown:
+            raise ValueError(
+                f"form {form.form_id} references unknown objectives: {sorted(unknown)}"
+            )
+        missing = critical - covered
+        if missing:
+            raise ValueError(
+                f"form {form.form_id} does not cover critical objectives: {sorted(missing)}"
+            )
+        for item in form.items:
+            if item.slide_ref > slide_count:
+                raise ValueError(
+                    f"form {form.form_id} item {item.seq} slide_ref {item.slide_ref} "
+                    f"exceeds {slide_count} slides"
+                )
+            declared = objective_by_code[item.objective].is_critical
+            if item.is_critical != declared:
+                raise ValueError(
+                    f"form {form.form_id} item {item.seq} is_critical={item.is_critical} "
+                    f"but objective {item.objective!r} is_critical={declared}"
+                )
 
 
 def discover_content_files(

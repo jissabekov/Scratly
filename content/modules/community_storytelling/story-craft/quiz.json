@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "slug": "story-craft",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "find_the_point",
+          "kind": "mcq",
+          "stem": "How many points should a story try to make?",
+          "options": [
+            { "key": "a", "label": "One clear point" },
+            { "key": "b", "label": "As many as possible" },
+            { "key": "c", "label": "Five or more" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "A story that says everything says nothing.",
+          "feedback_correct": "Yes. One clear point keeps the reader focused on what matters.",
+          "feedback_wrong": "A story that tries to say many things says nothing. Committing to one point keeps the reader focused on what matters.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "find_the_point",
+          "kind": "mcq",
+          "stem": "Which opening commits to a single point?",
+          "options": [
+            { "key": "a", "label": "Bus waits are longest exactly when students need them most." },
+            { "key": "b", "label": "Buses, schedules, and neighborhoods are all interesting." },
+            { "key": "c", "label": "Here is everything we collected this month." }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "A point is a claim you can check.",
+          "feedback_correct": "Right. The first opening makes one claim you can check.",
+          "feedback_wrong": "Only the first option makes one claim you could check. The others list topics instead of stating a point.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "find_the_point",
+          "kind": "select_all",
+          "stem": "Which sentences state a single point a story could make? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The library closes before most students finish studying." },
+            { "key": "b", "label": "We gathered many facts about the library." },
+            { "key": "c", "label": "The crossing is unsafe during the morning rush." },
+            { "key": "d", "label": "There are several topics about the neighborhood." }
+          ],
+          "answer": ["a", "c"],
+          "difficulty": 0.45,
+          "hint_text": "A point is a claim, not an announcement of topics.",
+          "feedback_correct": "Yes. The closing time and the unsafe crossing are both checkable claims.",
+          "feedback_wrong": "A point is a claim you can check, like the closing time or the unsafe crossing. The other options only announce that topics exist.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "show_evidence",
+          "kind": "mcq",
+          "stem": "What does the module call a claim without evidence?",
+          "options": [
+            { "key": "a", "label": "An opinion wearing a headline" },
+            { "key": "b", "label": "A strong finding" },
+            { "key": "c", "label": "A finished story" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Think about how a bare claim is described.",
+          "feedback_correct": "Correct. Without evidence a claim is only an opinion wearing a headline.",
+          "feedback_wrong": "Without evidence a claim is only an opinion dressed up as a headline. It is not a finding or a finished story until real data supports it.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "show_evidence",
+          "kind": "select_all",
+          "stem": "Which items count as evidence for a claim about bus waits? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Times you recorded at the bus stop" },
+            { "key": "b", "label": "A count of students waiting each morning" },
+            { "key": "c", "label": "Your feeling that buses are slow" },
+            { "key": "d", "label": "A friend saying buses seem late" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "Evidence is data you actually collected.",
+          "feedback_correct": "Right. Recorded times and counts are data you actually collected.",
+          "feedback_wrong": "Evidence is data you actually collected, like recorded times or counts. Feelings and hearsay are opinions, not evidence for the claim.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "find_the_point",
+          "kind": "mcq",
+          "stem": "What should you do with material that does not support your one point?",
+          "options": [
+            { "key": "a", "label": "Cut it from the story" },
+            { "key": "b", "label": "Keep it to add length" },
+            { "key": "c", "label": "Add a second point to use it" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Anything that does not support the point weakens the story.",
+          "feedback_correct": "Yes. Cutting unsupported material keeps the reader on the single message.",
+          "feedback_wrong": "Extra material that does not support the point weakens the story. Cutting it keeps the reader on the single message.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "find_the_point",
+          "kind": "mcq",
+          "stem": "Which opening makes one clear claim?",
+          "options": [
+            { "key": "a", "label": "Students miss class most often on the coldest mornings." },
+            { "key": "b", "label": "Weather, buses, and classes are all worth studying." },
+            { "key": "c", "label": "We looked at a lot of information this week." }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "Look for the specific, checkable claim.",
+          "feedback_correct": "Correct. The first option states one checkable claim about absences and cold mornings.",
+          "feedback_wrong": "The first option states one checkable claim about absences and cold mornings. The others list topics without making a point.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "find_the_point",
+          "kind": "select_all",
+          "stem": "Which openings commit to a single point? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The corner store raised prices twice this year." },
+            { "key": "b", "label": "The park is busiest right after school." },
+            { "key": "c", "label": "Parks, stores, and prices are interesting." },
+            { "key": "d", "label": "We collected many notes." }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "A single point is a specific claim you can check.",
+          "feedback_correct": "Right. The price change and the busy hours are both specific claims.",
+          "feedback_wrong": "A single point is a specific claim you can check, like prices or busy hours. The last two options only say that topics exist.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "show_evidence",
+          "kind": "mcq",
+          "stem": "Your story claims the park is busy after school. What backs it best?",
+          "options": [
+            { "key": "a", "label": "Counts of people in the park each afternoon" },
+            { "key": "b", "label": "A colorful photo of one person" },
+            { "key": "c", "label": "Your belief that it seems busy" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Match the evidence to the claim.",
+          "feedback_correct": "Yes. Counts taken at that time show the pattern the claim describes.",
+          "feedback_wrong": "A claim about how busy the park is needs counts taken at that time. A single photo or a belief does not show the pattern the claim describes.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "show_evidence",
+          "kind": "mcq",
+          "stem": "Why does a story need evidence behind its point?",
+          "options": [
+            { "key": "a", "label": "Otherwise the point is just an opinion" },
+            { "key": "b", "label": "To make the story longer" },
+            { "key": "c", "label": "To avoid choosing a point" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Evidence is what turns a claim into a finding.",
+          "feedback_correct": "Correct. Evidence is what turns a claim into a finding.",
+          "feedback_wrong": "Evidence is what turns a claim into a finding. Length and avoiding a point are not reasons to gather evidence.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # MASTER ORCHESTRATION — Scratly execution plan
 
-> **Version:** 2026-09-29 · **Status:** Phase 3 done (W3.1–W3.5) · Phase 1 leftovers open · **Entry point for every Devin agent working on this repo.**
+> **Version:** 2026-09-29 · **Status:** Phase 4 done (W4.1–W4.6) · Phase 1 leftovers open · **Entry point for every Devin agent working on this repo.**
 > Read this file first; each phase has its own detailed plan file. Update the status column as work completes — this file is the single source of truth for sequencing.
 
 ## 0. Ground rules (apply to every phase)
@@ -19,7 +19,7 @@
 | **1** | [01-fix-current-system.md](01-fix-current-system.md) — A2 exposure caps, A14 dedup, A18 options/research, completion, latency, hygiene (ruff/mypy/CI) | — | **IN PROGRESS — W1.1/W1.2/W1.3/W1.5/W1.6 landed with live proof; W1.4 + latency + 3 sim A18s remain** |
 | **2** | [02-frontend-ui-foundation.md](02-frontend-ui-foundation.md) — Tailwind v4 + shadcn/ui + Motion migration, tokens, a11y contract, frontend AGENTS.md + skills | Phase 1 | **DONE — W2.1–W2.5 landed with build + 5/5 Playwright + axe + AA-contrast proof (see plan 02 §2.9); Phase 1 leftovers (W1.4 completion, latency, 3 sim A18s) remain open in plan 01** |
 | **3** | [03-modules-learning.md](03-modules-learning.md) — learning schema, content model, slide player, module path, automatic tracking | Phase 2 | **DONE — W3.1–W3.5 landed (migration `017_learning_content.sql`, week-2 module authored end-to-end, hub + player + xAPI tracking); gates green (compileall · pytest 125 · ruff+mypy · web build · 9/9 Playwright incl. axe). See plan 03 §3.6** |
-| **4** | [04-quiz-gating.md](04-quiz-gating.md) — 5-item quizzes, 4/5 + critical-objective pass rule, remediation, BKT mastery | Phase 3 | pending |
+| **4** | [04-quiz-gating.md](04-quiz-gating.md) — 5-item quizzes, 4/5 + critical-objective pass rule, remediation, BKT mastery | Phase 3 | **DONE — W4.1–W4.6 landed (migrations `018`+`019`, 3-form bank for the real module, alternate-form remediation, attempt caps + handoff, BKT mastery + replay); gates green (compileall · pytest 151 · ruff+mypy · web build · 11/11 Playwright incl. axe); math verified via mathcheck. See plan 04 §4.7** |
 | **5** | [05-progress-coaching.md](05-progress-coaching.md) — check-in scheduler, advice/intervention ladder, retention cards, dashboard | Phase 4 | pending |
 | **6** | [06-integration-eval.md](06-integration-eval.md) — chat routing, contracts, migrations 013–017, learning eval scenarios, staged rollout | Phases 2–5 | pending |
 

@@ -70,7 +70,8 @@ test.describe('Learning hub and slide player', () => {
 
     // Exactly one active step is marked for assistive tech.
     await expect(page.locator('[aria-current="step"]')).toHaveCount(1);
-    await expect(page.getByText('Quiz gate locked (Plan 04)').first()).toBeVisible();
+    // Phase 4 landed, so the gate copy no longer says "Plan 04".
+    await expect(page.getByText('Quiz gate locked').first()).toBeVisible();
     await expect(page.getByText('Locked').first()).toBeVisible();
 
     await expectAxeClean(page);

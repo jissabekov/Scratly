@@ -26,13 +26,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "apps" / "api"))
 
 from app.contracts.learning import LearningModuleContent  # noqa: E402
+from app.contracts.learning_quiz import LearningQuizContent  # noqa: E402
 from app.services.learning_content import (  # noqa: E402
     discover_content_files,
     lesson_id,
     module_id,
     objective_id,
+    ordered_slide_ids,
     parse_module_content,
+    parse_quiz_content,
+    quiz_item_id,
     slide_id,
+    validate_quiz_against_module,
 )
 
 DEFAULT_CONTENT_DIR = ROOT / "content" / "modules"
@@ -77,13 +82,21 @@ def to_asyncpg_dsn(dsn: str) -> str:
 
 def load_content(
     content_dir: Path, archetype_keys: list[str]
-) -> list[tuple[str, LearningModuleContent]]:
-    """Validate every content file and pair it with its target archetype."""
-    loaded: list[tuple[str, LearningModuleContent]] = []
+) -> list[tuple[str, LearningModuleContent, LearningQuizContent | None]]:
+    """Validate every content file and pair it with its target archetype.
+
+    ``quiz.json`` is optional per module; when present it is validated against
+    the module (critical-objective coverage, slide refs) before any write.
+    """
+    loaded: list[tuple[str, LearningModuleContent, LearningQuizContent | None]] = []
     for archetype_key, path in discover_content_files(content_dir, archetype_keys):
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        module = parse_module_content(payload)
-        loaded.append((archetype_key, module))
+        module = parse_module_content(json.loads(path.read_text(encoding="utf-8")))
+        quiz_path = path.parent / "quiz.json"
+        quiz = None
+        if quiz_path.is_file():
+            quiz = parse_quiz_content(json.loads(quiz_path.read_text(encoding="utf-8")))
+            validate_quiz_against_module(quiz, module)
+        loaded.append((archetype_key, module, quiz))
     return loaded
 
 
@@ -103,17 +116,25 @@ async def seed(dsn: str, content_dir: Path, dry_run: bool) -> dict[str, int]:
             )
         ]
         loaded = load_content(content_dir, archetype_keys)
-        counts = {"modules": len(loaded), "objectives": 0, "lessons": 0, "slides": 0}
+        counts = {
+            "modules": len(loaded),
+            "objectives": 0,
+            "lessons": 0,
+            "slides": 0,
+            "quiz_items": 0,
+        }
         if dry_run:
-            for _, module in loaded:
+            for _, module, quiz in loaded:
                 counts["objectives"] += len(module.objectives)
                 for lesson in module.lessons:
                     counts["lessons"] += 1
                     counts["slides"] += len(lesson.slides)
+                if quiz is not None:
+                    counts["quiz_items"] += sum(len(form.items) for form in quiz.forms)
             return counts
 
         async with connection.transaction():
-            for archetype_key, module in loaded:
+            for archetype_key, module, quiz in loaded:
                 mid = module_id(archetype_key, module.slug)
                 await connection.execute(
                     """
@@ -234,9 +255,62 @@ async def seed(dsn: str, content_dir: Path, dry_run: bool) -> dict[str, int]:
                     mid,
                     objective_ids,
                 )
+
+                slide_order = ordered_slide_ids(archetype_key, module)
+                item_ids = []
+                for form in quiz.forms if quiz is not None else []:
+                    for item in form.items:
+                        iid = quiz_item_id(mid, form.form_id, item.seq)
+                        item_ids.append(iid)
+                        await connection.execute(
+                            """
+                            INSERT INTO learning.quiz_items
+                                (id, module_id, objective_id, form_id, seq, kind, stem,
+                                 options, answer, difficulty, hint_text,
+                                 feedback_correct, feedback_wrong, slide_ref, is_critical)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb,
+                                    $10, $11, $12, $13, $14, $15)
+                            ON CONFLICT (id) DO UPDATE SET
+                                objective_id = EXCLUDED.objective_id,
+                                form_id = EXCLUDED.form_id,
+                                seq = EXCLUDED.seq,
+                                kind = EXCLUDED.kind,
+                                stem = EXCLUDED.stem,
+                                options = EXCLUDED.options,
+                                answer = EXCLUDED.answer,
+                                difficulty = EXCLUDED.difficulty,
+                                hint_text = EXCLUDED.hint_text,
+                                feedback_correct = EXCLUDED.feedback_correct,
+                                feedback_wrong = EXCLUDED.feedback_wrong,
+                                slide_ref = EXCLUDED.slide_ref,
+                                is_critical = EXCLUDED.is_critical
+                            """,
+                            iid,
+                            mid,
+                            objective_by_code[item.objective],
+                            form.form_id,
+                            item.seq,
+                            item.kind,
+                            item.stem,
+                            json.dumps([option.model_dump() for option in item.options]),
+                            json.dumps(item.answer),
+                            item.difficulty,
+                            item.hint_text,
+                            item.feedback_correct,
+                            item.feedback_wrong,
+                            slide_order[item.slide_ref - 1],
+                            item.is_critical,
+                        )
+                await connection.execute(
+                    "DELETE FROM learning.quiz_items WHERE module_id = $1 AND NOT (id = ANY($2::uuid[]))",
+                    mid,
+                    item_ids,
+                )
+
                 counts["objectives"] += len(objective_ids)
                 counts["lessons"] += len(lesson_ids)
                 counts["slides"] += len(slide_ids)
+                counts["quiz_items"] += len(item_ids)
         return counts
     finally:
         await connection.close()
@@ -254,7 +328,8 @@ def main() -> None:
     print(
         f"learning content {mode}: "
         f"modules={counts['modules']} objectives={counts['objectives']} "
-        f"lessons={counts['lessons']} slides={counts['slides']}"
+        f"lessons={counts['lessons']} slides={counts['slides']} "
+        f"quiz_items={counts['quiz_items']}"
     )
 
 

@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "how-apps-work",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "events",
+          "kind": "mcq",
+          "stem": "A simplified event record for one short video contains user_id, video_id, watch_time, completed, liked, shared, action and timestamp. What kind of information does this record actually hold?",
+          "options": [
+            { "key": "a", "label": "Measurable facts about what happened, such as how long the video played and which action was taken" },
+            { "key": "b", "label": "The student's mood and level of interest in the video" },
+            { "key": "c", "label": "The reason the student decided to stop watching" },
+            { "key": "d", "label": "A prediction of which video the student will watch next" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Think about which fields a device could fill in by measuring, not by guessing.",
+          "feedback_correct": "Correct. The record stores observations such as play time and the recorded action, not feelings or reasons.",
+          "feedback_wrong": "The record stores observations, not feelings or reasons. Fields such as watch_time and action capture what the device measured, so any claim about mood or intention has to be inferred later from that evidence.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "events",
+          "kind": "select_all",
+          "stem": "Which statements describe why an application turns a gesture into a structured event? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The event gives the system a fixed, comparable record it can store and act on" },
+            { "key": "b", "label": "The event captures the user's private thoughts at the moment of the gesture" },
+            { "key": "c", "label": "The event removes the need for the device to measure the gesture at all" },
+            { "key": "d", "label": "The event turns a physical movement into information other parts of the system can use" }
+          ],
+          "answer": ["a", "d"],
+          "difficulty": 0.45,
+          "hint_text": "An event is a structured record, so focus on what structure makes possible.",
+          "feedback_correct": "Correct. Events are structured records that other parts of the system can store, compare and use.",
+          "feedback_wrong": "An event is a structured record of something that happened, so it is comparable and usable across the system. It never captures private thoughts, and the device still has to measure the raw gesture before an event can be created.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "loop",
+          "kind": "mcq",
+          "stem": "In the swipe flow, a request travels across the internet to a server. What role does the internet itself play?",
+          "options": [
+            { "key": "a", "label": "It ranks the candidate videos by how interesting they are" },
+            { "key": "b", "label": "It moves the request between computers so a machine that can decide receives it" },
+            { "key": "c", "label": "It stores the account so other devices can read the same data" },
+            { "key": "d", "label": "It draws the next video onto the screen" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Separate the job of carrying a message from the job of deciding an answer.",
+          "feedback_correct": "Correct. The internet carries the request to a computer that can make the decision.",
+          "feedback_wrong": "The internet only carries messages between computers, so it does not rank, store or render anything. The decision is made by a server that reads state and applies rules, and the device renders the result.",
+          "slide_ref": 7,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "state",
+          "kind": "select_all",
+          "stem": "A streak feature is computed from stored information, timing rules and new events. Which of these are examples of state? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The current streak_days value saved for a pair of friends" },
+            { "key": "b", "label": "The exact second a Snap was sent yesterday" },
+            { "key": "c", "label": "Whether the streak is currently active or expired" },
+            { "key": "d", "label": "The order in which a student tapped the send button" }
+          ],
+          "answer": ["a", "c"],
+          "difficulty": 0.5,
+          "hint_text": "State is what the system currently believes to be true, not a past action.",
+          "feedback_correct": "Correct. Saved streak_days and the active or expired status are what the system believes now.",
+          "feedback_wrong": "State is what the system currently believes to be true, such as the saved streak_days value or whether the streak is active. The timestamp of a past Snap is an event record, and tap order is a raw action, not current state.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "ai_component",
+          "kind": "mcq",
+          "stem": "A student asks an AI app for project ideas and receives an answer. Which description of the AI model's role is correct?",
+          "options": [
+            { "key": "a", "label": "The model is the entire application and does everything from login to rendering" },
+            { "key": "b", "label": "The model is one computation step inside a larger pipeline that also collects requests, reads state, applies rules and renders results" },
+            { "key": "c", "label": "The model replaces the server so no other system is needed" },
+            { "key": "d", "label": "The model stores all account state permanently" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Consider everything that happens around the model, not only the model itself.",
+          "feedback_correct": "Correct. The model performs inference, which is one step inside a larger pipeline.",
+          "feedback_wrong": "The application still handles the request, reads state, applies rules, calls other systems and renders the answer. The model performs one computation step, inference, within that larger pipeline.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "events",
+          "kind": "mcq",
+          "stem": "A finger moves upward on a touchscreen. At what point does this become an application event?",
+          "options": [
+            { "key": "a", "label": "When the touchscreen first detects that the finger moved" },
+            { "key": "b", "label": "When the application applies its instructions and treats the movement as a swipe for the next video" },
+            { "key": "c", "label": "When the server returns the next video to the device" },
+            { "key": "d", "label": "When the user decides they want a different video" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Raw movement is measured first; something must interpret it before it is an event.",
+          "feedback_correct": "Correct. The application interprets the measured gesture and creates the event.",
+          "feedback_wrong": "The touchscreen only measures the raw movement, and the server acts later in the flow. The gesture becomes an event when the application interprets it, for example deciding that an upward movement far enough means next video.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "events",
+          "kind": "mcq",
+          "stem": "An event record shows watch_time of 3.2 seconds, completed false and action swipe_next. What can the system honestly conclude from these fields?",
+          "options": [
+            { "key": "a", "label": "The student was definitely bored by the video" },
+            { "key": "b", "label": "The student disliked the creator" },
+            { "key": "c", "label": "The video was stopped early and the student swiped away" },
+            { "key": "d", "label": "The student wants to see the same video again" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.3,
+          "hint_text": "Keep the conclusion to what the recorded fields literally show.",
+          "feedback_correct": "Correct. The fields show the video ended early and a swipe action was recorded.",
+          "feedback_wrong": "The fields record what happened, not why. A short watch time plus a swipe shows the video ended early, but boredom, dislike or a wish to rewatch are interpretations the system cannot read directly from the record.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "loop",
+          "kind": "select_all",
+          "stem": "The swipe flow runs from finger movement to a rendered next video. Which steps belong to that loop? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The device measures the gesture and the application creates a swipe event" },
+            { "key": "b", "label": "A request travels to a server that reads state and computes a choice" },
+            { "key": "c", "label": "The application renders the selected video when information returns" },
+            { "key": "d", "label": "The server permanently deletes the student's account after every swipe" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "Follow the action from measurement through computation to what the user finally sees.",
+          "feedback_correct": "Correct. Measure, create event, send request, read state, compute, return and render are the steps of the loop.",
+          "feedback_wrong": "The loop is measure, create event, send request, read state, compute, return and render. Deleting the account is not part of it and would not fit a repeated decision cycle.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "state",
+          "kind": "mcq",
+          "stem": "A student opens the same account on a second phone and sees the same streak number. What does this tell you about the streak?",
+          "options": [
+            { "key": "a", "label": "It lives only inside the fire emoji on the first phone" },
+            { "key": "b", "label": "It is stored state plus rules that any device reading the account can calculate and render" },
+            { "key": "c", "label": "It is a picture that each phone invents on its own" },
+            { "key": "d", "label": "It is copied manually between the two phones" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.5,
+          "hint_text": "Ask where the value must live for two different devices to agree on it.",
+          "feedback_correct": "Correct. The streak is saved state plus rules, so any device reading the account shows the same value.",
+          "feedback_wrong": "An emoji cannot travel between devices on its own, and each phone does not invent it separately. The streak is saved state plus timing rules, which is why a second device reading the same account shows the same value.",
+          "slide_ref": 11,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "ai_component",
+          "kind": "select_all",
+          "stem": "Which tasks does the surrounding application still perform even when an AI model produces the final answer? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Collecting the request and packaging context for the model" },
+            { "key": "b", "label": "Reading stored state and applying product or safety rules" },
+            { "key": "c", "label": "Calling other systems such as a search service or a database" },
+            { "key": "d", "label": "Guaranteeing that the model never makes a mistake" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.4,
+          "hint_text": "List the work that surrounds the model in the pipeline.",
+          "feedback_correct": "Correct. The application collects requests, reads state, applies rules and calls other systems around the model.",
+          "feedback_wrong": "The application collects the request, reads state, applies rules, calls other systems and renders the result, so the model is one component among several. No application can guarantee that a model never errs.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "events",
+          "kind": "select_all",
+          "stem": "Look at a simplified event record with fields for user, video, watch time, completion, like, share, action and timestamp. Which fields could the system observe directly? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "watch_time, the number of seconds the video played" },
+            { "key": "b", "label": "action, the gesture the application recorded" },
+            { "key": "c", "label": "the student's intention behind the gesture" },
+            { "key": "d", "label": "completed, whether the video reached its end" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.4,
+          "hint_text": "Only the fields a device could fill in by measuring are observable.",
+          "feedback_correct": "Correct. Play time, the recorded action and completion are all measured directly.",
+          "feedback_wrong": "The system records what it can measure: play time, the recorded action and whether the video finished. Intention is never a field, because it cannot be observed and must be inferred from the evidence.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "events",
+          "kind": "mcq",
+          "stem": "Which sentence best captures the difference between evidence and intention for a system?",
+          "options": [
+            { "key": "a", "label": "Systems receive intentions directly, so evidence is optional" },
+            { "key": "b", "label": "Systems receive evidence, and any intention must be inferred from it and may be wrong" },
+            { "key": "c", "label": "Systems receive neither, so they cannot act on user behaviour" },
+            { "key": "d", "label": "Evidence and intention are the same thing once an event is created" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Think about what a machine can observe and what it must guess.",
+          "feedback_correct": "Correct. Systems receive evidence, and meaning must be inferred and can always be mistaken.",
+          "feedback_wrong": "A system cannot observe intentions, only measurable behaviour, so it records evidence. Meaning such as boredom or interest must be inferred, and an inference can always be mistaken.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "loop",
+          "kind": "mcq",
+          "stem": "In an online game the device shows a predicted move before the server replies, and the two sometimes disagree. What happens when they disagree?",
+          "options": [
+            { "key": "a", "label": "The device keeps its own version because the player saw it first" },
+            { "key": "b", "label": "The server's version is authoritative and the device corrects its screen" },
+            { "key": "c", "label": "The match is cancelled and restarted" },
+            { "key": "d", "label": "Both versions are stored as equally true" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.55,
+          "hint_text": "Decide which computer holds the official version of the shared game.",
+          "feedback_correct": "Correct. The server holds the official state and the device corrects itself when they disagree.",
+          "feedback_wrong": "A prediction is only a guess shown early to keep play responsive. The server holds the official shared state, so when the two disagree the device is corrected, which is what causes snapping or rubber-banding.",
+          "slide_ref": 12,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "state",
+          "kind": "mcq",
+          "stem": "A messaging feature shows a fire emoji with a number. What is the actual feature built from?",
+          "options": [
+            { "key": "a", "label": "The emoji image saved in the app's design files" },
+            { "key": "b", "label": "Stored state, timing rules and each new message event" },
+            { "key": "c", "label": "A notification the phone creates at midnight" },
+            { "key": "d", "label": "The text of the last message in the conversation" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "The emoji is only what the screen shows; ask what produces it.",
+          "feedback_correct": "Correct. The feature is stored state plus rules plus new events, and the emoji is only what gets rendered.",
+          "feedback_wrong": "The emoji is only what the application renders on screen. The real feature is the saved state, the rules about timing, and the events produced by new messages, which together determine the number shown.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "ai_component",
+          "kind": "mcq",
+          "stem": "Which statement best describes where AI fits inside an application?",
+          "options": [
+            { "key": "a", "label": "AI is one computation component that a larger application calls as part of a workflow" },
+            { "key": "b", "label": "AI is the whole application and no other parts are needed" },
+            { "key": "c", "label": "AI is only used for storing account state" },
+            { "key": "d", "label": "AI is the network that carries requests between computers" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Recall what surrounds the model in the pipeline.",
+          "feedback_correct": "Correct. AI is one kind of computation the application calls inside a larger workflow.",
+          "feedback_wrong": "AI performs inference, which is one kind of computation the application can call. The application still collects requests, reads state, applies rules, calls other systems and renders results, and the network only transports messages.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

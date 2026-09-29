@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "slug": "field-work",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "ask_a_question",
+          "kind": "mcq",
+          "stem": "Which question could you answer with a measurement you can actually take this week?",
+          "options": [
+            { "key": "a", "label": "How many students use the library between 3 and 4 pm?" },
+            { "key": "b", "label": "Is the library a good place?" },
+            { "key": "c", "label": "Do students value learning?" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Look for the question you can count or time.",
+          "feedback_correct": "Yes. Counting students in a set hour is a measurement you can repeat and compare.",
+          "feedback_wrong": "Counting students in a set hour is a measurement you can repeat and compare. Good or value are opinions with no number attached.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "ask_a_question",
+          "kind": "mcq",
+          "stem": "Which of these questions is too big to investigate with the time you have?",
+          "options": [
+            { "key": "a", "label": "Why do people like the city?" },
+            { "key": "b", "label": "How many people cross this street in ten minutes?" },
+            { "key": "c", "label": "How long is the wait at this bus stop at 8 am?" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "If you cannot picture the measurement, the question is too big.",
+          "feedback_correct": "Right. Why people like the city has no clear measurement and would need a large study.",
+          "feedback_wrong": "Why people like the city has no clear measurement and would need a large study. Counting crossings or timing a wait are small, answerable measurements.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "ask_a_question",
+          "kind": "select_all",
+          "stem": "Which questions are testable with a small measurement? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "How many people use this bench in an hour?" },
+            { "key": "b", "label": "What is the average wait at the bus stop?" },
+            { "key": "c", "label": "Is this neighborhood happy?" },
+            { "key": "d", "label": "How many students bring lunch from home?" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.45,
+          "hint_text": "Testable questions describe something you can count or time.",
+          "feedback_correct": "Yes. Counting users, averaging a wait, and counting lunches are all measurable.",
+          "feedback_wrong": "Testable questions describe something you can count or time. Asking if a neighborhood is happy is an opinion with no number you can collect.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "collect_data",
+          "kind": "mcq",
+          "stem": "The module says a small sample you actually took is better than what?",
+          "options": [
+            { "key": "a", "label": "A big number you guessed" },
+            { "key": "b", "label": "A careful count you did" },
+            { "key": "c", "label": "A short honest measurement" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "The alternative is not measured at all.",
+          "feedback_correct": "Correct. A real small sample beats an invented big number.",
+          "feedback_wrong": "The point is that real, small measurements beat invented big ones. A careful count or an honest measurement is exactly the good option, not the alternative.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "collect_data",
+          "kind": "select_all",
+          "stem": "Which actions keep a small sample honest? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Write down the number you actually counted" },
+            { "key": "b", "label": "Record when and where you measured" },
+            { "key": "c", "label": "Round up to a nicer number" },
+            { "key": "d", "label": "Skip measurements you dislike" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "Honest data is recorded as it was, with time and place.",
+          "feedback_correct": "Right. Recording the true count and the time and place keeps the sample honest.",
+          "feedback_wrong": "An honest sample records what you truly measured, with the time and place. Changing numbers you dislike or rounding up makes the data untrustworthy.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "ask_a_question",
+          "kind": "mcq",
+          "stem": "What makes a question answerable in a small investigation?",
+          "options": [
+            { "key": "a", "label": "You can picture the measurement you would take" },
+            { "key": "b", "label": "It sounds impressive and broad" },
+            { "key": "c", "label": "It has no clear end" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Think about whether you can see the measurement.",
+          "feedback_correct": "Yes. If you can picture the measurement, the question is answerable.",
+          "feedback_wrong": "A question is answerable when you can picture exactly what you would measure. Broad or endless questions cannot be finished with the time you have.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "ask_a_question",
+          "kind": "mcq",
+          "stem": "Which question is testable with a simple count?",
+          "options": [
+            { "key": "a", "label": "How many bikes are parked here at noon?" },
+            { "key": "b", "label": "Are people friendly here?" },
+            { "key": "c", "label": "Should the city add more parks?" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "One option can be counted directly.",
+          "feedback_correct": "Correct. Counting parked bikes is a measurement you can repeat.",
+          "feedback_wrong": "Counting bikes is a measurement you can repeat. Friendly and should questions are opinions, not something you can count.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "ask_a_question",
+          "kind": "select_all",
+          "stem": "Which questions could you answer with a small measurement this week? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "How many cars pass this corner in ten minutes?" },
+            { "key": "b", "label": "How long does the crossing light stay green?" },
+            { "key": "c", "label": "Is this the best street in town?" },
+            { "key": "d", "label": "How many flyers are left on the shelf?" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.45,
+          "hint_text": "A testable question points at something you can count or time.",
+          "feedback_correct": "Right. Counting cars, timing the light, and counting flyers are all measurable.",
+          "feedback_wrong": "A testable question points at something you can count or time. Asking if this is the best street is an opinion with no measurement behind it.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "collect_data",
+          "kind": "mcq",
+          "stem": "You can only observe for ten minutes. What should you do?",
+          "options": [
+            { "key": "a", "label": "Take the small sample you can and note it" },
+            { "key": "b", "label": "Guess the number for the rest of the day" },
+            { "key": "c", "label": "Wait for a bigger budget" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "A small real sample still counts.",
+          "feedback_correct": "Yes. A small sample you actually took is honest and useful.",
+          "feedback_wrong": "A small sample you actually took is honest and useful. Guessing or waiting leaves you with no real data at all.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "collect_data",
+          "kind": "mcq",
+          "stem": "Why is a small honest sample more useful than a large guessed number?",
+          "options": [
+            { "key": "a", "label": "You can trust and check what you measured" },
+            { "key": "b", "label": "It is always more accurate than a big sample" },
+            { "key": "c", "label": "It removes the need to record anything" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "The value is that the sample is real.",
+          "feedback_correct": "Correct. The sample is real and checkable, so you can trust it.",
+          "feedback_wrong": "The value is that the sample is real and checkable, not that it beats every larger study. You still need to record what you measured.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

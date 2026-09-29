@@ -8,7 +8,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
-from app.repository import AssessmentRepository, LearningRepository
+from app.repository import AssessmentRepository, LearningRepository, QuizRepository
 from app.services.azure_openai import QuestionWriter, build_llm
 from app.services.context_builder import ContextBuilder
 from app.services.evidence_extractor import EvidenceExtractor
@@ -38,3 +38,7 @@ async def get_repo(db: AsyncSession = Depends(get_db)) -> AssessmentRepository:
 
 async def get_learning_repo(db: AsyncSession = Depends(get_db)) -> LearningRepository:
     return LearningRepository(db)
+
+
+async def get_quiz_repo(db: AsyncSession = Depends(get_db)) -> QuizRepository:
+    return QuizRepository(db)

@@ -26,9 +26,11 @@ const SPARKS = [
 export function ModuleCelebration({
   moduleTitle,
   hubHref,
+  quizHref,
 }: {
   moduleTitle: string;
   hubHref: string;
+  quizHref?: string | null;
 }) {
   const reduced = useReducedMotion();
 
@@ -55,6 +57,16 @@ export function ModuleCelebration({
       )}
       <p className="text-lg font-semibold">Module complete!</p>
       <p className="mt-1 text-sm text-muted-foreground">You finished {moduleTitle}.</p>
+      {quizHref ? (
+        <p className="mt-4">
+          <Link
+            href={quizHref}
+            className="inline-block border border-primary bg-panel px-4 py-2 text-sm font-medium"
+          >
+            Take the 5-question quiz
+          </Link>
+        </p>
+      ) : null}
       <Link href={hubHref} className="mt-4 inline-block underline underline-offset-4">
         Back to your learning path
       </Link>

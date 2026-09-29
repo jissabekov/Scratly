@@ -1,0 +1,199 @@
+{
+  "version": "1.0.0",
+  "slug": "shipping-a-prototype",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "define_done",
+          "kind": "mcq",
+          "stem": "What is a prototype, according to the module?",
+          "options": [
+            { "key": "a", "label": "A question you can put in front of someone" },
+            { "key": "b", "label": "A small finished product" },
+            { "key": "c", "label": "A written description of an idea" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "A prototype exists to answer something.",
+          "feedback_correct": "Yes. A prototype exists to answer a question you can test with a person.",
+          "feedback_wrong": "A prototype exists to answer a question, not to be a mini product or a description. Its job is to test an assumption with a person.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "define_done",
+          "kind": "mcq",
+          "stem": "You want to learn whether people understand your sign up steps. What is the smallest prototype?",
+          "options": [
+            { "key": "a", "label": "Clickable screens of only the sign up flow" },
+            { "key": "b", "label": "The full product with accounts and payments" },
+            { "key": "c", "label": "A document describing the sign up idea" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "Test only the thing you want to learn about.",
+          "feedback_correct": "Right. Clickable screens of the sign up flow test understanding directly.",
+          "feedback_wrong": "Clickable screens test understanding directly. A full product tests too many things at once, and a document tests nothing a person can do.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "define_done",
+          "kind": "select_all",
+          "stem": "Which of these are good questions for a prototype to answer? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Can a new user finish sign up without help?" },
+            { "key": "b", "label": "Do people understand the main button?" },
+            { "key": "c", "label": "Can the whole company scale next year?" },
+            { "key": "d", "label": "Is the company profitable?" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "A prototype answers a small question about how people use it.",
+          "feedback_correct": "Yes. Finishing sign up and understanding the main button are things a prototype can test.",
+          "feedback_wrong": "A prototype answers a small, testable question about how people use it. Scaling or profit are business questions a prototype cannot settle.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "test_with_people",
+          "kind": "mcq",
+          "stem": "According to the module, what teaches you more than ten people agreeing with you?",
+          "options": [
+            { "key": "a", "label": "One person actually using it" },
+            { "key": "b", "label": "A bigger slide deck" },
+            { "key": "c", "label": "A longer written plan" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Agreement is not the same as use.",
+          "feedback_correct": "Correct. One person using the prototype teaches you more than agreement.",
+          "feedback_wrong": "Watching one real person use the prototype reveals problems that agreement never shows. Slides and plans do not put the idea in someone's hands.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "test_with_people",
+          "kind": "select_all",
+          "stem": "Which actions count as testing a prototype with a real person? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Watch one user try the flow without helping" },
+            { "key": "b", "label": "Ask the user to think aloud" },
+            { "key": "c", "label": "Ask friends if the idea sounds nice" },
+            { "key": "d", "label": "Present the idea in a meeting" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "Testing means the person uses it while you observe.",
+          "feedback_correct": "Right. Watching a user try the flow and think aloud is real testing.",
+          "feedback_wrong": "Testing means a person uses the prototype while you observe. Asking if the idea sounds nice or presenting in a meeting collects opinions, not use.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "define_done",
+          "kind": "mcq",
+          "stem": "Before building a prototype, what should you decide?",
+          "options": [
+            { "key": "a", "label": "What it has to prove" },
+            { "key": "b", "label": "How polished it will look" },
+            { "key": "c", "label": "How many features it will have" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "A prototype is built to answer a question.",
+          "feedback_correct": "Yes. Decide what the prototype must prove before you build it.",
+          "feedback_wrong": "A prototype is built to answer a question, so decide what it must prove first. Polish and feature count matter only after the question is clear.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "define_done",
+          "kind": "mcq",
+          "stem": "You want to know if people can find the search box. What is the smallest prototype that answers this?",
+          "options": [
+            { "key": "a", "label": "One screen showing just the search box" },
+            { "key": "b", "label": "The full app with settings and accounts" },
+            { "key": "c", "label": "A slide describing search" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "Include only what the question needs.",
+          "feedback_correct": "Correct. Testing findability needs only the screen with the search box.",
+          "feedback_wrong": "Testing findability needs only the screen with the search box. A full app adds unrelated work, and a slide tests nothing people can try.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "define_done",
+          "kind": "select_all",
+          "stem": "Which prototypes are focused enough to answer one clear question? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Clickable screens of just the checkout step" },
+            { "key": "b", "label": "A paper sketch of one screen" },
+            { "key": "c", "label": "The whole product with every feature" },
+            { "key": "d", "label": "A single screen testing the main button" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.45,
+          "hint_text": "A focused prototype tests one thing at a time.",
+          "feedback_correct": "Right. One checkout step, one paper screen, and one button test each answer one question.",
+          "feedback_wrong": "A focused prototype tests one thing at a time. The whole product with every feature tries to prove too much at once and hides which part failed.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "test_with_people",
+          "kind": "mcq",
+          "stem": "Why show the prototype to one real person instead of many supporters?",
+          "options": [
+            { "key": "a", "label": "A real user surfaces problems agreement hides" },
+            { "key": "b", "label": "One person is cheaper than many" },
+            { "key": "c", "label": "Supporters are never useful" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Real use reveals what agreement cannot.",
+          "feedback_correct": "Yes. Genuine use reveals problems that friendly agreement never will.",
+          "feedback_wrong": "The value is that genuine use reveals problems that friendly agreement never will. Supporters can still be useful, but they do not replace a real user.",
+          "slide_ref": 3,
+          "is_critical": false
+        },
+        {
+          "seq": 5,
+          "objective": "test_with_people",
+          "kind": "mcq",
+          "stem": "You hand your prototype to a person and they get stuck. What is the best next move?",
+          "options": [
+            { "key": "a", "label": "Watch where they struggled and note it" },
+            { "key": "b", "label": "Explain the answer right away" },
+            { "key": "c", "label": "Decide the prototype is finished" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "The struggle is the finding you came for.",
+          "feedback_correct": "Correct. Note where they struggled; that struggle is the finding.",
+          "feedback_wrong": "The struggle is the finding you came for, so record where it happened. Explaining the answer hides the problem, and the prototype is not done until the question is answered.",
+          "slide_ref": 3,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}
