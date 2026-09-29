@@ -1,0 +1,81 @@
+{
+  "version": "1.0.0",
+  "slug": "shipping-a-prototype",
+  "seq": 2,
+  "title": "Shipping a Prototype",
+  "description": "Placeholder module (content-agnostic proof). Replaced when authored material lands.",
+  "est_minutes": 10,
+  "objectives": [
+    {
+      "code": "define_done",
+      "label": "Define what done means for a prototype",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "test_with_people",
+      "label": "Put it in front of one real person",
+      "is_critical": false,
+      "ordinal": 2
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "Decide what done means",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "A prototype is a question",
+          "objective": "define_done",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A prototype is not a small product. It is a question you can put in front of someone. Decide what it has to prove before you build it."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "check",
+          "title": "What should the prototype prove?",
+          "objective": "define_done",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "You want to know if people understand your sign-up flow. What is the smallest prototype?",
+              "options": [
+                { "key": "a", "label": "Clickable screens of just the sign-up flow" },
+                { "key": "b", "label": "The full product with accounts and payments" },
+                { "key": "c", "label": "A written description of the idea" }
+              ],
+              "answer_key": "a",
+              "explanation": "Clickable screens test understanding directly. The full product tests too many things at once; a description tests nothing people can do.",
+              "objective": "define_done"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Show one person",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "callout",
+          "objective": "test_with_people",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "One person using it teaches you more than ten people agreeing with you."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

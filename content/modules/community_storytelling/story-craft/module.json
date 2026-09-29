@@ -1,0 +1,81 @@
+{
+  "version": "1.0.0",
+  "slug": "story-craft",
+  "seq": 2,
+  "title": "Story Craft: Making Data Mean Something",
+  "description": "Placeholder module (content-agnostic proof). Replaced when authored material lands.",
+  "est_minutes": 10,
+  "objectives": [
+    {
+      "code": "find_the_point",
+      "label": "Find the one point the story makes",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "show_evidence",
+      "label": "Back the point with real evidence",
+      "is_critical": false,
+      "ordinal": 2
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "One point per story",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Pick the point",
+          "objective": "find_the_point",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A story that tries to say five things says nothing. Choose the single point you want a reader to remember, then cut everything that does not support it."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "check",
+          "title": "Which opening has one point?",
+          "objective": "find_the_point",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Which opening commits to a single point?",
+              "options": [
+                { "key": "a", "label": "Bus wait times are longest exactly when students need them most." },
+                { "key": "b", "label": "Buses, schedules, and neighborhoods are all interesting." },
+                { "key": "c", "label": "Here is everything we collected this month." }
+              ],
+              "answer_key": "a",
+              "explanation": "Option a makes one claim you can check. The others list topics instead of making a point.",
+              "objective": "find_the_point"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Show your evidence",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "callout",
+          "objective": "show_evidence",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "warning",
+              "title": "Punchline",
+              "text": "A claim without evidence is just an opinion wearing a headline."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

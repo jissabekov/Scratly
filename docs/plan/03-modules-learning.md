@@ -11,7 +11,12 @@ chat (assessment) → project selected → LEARNING HUB (module path)
   → quiz gate (Plan 04) → next module unlocks → … → project ready to start
 ```
 
-## 3.2 Data model (new schema `learning`; migration `014_learning_content.sql`)
+## 3.2 Data model (new schema `learning`; migration `017_learning_content.sql`)
+
+> **Correction (2026-09-29):** this plan predates Phases 1–2. `014` was already
+> taken by `014_dedup_ring_buffer.sql`; the learning schema shipped as
+> `017_learning_content.sql` (next free number). Slide ids are uuid5 of the
+> natural key so reseeding never orphans a completion.
 
 ```sql
 learning.modules(id, project_archetype_id, seq, title, description,
@@ -57,12 +62,16 @@ app/(student)/modules/page.tsx            # server: hub/path
 app/(student)/modules/[moduleId]/page.tsx # server → <LessonPlayer/>
 components/learn/LessonPlayer.tsx         # client: ?slide= param, AnimatePresence, focus mgmt
 components/learn/SlideBlock.tsx           # typed block renderer
-components/learn/FlowActionBar.tsx        # shared bottom bar
-components/learn/SlideProgress.tsx        # top bar
 components/learn/CheckBlock.tsx           # in-slide check (retryable)
 components/progress/ModulePath.tsx        # locked/current/done nodes + quiz-gate icons
 lib/actions.ts                            # 'use server': completeSlide, submitQuizAttempt, …
 ```
+
+> **Correction (2026-09-29):** `FlowActionBar` and `SlideProgress` shipped in
+> Phase 2 as `components/flow/FlowActionBar.tsx` and
+> `components/flow/SlideProgress.tsx` — Phase 3 **reuses** them; the learning
+> player does not duplicate them. `SessionBootstrap` and `ModuleCelebration`
+> were added under `components/learn/`.
 
 ## 3.4 Automatic tracking
 
@@ -75,3 +84,29 @@ lib/actions.ts                            # 'use server': completeSlide, submitQ
 - Player: slide x of n bar, keyboard nav, focus management, live regions; one-idea-per-slide enforced by content schema.
 - Slide completion persists idempotently; refresh/back restore position from URL + server.
 - Playwright: hub → module → complete slides → quiz gate locked until Plan 04 lands.
+
+## 3.6 Per-workstream status (2026-09-29)
+
+Environment: Postgres up with `017_learning_content.sql` applied, content seeded
+(`modules=10 objectives=30 lessons=25 slides=85`, idempotent on re-run), API on
+:8000 with the repo `.env` sourced, web built (`next build`) and served for e2e.
+
+| # | Workstream | Status | Evidence |
+|---|---|---|---|
+| W3.1 | Learning schema + content model + seed | **DONE** | `migrations/017_learning_content.sql` (`learning` schema: `modules/objectives/lessons/slides/slide_completions/learning_events/progress_rollups`, append-only trigger on `learning_events`). Typed block list (`text/callout/diagram/check/worked_example`) in `app/contracts/learning.py` — no free-form HTML. Deterministic uuid5 ids in `app/services/learning_content.py`. Versioned JSON in `content/modules/**` + `scripts/seed_learning_content.py` (validates, upserts, deletes stale rows; `shared/` expands into every archetype + `generic`). |
+| W3.2 | API surface | **DONE** | `routes/learning.py`: `GET …/learning` (hub: states + mastery % + streak), `GET …/learning/modules/{mid}` (slides + progress + quiz gate), `POST …/learning/slides/{sid}/complete` (idempotent by `request_id`, one DB transaction, 409 on request-id reuse). Plan 04/05 shapes stubbed behind `routes/learning_quiz.py` and `routes/learning_checkins.py` (HTTP 501 with `planned_phase`). Learning never writes `assessment.*`. |
+| W3.3 | Module hub UI | **DONE** | `app/modules/page.tsx` (server, `?session=`) + `components/progress/ModulePath.tsx`: locked/available/in_progress/passed nodes, quiz-gate lock icon, `aria-current="step"` on the active node, mastery + streak header. |
+| W3.4 | Lesson player | **DONE** | `app/modules/[moduleId]/page.tsx` (server, `?session=`/`?slide=`) → `components/learn/LessonPlayer.tsx` (client): `?slide=` URL state, Motion `AnimatePresence` direction-aware, focus-to-heading, `Step x of n` live region, keyboard ←/→ + 1–4 + Enter, `SlideBlock.tsx` typed renderer, `CheckBlock.tsx` (retryable, explanation on wrong, primary stays disabled until correct). Reuses `components/flow/FlowActionBar` + `SlideProgress`. Celebration only at module completion (`ModuleCelebration.tsx`), `prefers-reduced-motion` respected. |
+| W3.5 | Automatic tracking + e2e | **DONE** | Completion writes go through the Server Action → FastAPI only; xAPI-shaped `learning_events` emit `slide`/`lesson`/`module` `completed` statements (verified live: 14 slide + 3 lesson + 1 module events for a full module; rollup `14/14`, `time_on_module_ms=105000`; idempotent replay does not double-count time). `e2e/learning.spec.ts`: hub bootstrap + locked gate, hub→module, deep-link + completion persistence + refresh + Back, check gating; axe WCAG 2.2 AA on hub and player. |
+
+**Gates (run in-session):** `compileall` OK · `pytest apps/api/tests -q` → **125 passed** (was 100; +25 learning tests) · `ruff check`/`ruff format --check apps/api` clean · `mypy` success (43 files) · `npm --prefix apps/web run build` green · `npm --prefix apps/web run test:e2e` → **9/9** (4 learning + 5 existing; chat unregressed).
+
+**Deliberate deviations (recorded):**
+1. Check feedback is **immediate on selection** (with explanation and polite announcement); the primary CTA is disabled until correct — no separate "Check" button. This matches the `frontend-ui` skill's "immediate feedback, never silent advance" over plan §3.4's "Check→Continue".
+2. Check options use native radios inside `<fieldset>/<legend>` (whole row clickable, fully keyboard-operable); the generated Radix `radio-group` cannot host a clickable row without `div onClick`.
+3. Slide navigation uses the native History API (`pushState` + `popstate`), because Next's `router.push` *replaces* search-param-only navigations, which would break browser Back. The URL stays the source of truth.
+4. Session identity stays in `localStorage`; the server components resolve it via `?session=` (set by `SessionBootstrap`). No progress is ever persisted client-side.
+5. No chat→modules entry point yet: routing/interception is **Plan 06** (integration). Phase 3 is reached by URL.
+6. Module states: only the first module is `available`; later modules stay `locked` behind the Plan-04 quiz gate (the hub marks every gate locked).
+
+**Reachability:** `/modules` (hub) and `/modules/<moduleId>?slide=n` (player); session via `?session=<id>`.

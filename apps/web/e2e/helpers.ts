@@ -27,6 +27,17 @@ export async function openSeededSession(page: Page, sessionId: string): Promise<
   await page.goto('/');
 }
 
+/** Seed the stored session, then open the learning hub (bootstrap resolves it). */
+export async function openLearningHub(page: Page, sessionId: string): Promise<void> {
+  await page.addInitScript(
+    ([key, value]) => {
+      window.localStorage.setItem(key, value);
+    },
+    [SESSION_KEY, sessionId]
+  );
+  await page.goto('/modules');
+}
+
 /** Run axe against the current page state and return violations. */
 export async function axeViolations(page: Page, tag?: string) {
   const { AxeBuilder } = await import('@axe-core/playwright');

@@ -98,6 +98,88 @@ export type AdminSessionRow = {
   updated_at?: string;
 };
 
+/* --- Learning track (Plan 03) -------------------------------------------- */
+
+export type LearningModuleState = 'locked' | 'available' | 'in_progress' | 'passed';
+
+export type LearningModuleSummary = {
+  id: string;
+  slug: string;
+  seq: number;
+  title: string;
+  description: string;
+  est_minutes: number;
+  state: LearningModuleState;
+  slides_total: number;
+  slides_completed: number;
+  progress_pct: number;
+  quiz_gate_locked: boolean;
+};
+
+export type LearningHub = {
+  session_id: string;
+  archetype_key: string;
+  modules: LearningModuleSummary[];
+  mastery_pct: number;
+  streak_days: number;
+};
+
+/** Typed slide blocks — rendered by one component, never free-form HTML. */
+export type SlideBlock =
+  | { type: 'text'; text: string }
+  | { type: 'callout'; tone: 'info' | 'success' | 'warning'; title: string; text: string }
+  | { type: 'diagram'; asset: string; alt: string; caption: string; steps: string[] }
+  | {
+      type: 'check';
+      question: string;
+      options: { key: string; label: string }[];
+      answer_key: string;
+      explanation: string;
+      objective?: string | null;
+    }
+  | { type: 'worked_example'; title: string; steps: string[] };
+
+export type SlideItem = {
+  id: string;
+  index: number;
+  lesson_seq: number;
+  lesson_title: string;
+  seq: number;
+  kind: string;
+  title: string;
+  content: SlideBlock[];
+  objective_code: string | null;
+  completed: boolean;
+};
+
+export type ModuleProgress = {
+  slides_total: number;
+  slides_completed: number;
+  current_slide_index: number;
+};
+
+export type QuizGate = {
+  state: 'locked' | 'available' | 'passed';
+  available: boolean;
+  planned_phase: number;
+};
+
+export type ModuleDetail = {
+  session_id: string;
+  module: LearningModuleSummary;
+  slides: SlideItem[];
+  progress: ModuleProgress;
+  quiz: QuizGate;
+};
+
+export type SlideCompleteResult = {
+  slide_id: string;
+  completed: boolean;
+  already_completed: boolean;
+  module_progress: ModuleProgress;
+  next_slide_index: number | null;
+};
+
 /** Client-only thread row (includes optimistic / welcome). */
 export type ThreadMessage = {
   key: string;

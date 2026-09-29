@@ -1,0 +1,81 @@
+{
+  "version": "1.0.0",
+  "slug": "next-steps",
+  "seq": 2,
+  "title": "From Idea to First Step",
+  "description": "Placeholder module that proves the content model is content-agnostic. Replaced when authored material lands.",
+  "est_minutes": 8,
+  "objectives": [
+    {
+      "code": "scope_small",
+      "label": "Cut a big idea down to a first step",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "check_progress",
+      "label": "Notice progress and adjust",
+      "is_critical": false,
+      "ordinal": 2
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "Shrink the idea",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "One idea per slide",
+          "objective": "scope_small",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A project you can finish this month beats a perfect plan you never start. The first step should be small enough to do this week."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "check",
+          "title": "Pick the first step",
+          "objective": "scope_small",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Which first step is small enough to finish this week?",
+              "options": [
+                { "key": "a", "label": "Sketch one screen of the idea on paper" },
+                { "key": "b", "label": "Build the whole app" },
+                { "key": "c", "label": "Wait until you have better tools" }
+              ],
+              "answer_key": "a",
+              "explanation": "A paper sketch is one sitting of work and gives you something to react to. The other two options either never finish or never start.",
+              "objective": "scope_small"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Look back to move forward",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "callout",
+          "objective": "check_progress",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "success",
+              "title": "Punchline",
+              "text": "Progress you can see is progress you keep making."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

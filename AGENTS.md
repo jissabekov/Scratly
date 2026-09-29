@@ -8,6 +8,7 @@ Explainable student discovery & project matching: FastAPI + PostgreSQL backend (
 - Compile check: `.venv/Scripts/python -m compileall -q apps/api/app`
 - Web build: `npm --prefix apps/web run build`
 - DB only: `docker compose up -d --wait postgres` · full stack: `docker compose --profile full up -d --build --wait`
+- Learning content seed (Plan 03; run before learning e2e — validates `content/modules/**` and upserts the `learning` schema; idempotent): `.venv/Scripts/python scripts/seed_learning_content.py` (add `--dry-run` to validate only). Migrations are applied lexically on first Postgres volume only; apply a new one to an existing volume with `docker compose exec -T postgres psql -U scratly -d scratly < migrations/<file>.sql`.
 - Live eval suite (needs API on :8000 + Postgres + Azure): set `PYTHONIOENCODING=utf-8`, then `.venv/Scripts/python scripts/eval_conversation_suite.py --out-dir eval/traces/<new-dir>`; analyze with `.venv/Scripts/python eval/analyze_post_fix.py <dir>`
 
 ## Hard rules (from docs/architecture.md — do not violate)

@@ -1,0 +1,81 @@
+{
+  "version": "1.0.0",
+  "slug": "field-work",
+  "seq": 2,
+  "title": "Field Work: Getting Useful Data",
+  "description": "Placeholder module (content-agnostic proof). Replaced when authored material lands.",
+  "est_minutes": 10,
+  "objectives": [
+    {
+      "code": "ask_a_question",
+      "label": "Turn curiosity into a testable question",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "collect_data",
+      "label": "Collect a small, honest sample",
+      "is_critical": false,
+      "ordinal": 2
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "Start with a question",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Make it answerable",
+          "objective": "ask_a_question",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "An investigation starts with a question you can answer with the time and tools you actually have. If you cannot picture the measurement, the question is too big."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "check",
+          "title": "Which question is testable?",
+          "objective": "ask_a_question",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Which question could you answer with a small measurement?",
+              "options": [
+                { "key": "a", "label": "How many people walked past this corner in ten minutes?" },
+                { "key": "b", "label": "Is this neighborhood nice?" },
+                { "key": "c", "label": "Do people care about air quality?" }
+              ],
+              "answer_key": "a",
+              "explanation": "Counting for ten minutes is a measurement you can repeat and compare. Nice and care are opinions with no number attached.",
+              "objective": "ask_a_question"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Collect a small sample",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "callout",
+          "objective": "collect_data",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "A small sample you actually took beats a big number you guessed."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

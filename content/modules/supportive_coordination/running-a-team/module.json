@@ -1,0 +1,81 @@
+{
+  "version": "1.0.0",
+  "slug": "running-a-team",
+  "seq": 2,
+  "title": "Running a Team Without Running Yourself Down",
+  "description": "Placeholder module (content-agnostic proof). Replaced when authored material lands.",
+  "est_minutes": 10,
+  "objectives": [
+    {
+      "code": "share_the_plan",
+      "label": "Make the plan visible to everyone",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "ask_for_help",
+      "label": "Ask for help before the deadline",
+      "is_critical": false,
+      "ordinal": 2
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "Make the plan visible",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Write it where people look",
+          "objective": "share_the_plan",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A plan that lives only in your head cannot be helped with. Write down who does what and by when, in the place your team already checks."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "check",
+          "title": "Which plan can a team use?",
+          "objective": "share_the_plan",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Which version of the plan can your team actually use?",
+              "options": [
+                { "key": "a", "label": "A shared list with names and dates" },
+                { "key": "b", "label": "A plan you remember and explain when asked" },
+                { "key": "c", "label": "A rough feeling about who is busy" }
+              ],
+              "answer_key": "a",
+              "explanation": "Names and dates let anyone spot a gap and offer help. A plan in your head only works while you are in the room.",
+              "objective": "share_the_plan"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Ask early",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "callout",
+          "objective": "ask_for_help",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "warning",
+              "title": "Punchline",
+              "text": "Asking for help on Monday is planning. Asking on Friday is an emergency."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,297 @@
+{
+  "version": "1.0.0",
+  "slug": "how-apps-work",
+  "seq": 1,
+  "title": "Behind the Swipe: How an Application Actually Works",
+  "description": "What actually happens between a swipe and the next video. Follow one action through the system, learn why events and state are different, and see where AI fits inside an application.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "events",
+      "label": "Explain how an action becomes a structured event the system can record",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "state",
+      "label": "Explain state as what the system currently knows or believes to be true",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "loop",
+      "label": "Trace how one action travels through a loop of request, computation, and response",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "ai_component",
+      "label": "Explain why AI is one computation component inside an application, not the whole application",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "What the system actually receives",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Three seconds, then a swipe",
+          "objective": "events",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "You watch a short video for about three seconds, then swipe away. The next video seems to guess something about you. What did the application actually receive in those three seconds?"
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "The record the machine keeps",
+          "objective": "events",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "event-record-fields",
+              "alt": "A simplified event record listing fields such as user, video, watch time, completion, like, share, action and timestamp",
+              "caption": "A simplified classroom example, not any real application's internal record.",
+              "steps": [
+                "user_id: 48291",
+                "video_id: 73104",
+                "watch_time: 3.2 seconds",
+                "completed: false",
+                "liked: false",
+                "shared: false",
+                "action: swipe_next",
+                "timestamp: 9:07:14 AM"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Read the record",
+          "objective": "events",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Look at the event record. Where does it say the student was bored?",
+              "options": [
+                { "key": "a", "label": "In the watch_time field" },
+                { "key": "b", "label": "In the action field, as swipe_next" },
+                { "key": "c", "label": "Nowhere. The system must infer interest from the actions it can observe." },
+                { "key": "d", "label": "In the completed field" }
+              ],
+              "answer_key": "c",
+              "explanation": "The record stores what happened, not what it meant. A 3.2 second watch time and a swipe_next action are evidence. Boredom is an interpretation the system would have to infer from that evidence, and it can never be certain it is right.",
+              "objective": "events"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Evidence, not intention",
+          "objective": "events",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Computers do not receive intentions. They receive evidence."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "How one swipe travels through a system",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "diagram",
+          "title": "One swipe, end to end",
+          "objective": "loop",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "swipe-request-flow",
+              "alt": "A flow from a finger movement to a device event, a request to a server, computation, a response and a rendered next video",
+              "caption": "Watch video, swipe, next video appears. The gap between the swipe and the next video is where the whole system lives.",
+              "steps": [
+                "Finger moves",
+                "The device measures the gesture",
+                "The application creates a swipe event",
+                "A request travels to a server",
+                "The server reads the user and session state",
+                "Computation scores and ranks candidate videos",
+                "Selected video information returns",
+                "The application renders the next video"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "callout",
+          "title": "From gesture to event",
+          "objective": "events",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "To a person, it is a swipe. To the application, it is an event."
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Who decides the next video?",
+          "objective": "loop",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A swipe sends a request across the internet. What is the internet actually doing in this loop?",
+              "options": [
+                { "key": "a", "label": "Choosing which video is most likely to interest you" },
+                { "key": "b", "label": "Carrying the request to a computer that can make the decision" },
+                { "key": "c", "label": "Storing your account so the app can show your likes" },
+                { "key": "d", "label": "Rendering the next video on your screen" }
+              ],
+              "answer_key": "b",
+              "explanation": "The internet moves messages between computers. It is transportation, not intelligence. The decision about the next video happens on a server that reads state, applies rules, and scores candidates. The device then renders whatever came back.",
+              "objective": "loop"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Transportation, not intelligence",
+          "objective": "loop",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "The internet is transportation, not intelligence."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "State, loops, and where AI fits",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The emoji is not the feature",
+          "objective": "state",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A messaging app streak looks like a fire emoji and a number. The emoji is only what the application renders. The real feature is stored state, plus timing rules, plus each new Snap event."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Events are what happened. State is what is true now."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "worked_example",
+          "title": "How a streak is computed",
+          "objective": "state",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "How a streak is computed",
+              "steps": [
+                "A student sends a Snap.",
+                "The application creates a send event.",
+                "The system checks the sender and the recipient.",
+                "The system decides whether this is a qualifying Snap.",
+                "The timestamp of the Snap is stored.",
+                "The system checks both directions and the time window.",
+                "The streak state is kept, increased, or allowed to expire.",
+                "The application renders the fire, the number, or the hourglass."
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "What is the streak?",
+          "objective": "state",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A user opens the account on a second phone and sees the same streak number. What is the streak actually?",
+              "options": [
+                { "key": "a", "label": "The fire emoji saved on the first phone" },
+                { "key": "b", "label": "A stored record of events plus rules that the app calculates and renders" },
+                { "key": "c", "label": "A notification the app sends at midnight" },
+                { "key": "d", "label": "The count of snaps inside the last message" }
+              ],
+              "answer_key": "b",
+              "explanation": "The emoji and number are rendered from state, so any device that reads the same account shows the same streak. The streak itself is the saved record and the timing rules, recalculated from new events. The emoji can vanish from one screen while the stored state still exists.",
+              "objective": "state"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "text",
+          "title": "Your device is not the whole game",
+          "objective": "loop",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "In an online game, your device sends an action and the server decides what is true. When the two disagree, the server wins and your screen is corrected. Your device is not the whole game. It is one part of a loop that runs across two computers."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "text",
+          "title": "AI is one component",
+          "objective": "ai_component",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "When an AI app answers, the model is one step in the pipeline. The application still collects the request, reads state, applies rules, calls other systems, and renders the answer. AI is one computation component inside the application, not the entire application."
+            }
+          ]
+        },
+        {
+          "seq": 6,
+          "kind": "callout",
+          "title": "The whole system",
+          "objective": "loop",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Software is not a screen. Software is a loop that responds to events and changes state."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

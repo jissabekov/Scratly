@@ -5,6 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .db import get_db
 from .routes.admin import router as admin_router
+from .routes.learning import router as learning_router
+from .routes.learning_checkins import router as learning_checkins_router
+from .routes.learning_quiz import router as learning_quiz_router
 from .routes.public import router as public_router
 
 app = FastAPI(title="Scratly API", version="0.1.0")
@@ -34,4 +37,7 @@ async def readiness(db: AsyncSession = Depends(get_db)):
 
 
 app.include_router(public_router, prefix="/v1")
+app.include_router(learning_router, prefix="/v1")
+app.include_router(learning_quiz_router, prefix="/v1")
+app.include_router(learning_checkins_router, prefix="/v1")
 app.include_router(admin_router, prefix="/v1/admin")
