@@ -42,3 +42,19 @@
 - `.devin/skills/frontend-ui/SKILL.md` — component conventions, token rules, lesson-player patterns, a11y checklist.
 - `.devin/skills/web-e2e/SKILL.md` — Playwright conventions for this repo.
 - `apps/web/AGENTS.md` — nested always-on instructions (auto-loaded when Devin touches `apps/web/`).
+
+## 2.9 Per-workstream status (2026-09-29)
+
+Environment: Postgres up (migration `016_catalog_topic_buckets.sql` applied — 6 topic updates + 10 new catalog rows), API on :8000 with repo `.env` sourced, web dev on :3000. All gates run in-session.
+
+| # | Workstream | Status | Evidence |
+|---|---|---|---|
+| W2.1 | Tooling foundation | **DONE** | Tailwind v4.3.3 CSS-first (`@import "tailwindcss"` + `@theme inline`, no config file) + `@tailwindcss/postcss` as sole plugin; `app/style.css` → `app/globals.css` with element selectors in `@layer base` and class selectors in `@layer components`; tokens canon verbatim; `cn()` in `lib/utils.ts`; ESLint 9 flat config (`eslint.config.mjs`, FlatCompat + `next/core-web-vitals`/`next/typescript`, `eslint-config-next` pinned to 15.1.4) replacing `next lint`; shadcn `ui/` primitives (button, radio-group, progress, dialog, tooltip, card). `eslint .` clean; build green. |
+| W2.2 | Frontend debt | **DONE** | `MessageKind` gains `matching_unavailable` + `post_match_feedback` with KIND_LABELS and a dashed muted `unavailable` bubble variant; `Stage` union is now the exact 6-value enum (no `| string`); `StudentChat` no longer blocks input at `stage === 'complete'` (composer enabled, placeholder "Add a final note or question…") — the backend terminal fast path already answers post-match turns (`post_match_feedback_handled`), so no backend semantics changed. |
+| W2.3 | Design system | **DONE** | Extended tokens: status (`--success/--warning/--info` + tints), motion (`--motion-fast/base/slow`), spacing (`--space-1…12`), `--line-strong` for WCAG 1.4.11 control boundaries, dark-mode-ready `.dark` block. `scripts/check_token_contrast.py` verifies every required pair in both modes — all pass AA (text ≥4.5:1, non-text ≥3:1); canon `--line` (decorative panel borders, exempt) reported as INFO. `--warning` darkened #8a6d1f → #755c17 (was 4.26:1 on paper). |
+| W2.4 | Component primitives | **DONE** | `components/flow/FlowActionBar.tsx` (fixed bottom bar, Back ghost + primary CTA, `aria-busy` pending state) and `components/flow/SlideProgress.tsx` (Radix progressbar + visible "Step x of n" polite live region). Both are the shared primitives Phase 3/4 players consume. |
+| W2.5 | E2E + visual regression | **DONE** | `e2e/helpers.ts` (API session seeding, localStorage seeding, axe helper); new `e2e/session-resume.spec.ts` (hydration + server-state parity + `?session=` deep-link); axe WCAG 2.2 AA assertions added to the booted chat, live transcript, and teacher console. **5/5 Playwright specs pass** (43.7 s). Screenshot loop: `apps/web/scripts/screenshot_baseline.mjs` + `screenshot_conversation.mjs`; baseline vs after shows the chat visually unchanged apart from the intended stronger input border. |
+
+Deferred (recorded, not dropped): the `?slide=` / `?q=` deep-link specs belong to the lesson/quiz players and attach in Phase 3 — those URL params do not exist yet. W2.5's deep-link convention is proven today via the teacher console `?session=` param (UI-only, no backend change).
+
+Non-negotiables honoured: tokens preserved verbatim (only additions + the `--warning` AA fix), no new global-store dependency, no client-side progress persistence, chat UI visually unchanged or better.

@@ -1,6 +1,6 @@
 # MASTER ORCHESTRATION — Scratly execution plan
 
-> **Version:** 2026-09-29 · **Status:** Phase 1 ready · **Entry point for every Devin agent working on this repo.**
+> **Version:** 2026-09-29 · **Status:** Phase 2 done (W2.1–W2.5) · Phase 1 leftovers open · **Entry point for every Devin agent working on this repo.**
 > Read this file first; each phase has its own detailed plan file. Update the status column as work completes — this file is the single source of truth for sequencing.
 
 ## 0. Ground rules (apply to every phase)
@@ -17,7 +17,7 @@
 | Phase | Plan file | Scope | Depends on | Status |
 |---|---|---|---|---|
 | **1** | [01-fix-current-system.md](01-fix-current-system.md) — A2 exposure caps, A14 dedup, A18 options/research, completion, latency, hygiene (ruff/mypy/CI) | — | **IN PROGRESS — W1.1/W1.2/W1.3/W1.5/W1.6 landed with live proof; W1.4 + latency + 3 sim A18s remain** |
-| **2** | [02-frontend-ui-foundation.md](02-frontend-ui-foundation.md) — Tailwind v4 + shadcn/ui + Motion migration, tokens, a11y contract, frontend AGENTS.md + skills | Phase 1 | pending |
+| **2** | [02-frontend-ui-foundation.md](02-frontend-ui-foundation.md) — Tailwind v4 + shadcn/ui + Motion migration, tokens, a11y contract, frontend AGENTS.md + skills | Phase 1 | **DONE — W2.1–W2.5 landed with build + 5/5 Playwright + axe + AA-contrast proof (see plan 02 §2.9); Phase 1 leftovers (W1.4 completion, latency, 3 sim A18s) remain open in plan 01** |
 | **3** | [03-modules-learning.md](03-modules-learning.md) — learning schema, content model, slide player, module path, automatic tracking | Phase 2 | pending |
 | **4** | [04-quiz-gating.md](04-quiz-gating.md) — 5-item quizzes, 4/5 + critical-objective pass rule, remediation, BKT mastery | Phase 3 | pending |
 | **5** | [05-progress-coaching.md](05-progress-coaching.md) — check-in scheduler, advice/intervention ladder, retention cards, dashboard | Phase 4 | pending |
