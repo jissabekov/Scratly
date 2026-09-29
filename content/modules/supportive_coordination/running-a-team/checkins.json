@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "slug": "running-a-team",
+  "objectives": [
+    {
+      "objective": "share_the_plan",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could make your team's plan visible to everyone?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Which version of the plan can your team actually use?",
+          "options": [
+            {"key": "a", "label": "A shared list with names and dates"},
+            {"key": "b", "label": "A plan you remember and explain when asked"},
+            {"key": "c", "label": "A rough feeling about who is busy"}
+          ],
+          "answer": ["a"],
+          "explanation": "Names and dates let anyone spot a gap and offer help, while a plan kept in your head only works while you are present."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write your team's current plan as a short shared list with who does what and by when.",
+          "rubric": {"criteria": ["Assigns each task to a named person with a date", "Puts the list somewhere the whole team can see it"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a plan kept only in your head is hard for a team to use.",
+          "rubric": {"criteria": ["Explains that others cannot see or act on an unseen plan", "Notes that a shared plan lets anyone spot gaps"]}
+        }
+      ]
+    },
+    {
+      "objective": "ask_for_help",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could ask for help before a deadline instead of after it?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "You realize on Monday that one part of the project is behind. What is the most useful move?",
+          "options": [
+            {"key": "a", "label": "Tell the team what is behind and ask for help now"},
+            {"key": "b", "label": "Stay quiet and try to catch up alone"},
+            {"key": "c", "label": "Wait until Friday to see if it works out"}
+          ],
+          "answer": ["a"],
+          "explanation": "Flagging it early turns a problem into a plan, while waiting turns it into an emergency."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Name one task you are behind on and write the exact sentence you would use to ask a teammate for help today.",
+          "rubric": {"criteria": ["Identifies a specific task that is behind", "Writes a clear, direct request for help"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why asking for help early is planning rather than failing.",
+          "rubric": {"criteria": ["Explains that early requests give the team time to respond", "Contrasts early asking with a last-minute emergency"]}
+        }
+      ]
+    }
+  ]
+}

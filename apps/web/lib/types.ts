@@ -273,3 +273,90 @@ export type ThreadMessage = {
   status?: 'pending' | 'failed' | 'sent';
   elicitation?: ElicitationSpec | null;
 };
+
+// --- Plan 05 (Phase 5): progress check-ins and the coach summary -------------
+
+export type CheckinKind = 'likert' | 'mcq' | 'mini_exercise' | 'self_explain';
+
+export type CheckinGate =
+  | 'available'
+  | 'cooldown'
+  | 'dismissed'
+  | 'budget_exhausted'
+  | 'quiz_active'
+  | 'none';
+
+export type CheckinScale = {
+  min: number;
+  max: number;
+  low_label: string;
+  high_label: string;
+};
+
+export type CheckinItemView = {
+  id: string;
+  objective_code: string;
+  objective_label: string;
+  kind: CheckinKind;
+  prompt: string;
+  trigger_reason: string;
+  scale: CheckinScale | null;
+  options: QuizOption[];
+};
+
+export type CheckinDeliver = {
+  session_id: string;
+  gate: CheckinGate;
+  item: CheckinItemView | null;
+  retry_after_seconds: number | null;
+  checkins_used: number;
+  max_checkins: number;
+};
+
+export type CheckinResult = {
+  event_id: string;
+  item_id: string;
+  objective_code: string;
+  kind: CheckinKind;
+  scored: boolean;
+  result: { score: number; correct: boolean | null; feedback: string; correct_answer: string[] };
+  mastery: ObjectiveMastery[];
+  retention_due_at: string | null;
+  next_action: 'continue' | 'refresher' | 'dismissed';
+};
+
+export type CheckinDismissResult = {
+  event_id: string;
+  dismissed: boolean;
+  cooldown_seconds: number;
+  next_available_in_seconds: number;
+};
+
+export type RetentionCardView = {
+  objective_code: string;
+  objective_label: string;
+  due_at: string;
+  interval_days: number;
+  reps: number;
+  lapses: number;
+  overdue: boolean;
+};
+
+export type InterventionView = {
+  id: string;
+  level: 'hint' | 'reteach' | 'requiz' | 'walkthrough' | 'handoff';
+  trigger_rule: string;
+  objective_code: string | null;
+  summary: string;
+  created_at: string;
+};
+
+export type CoachSummary = {
+  session_id: string;
+  streak_steps: number;
+  mastery: ObjectiveMastery[];
+  due_retention: RetentionCardView[];
+  open_interventions: InterventionView[];
+  checkins_used: number;
+  max_checkins: number;
+};

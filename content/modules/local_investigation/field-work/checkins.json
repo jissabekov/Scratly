@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "slug": "field-work",
+  "objectives": [
+    {
+      "objective": "ask_a_question",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could turn your curiosity into a question you can actually test?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Which question could you answer with a small measurement this week?",
+          "options": [
+            {"key": "a", "label": "How many people walked past this corner in ten minutes?"},
+            {"key": "b", "label": "Is this neighborhood nice?"},
+            {"key": "c", "label": "Do people care about air quality?"}
+          ],
+          "answer": ["a"],
+          "explanation": "Counting for ten minutes is a repeatable measurement, while nice and care are opinions with no number attached."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write one thing you are curious about, then rewrite it as a question you could answer with a single measurement.",
+          "rubric": {"criteria": ["Turns curiosity into a question with a measurable answer", "Names what you would actually count or record"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain what makes a question testable.",
+          "rubric": {"criteria": ["States that a testable question has a measurement you can take", "Gives an example of a question that is too vague to test"]}
+        }
+      ]
+    },
+    {
+      "objective": "collect_data",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could collect a small, honest sample for your question?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Your question asks how many people pass a corner in ten minutes. Which plan gives you an honest sample?",
+          "options": [
+            {"key": "a", "label": "Count for ten minutes at the same time on three different days"},
+            {"key": "b", "label": "Estimate the number from memory"},
+            {"key": "c", "label": "Count only the people you recognize"}
+          ],
+          "answer": ["a"],
+          "explanation": "Repeating a fixed count gives comparable, honest data, while estimating or filtering people does not."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Choose a place and a ten-minute window, then write exactly how you will record what you observe.",
+          "rubric": {"criteria": ["Defines a fixed time window and what to record", "Describes a repeatable method rather than a guess"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a small sample you actually took is better than a big number you guessed.",
+          "rubric": {"criteria": ["Explains that real collected data can be checked and compared", "Notes that a guess cannot be verified"]}
+        }
+      ]
+    }
+  ]
+}

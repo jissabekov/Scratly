@@ -50,12 +50,20 @@ export default async function ModulesPage({
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-10">
-      <header className="mb-2">
-        <h1 className="text-2xl font-semibold">Your learning path</h1>
-        <p className="mt-2 text-muted-foreground">
-          {hub.mastery_pct}% of lessons complete
-          {hub.streak_days > 0 ? ` · ${hub.streak_days}-day streak` : ''}
-        </p>
+      <header className="mb-2 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Your learning path</h1>
+          <p className="mt-2 text-muted-foreground">
+            {hub.mastery_pct}% of lessons complete
+            {hub.streak_days > 0 ? ` · ${hub.streak_days}-day streak` : ''}
+          </p>
+        </div>
+        <Link
+          href={`/progress?session=${encodeURIComponent(session)}`}
+          className="shrink-0 text-sm text-muted-foreground underline underline-offset-4"
+        >
+          Progress →
+        </Link>
       </header>
       {hub.modules.length === 0 ? (
         <p className="mt-4 text-muted-foreground">No modules are available yet.</p>

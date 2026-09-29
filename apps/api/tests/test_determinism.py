@@ -231,7 +231,7 @@ def test_follow_up_exhausted_forces_switch():
     assert decision.target.key == "assets"
 
 
-def test_decision_sufficient_review_stage():
+def test_full_inventory_review_stage():
     statuses = {
         "topics": "supported",
         "work_mode": "supported",
@@ -244,16 +244,16 @@ def test_decision_sufficient_review_stage():
     eligible, reason = evaluate_review_eligibility(
         contradictions=0,
         location_ready=True,
-        coverage_established=0.8,
+        coverage_established=1.0,
         dimension_statuses=statuses,
     )
-    assert eligible and reason == "decision_sufficient_review"
+    assert eligible and reason == "full_inventory_review"
     assert (
         derive_stage(
             contradictions=0,
             reviewed=False,
             projects_ready=False,
-            coverage_established=0.8,
+            coverage_established=1.0,
             coverage_touched=1.0,
             location_ready=True,
             dimension_statuses=statuses,
@@ -262,7 +262,13 @@ def test_decision_sufficient_review_stage():
     )
 
 
-def test_decision_sufficient_review_allows_provisional_execution():
+def test_incomplete_inventory_defers_review():
+    """A decision-sufficient-but-incomplete inventory no longer shortcuts review.
+
+    Plan 01 W1.4: the old `established >= 0.6` shortcut let a profile reach
+    project options after ~6 anchors, which shortened adaptive journeys below the
+    A18 `long_enough` bar (14 turns). The fatigue path remains the escape hatch.
+    """
     statuses = {
         "topics": "supported",
         "work_mode": "supported",
@@ -275,10 +281,10 @@ def test_decision_sufficient_review_allows_provisional_execution():
     eligible, reason = evaluate_review_eligibility(
         contradictions=0,
         location_ready=True,
-        coverage_established=0.75,
+        coverage_established=0.8,
         dimension_statuses=statuses,
     )
-    assert eligible and reason == "decision_sufficient_review"
+    assert not eligible and reason is None
 
 
 def test_fatigue_bounded_review_keeps_tentative_fields_tentative():

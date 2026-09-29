@@ -141,6 +141,7 @@ class AzureOpenAIService:
             "summary": settings.azure_openai_summary_deployment,
         }
         self._default_audit = audit_writer
+        self.reasoning_effort = settings.azure_openai_reasoning_effort.strip() or None
 
     @property
     def audit(self) -> AuditWriter | None:
@@ -171,18 +172,30 @@ class AzureOpenAIService:
         if self._credential is not None:
             await self._credential.close()
 
-    async def structured(self, deployment, prompt_name, prompt_version, model, context):
+    async def structured(
+        self,
+        deployment,
+        prompt_name,
+        prompt_version,
+        model,
+        context,
+        *,
+        reasoning_effort: str | None = None,
+    ):
         deployment_name = self.deployments[deployment]
         system = _prompt(prompt_name, prompt_version)
         user = json.dumps(context, cls=_ContextEncoder)
+        effort = reasoning_effort if reasoning_effort is not None else self.reasoning_effort
         if self.use_responses:
-            response = await self.client.responses.parse(
+            extra: dict[str, Any] = {"reasoning": {"effort": effort}} if effort else {}
+            response = await self.client.responses.parse(  # type: ignore[attr-defined]  # openai stubs omit AsyncAzureOpenAI.responses; valid at runtime
                 model=deployment_name,
                 input=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
                 ],
                 text_format=model,
+                **extra,
             )
             parsed = response.output_parsed
             response_id = response.id
@@ -192,6 +205,7 @@ class AzureOpenAIService:
             parse = getattr(self.client.chat.completions, "parse", None)
             if parse is None:
                 parse = self.client.beta.chat.completions.parse
+            extra = {"reasoning_effort": effort} if effort else {}
             response = await parse(
                 model=deployment_name,
                 messages=[
@@ -199,6 +213,7 @@ class AzureOpenAIService:
                     {"role": "user", "content": user},
                 ],
                 response_format=model,
+                **extra,
             )
             message = response.choices[0].message
             parsed = message.parsed
@@ -274,7 +289,9 @@ class LocalFallbackLLM:
     def set_turn_context(self, session_id: UUID | None, turn_id: UUID | None) -> None:
         return None
 
-    async def structured(self, deployment, prompt_name, prompt_version, model, context):
+    async def structured(
+        self, deployment, prompt_name, prompt_version, model, context, *, reasoning_effort=None
+    ):
         from app.contracts import (
             EvidencePacket,
             ProfileReviewOutput,

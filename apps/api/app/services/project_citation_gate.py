@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.contracts import ComposedProjectPacket, ProjectComposeOutput
+from app.services.opportunity_matcher import topic_buckets
 
 
 def filter_grounded_projects(
@@ -17,8 +18,13 @@ def filter_grounded_projects(
     """Return (accepted projects, rejection records)."""
     accepted: list[ComposedProjectPacket] = []
     rejected: list[dict] = []
+    # Topic alignment uses the same coarse buckets as ``rank_opportunities``
+    # (Plan 01 W1.4): the extractor emits free-form topics ("air_quality") while
+    # the curated catalog carries bucket tags ("environment"). Comparing raw
+    # strings rejected every catalog option the matcher had just accepted.
+    profile_buckets = topic_buckets(profile_topics) if profile_topics else set()
     for project in output.projects:
-        if profile_topics and not (profile_topics & set(project.topic_keys)):
+        if profile_buckets and not (profile_buckets & topic_buckets(project.topic_keys)):
             rejected.append({"title": project.title, "reason": "profile_topic_mismatch"})
             continue
         if not project.citations:

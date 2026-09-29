@@ -26,17 +26,21 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "apps" / "api"))
 
 from app.contracts.learning import LearningModuleContent  # noqa: E402
+from app.contracts.learning_checkin import LearningCheckinContent  # noqa: E402
 from app.contracts.learning_quiz import LearningQuizContent  # noqa: E402
 from app.services.learning_content import (  # noqa: E402
+    checkin_item_id,
     discover_content_files,
     lesson_id,
     module_id,
     objective_id,
     ordered_slide_ids,
+    parse_checkin_content,
     parse_module_content,
     parse_quiz_content,
     quiz_item_id,
     slide_id,
+    validate_checkins_against_module,
     validate_quiz_against_module,
 )
 
@@ -82,13 +86,28 @@ def to_asyncpg_dsn(dsn: str) -> str:
 
 def load_content(
     content_dir: Path, archetype_keys: list[str]
-) -> list[tuple[str, LearningModuleContent, LearningQuizContent | None]]:
+) -> list[
+    tuple[
+        str,
+        LearningModuleContent,
+        LearningQuizContent | None,
+        LearningCheckinContent | None,
+    ]
+]:
     """Validate every content file and pair it with its target archetype.
 
-    ``quiz.json`` is optional per module; when present it is validated against
-    the module (critical-objective coverage, slide refs) before any write.
+    ``quiz.json`` and ``checkins.json`` are optional per module; when present
+    they are validated against the module (critical-objective coverage, slide
+    refs, objective coverage) before any write.
     """
-    loaded: list[tuple[str, LearningModuleContent, LearningQuizContent | None]] = []
+    loaded: list[
+        tuple[
+            str,
+            LearningModuleContent,
+            LearningQuizContent | None,
+            LearningCheckinContent | None,
+        ]
+    ] = []
     for archetype_key, path in discover_content_files(content_dir, archetype_keys):
         module = parse_module_content(json.loads(path.read_text(encoding="utf-8")))
         quiz_path = path.parent / "quiz.json"
@@ -96,7 +115,12 @@ def load_content(
         if quiz_path.is_file():
             quiz = parse_quiz_content(json.loads(quiz_path.read_text(encoding="utf-8")))
             validate_quiz_against_module(quiz, module)
-        loaded.append((archetype_key, module, quiz))
+        checkins_path = path.parent / "checkins.json"
+        checkins = None
+        if checkins_path.is_file():
+            checkins = parse_checkin_content(json.loads(checkins_path.read_text(encoding="utf-8")))
+            validate_checkins_against_module(checkins, module)
+        loaded.append((archetype_key, module, quiz, checkins))
     return loaded
 
 
@@ -122,19 +146,24 @@ async def seed(dsn: str, content_dir: Path, dry_run: bool) -> dict[str, int]:
             "lessons": 0,
             "slides": 0,
             "quiz_items": 0,
+            "checkin_items": 0,
         }
         if dry_run:
-            for _, module, quiz in loaded:
+            for _, module, quiz, checkins in loaded:
                 counts["objectives"] += len(module.objectives)
                 for lesson in module.lessons:
                     counts["lessons"] += 1
                     counts["slides"] += len(lesson.slides)
                 if quiz is not None:
                     counts["quiz_items"] += sum(len(form.items) for form in quiz.forms)
+                if checkins is not None:
+                    counts["checkin_items"] += sum(
+                        len(bank.items) for bank in checkins.objectives
+                    )
             return counts
 
         async with connection.transaction():
-            for archetype_key, module, quiz in loaded:
+            for archetype_key, module, quiz, checkins in loaded:
                 mid = module_id(archetype_key, module.slug)
                 await connection.execute(
                     """
@@ -307,10 +336,59 @@ async def seed(dsn: str, content_dir: Path, dry_run: bool) -> dict[str, int]:
                     item_ids,
                 )
 
+                checkin_ids = []
+                checkin_version = (
+                    checkins.version if checkins is not None else module.version
+                )
+                for bank in checkins.objectives if checkins is not None else []:
+                    oid = objective_by_code[bank.objective]
+                    for item in bank.items:
+                        cid = checkin_item_id(oid, item.seq)
+                        checkin_ids.append(cid)
+                        await connection.execute(
+                            """
+                            INSERT INTO learning.checkin_items
+                                (id, objective_id, seq, kind, prompt, payload, content_version)
+                            VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+                            ON CONFLICT (id) DO UPDATE SET
+                                objective_id = EXCLUDED.objective_id,
+                                seq = EXCLUDED.seq,
+                                kind = EXCLUDED.kind,
+                                prompt = EXCLUDED.prompt,
+                                payload = EXCLUDED.payload,
+                                content_version = EXCLUDED.content_version
+                            """,
+                            cid,
+                            oid,
+                            item.seq,
+                            item.kind.value,
+                            item.prompt,
+                            json.dumps(
+                                {
+                                    "scale": item.scale.model_dump() if item.scale else None,
+                                    "options": [o.model_dump() for o in item.options],
+                                    "answer": list(item.answer),
+                                    "explanation": item.explanation,
+                                    "rubric": item.rubric.model_dump() if item.rubric else None,
+                                }
+                            ),
+                            checkin_version,
+                        )
+                for oid in objective_by_code.values():
+                    await connection.execute(
+                        """
+                        DELETE FROM learning.checkin_items
+                         WHERE objective_id = $1 AND NOT (id = ANY($2::uuid[]))
+                        """,
+                        oid,
+                        checkin_ids,
+                    )
+
                 counts["objectives"] += len(objective_ids)
                 counts["lessons"] += len(lesson_ids)
                 counts["slides"] += len(slide_ids)
                 counts["quiz_items"] += len(item_ids)
+                counts["checkin_items"] += len(checkin_ids)
         return counts
     finally:
         await connection.close()
@@ -329,7 +407,7 @@ def main() -> None:
         f"learning content {mode}: "
         f"modules={counts['modules']} objectives={counts['objectives']} "
         f"lessons={counts['lessons']} slides={counts['slides']} "
-        f"quiz_items={counts['quiz_items']}"
+        f"quiz_items={counts['quiz_items']} checkin_items={counts['checkin_items']}"
     )
 
 

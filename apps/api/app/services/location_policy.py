@@ -6,10 +6,12 @@ import re
 from typing import Any, Iterable
 
 _GEO_IN_TEXT = re.compile(
-    r"(?:\b(?:i'?m|i am|we'?re|based|located|live|living)\s+(?:in|near|around)\s+"
+    r"(?:\b(?:i'?m|i am|we'?re|based|located|live|living)\s+"
+    r"(?:in|near|around|outside(?:\s+of)?)\s+"
     r"([A-Za-z][A-Za-z\s\-]{1,40}))"
-    r"|(?:^\s*(?:in|near)\s+([A-Za-z][A-Za-z\s\-]{1,40})\s*[.!?]?\s*$)",
-    re.IGNORECASE,
+    r"|(?:^\s*(?:in|near)\s+([A-Za-z][A-Za-z\s\-]{1,40})\s*[.!?]?\s*$)"
+    r"|(?:^\s*(?:location|located|based)\s*[:\-]\s*([A-Za-z][A-Za-z\s\-]{1,40})\s*[.!?]?\s*$)",
+    re.IGNORECASE | re.MULTILINE,
 )
 
 GEO_REGION_KEYS = frozenset(
@@ -97,7 +99,7 @@ def infer_geo_from_text(text: str) -> str | None:
     match = _GEO_IN_TEXT.search(raw)
     if not match:
         return None
-    place = (match.group(1) or match.group(2) or "").strip()
+    place = (match.group(1) or match.group(2) or match.group(3) or "").strip()
     if not place:
         return None
     normalized = _normalize(place)

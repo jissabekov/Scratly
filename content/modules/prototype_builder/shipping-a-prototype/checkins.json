@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "slug": "shipping-a-prototype",
+  "objectives": [
+    {
+      "objective": "define_done",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could define what done means for a prototype before you build it?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "You want to know if people understand your sign-up flow. What is the smallest prototype that answers that question?",
+          "options": [
+            {"key": "a", "label": "Clickable screens of just the sign-up flow"},
+            {"key": "b", "label": "The full product with accounts and payments"},
+            {"key": "c", "label": "A written description of the idea"}
+          ],
+          "answer": ["a"],
+          "explanation": "Clickable screens test understanding directly, while the full product tests too many things and a description tests nothing people can do."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write the one question your prototype must answer, then list what it does not need to include to answer it.",
+          "rubric": {"criteria": ["States one clear question the prototype will test", "Lists at least one feature that is out of scope"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a prototype is a question rather than a small product.",
+          "rubric": {"criteria": ["States that a prototype exists to answer one question", "Explains how that changes what you build"]}
+        }
+      ]
+    },
+    {
+      "objective": "test_with_people",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could put your prototype in front of one real person and learn from it?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A friend clicks through your sign-up prototype and pauses, confused. What is the most useful response?",
+          "options": [
+            {"key": "a", "label": "Watch where they paused and ask what they expected"},
+            {"key": "b", "label": "Explain the flow and move on quickly"},
+            {"key": "c", "label": "Decide the prototype is a failure"}
+          ],
+          "answer": ["a"],
+          "explanation": "Watching and asking reveals what confused them, while explaining the pause away hides the very problem you tested for."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Show your prototype to one person, stay quiet while they use it, and write down the first place they hesitate.",
+          "rubric": {"criteria": ["Lets the person use it without guiding them", "Records the first moment of hesitation or confusion"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why one person using your prototype teaches you more than several people agreeing with you.",
+          "rubric": {"criteria": ["Explains that real use reveals problems agreement cannot", "Notes that agreement does not test understanding"]}
+        }
+      ]
+    }
+  ]
+}

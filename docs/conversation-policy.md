@@ -131,7 +131,12 @@ an interrogation loop.
 Two paths to `profile_review`:
 
 - **Full inventory:** `coverage_established ≥ 0.9`, no open contradictions
-- **Decision-sufficient:** `evaluate_review_eligibility()` — core three supported, execution supported/provisional, capability or assets touched, location ready, established ≥ 0.6
+- **Fatigue-bounded:** `evaluate_review_eligibility()` — core three supported, execution supported/provisional, capability or assets touched, location ready, established ≥ 0.9, **or** a core anchor (`work_mode`/`motivation`) was probed twice without resolving and established ≥ 0.4
+
+Plan 01 W1.4 removed the earlier `established ≥ 0.6` shortcut: it let a decision-sufficient
+profile reach options after ~6 anchors, which shortened adaptive journeys below the
+release-gate minimum (A18 `long_enough`, 14 turns). The fatigue path keeps the
+anti-trapping guarantee.
 
 Every turn emits `stage_gate_evaluated` before `stage_derived`.
 

@@ -127,6 +127,12 @@ _DEDUP_RING_SIZE = 8
 _NEAR_DUP_JACCARD = 0.7
 _SHORT_REPLY_WORDS = 12
 
+# Extractor context window (Plan 01 W1.5): the current turn plus recent history
+# is enough to ground evidence in the answer just given. Passing the whole
+# transcript made the model re-propose every prior turn (20 items observed) and
+# dominated per-turn latency.
+EXTRACTOR_CONTEXT_MESSAGES = 12
+
 _TRANSITION_LINES = (
     "Setting that aside — {question}",
     "Different angle on the same thing: {question}",
@@ -412,7 +418,9 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             extraction_started_at = perf_counter()
             packet = await extractor.propose(
                 context_builder.extractor(
-                    message, await tx.allowed_messages(session_id), await tx.taxonomy()
+                    message,
+                    await tx.allowed_messages(session_id, limit=EXTRACTOR_CONTEXT_MESSAGES),
+                    await tx.taxonomy(),
                 )
             )
             allowed_messages = await tx.allowed_messages(session_id)
@@ -747,7 +755,12 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     "v1",
                     "Retargeted to interest depth after framing pushback.",
                     "interest_depth_after_pushback",
-                    outputs={"topic": topic_label, "topics_status": topics_status},
+                    outputs={
+                        "topic": topic_label,
+                        "topics_status": topics_status,
+                        "target_kind": target.kind,
+                        "target_key": target.key,
+                    },
                 )
 
         # --- Thin answer → elicitation ---

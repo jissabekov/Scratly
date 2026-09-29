@@ -2,7 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { api } from './api';
-import type { QuizAttemptResult, QuizItemCheck, SlideCompleteResult } from './types';
+import type {
+  CheckinDeliver,
+  CheckinDismissResult,
+  CheckinResult,
+  QuizAttemptResult,
+  QuizItemCheck,
+  SlideCompleteResult,
+} from './types';
 
 export type CompleteSlideInput = {
   sessionId: string;
@@ -87,4 +94,60 @@ export async function submitQuizAttemptAction(
   // and refreshing the current route would replace the result screen with the
   // "quiz already passed" gate before the student could read it.
   return result;
+}
+
+export type DeliverCheckinInput = { sessionId: string };
+
+/** Ask the deterministic scheduler for the next check-in (or a gate reason). */
+export async function deliverCheckinAction(
+  input: DeliverCheckinInput
+): Promise<CheckinDeliver> {
+  return api<CheckinDeliver>(`/v1/sessions/${input.sessionId}/learning/checkins`);
+}
+
+export type RespondCheckinInput = {
+  sessionId: string;
+  checkinId: string;
+  requestId: string;
+  response: string[];
+  freeText: string;
+  latencyMs: number | null;
+};
+
+/** Score one check-in response. Idempotent by request_id. */
+export async function respondCheckinAction(
+  input: RespondCheckinInput
+): Promise<CheckinResult> {
+  return api<CheckinResult>(
+    `/v1/sessions/${input.sessionId}/learning/checkins/${input.checkinId}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        request_id: input.requestId,
+        response: input.response,
+        free_text: input.freeText,
+        latency_ms: input.latencyMs,
+      }),
+    }
+  );
+}
+
+export type DismissCheckinInput = {
+  sessionId: string;
+  checkinId: string;
+  requestId: string;
+  reason?: string;
+};
+
+/** Dismiss ("not now"). The API doubles the cooldown. */
+export async function dismissCheckinAction(
+  input: DismissCheckinInput
+): Promise<CheckinDismissResult> {
+  return api<CheckinDismissResult>(
+    `/v1/sessions/${input.sessionId}/learning/checkins/${input.checkinId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ request_id: input.requestId, reason: input.reason ?? '' }),
+    }
+  );
 }

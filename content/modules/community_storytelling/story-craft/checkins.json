@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "slug": "story-craft",
+  "objectives": [
+    {
+      "objective": "find_the_point",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could find the one point a story makes and cut what does not support it?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Which opening commits to a single point a reader can remember?",
+          "options": [
+            {"key": "a", "label": "Bus wait times are longest exactly when students need them most."},
+            {"key": "b", "label": "Buses, schedules, and neighborhoods are all interesting."},
+            {"key": "c", "label": "Here is everything we collected this month."}
+          ],
+          "answer": ["a"],
+          "explanation": "Option a makes one checkable claim, while the others list topics instead of making a point."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write three different one-sentence points for the same set of data you care about, then circle the single one you would build a story around.",
+          "rubric": {"criteria": ["Writes three distinct one-sentence claims", "Chooses one clear point instead of listing topics"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain how you decide which single point a story should make.",
+          "rubric": {"criteria": ["Describes testing each candidate point for one clear claim", "Mentions cutting material that does not support the point"]}
+        }
+      ]
+    },
+    {
+      "objective": "show_evidence",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could back a story's point with real evidence instead of opinion?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Your story claims bus wait times peak when students need them most. Which addition is real evidence for that point?",
+          "options": [
+            {"key": "a", "label": "A count of bus arrivals at the stop during the morning rush"},
+            {"key": "b", "label": "A sentence saying the buses feel slow"},
+            {"key": "c", "label": "A friend agreeing that the buses are bad"}
+          ],
+          "answer": ["a"],
+          "explanation": "A measured count supports the claim, while feelings and agreement are opinions rather than evidence."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take the point you chose earlier and write down one piece of evidence you could actually collect to support it.",
+          "rubric": {"criteria": ["Names a specific measurement or record rather than an opinion", "Connects the evidence directly to the stated point"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between a claim and the evidence that supports it.",
+          "rubric": {"criteria": ["States that a claim is a statement while evidence is measured support for it", "Gives an example of each"]}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "slug": "next-steps",
+  "objectives": [
+    {
+      "objective": "scope_small",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could cut a big idea down to a first step you can finish this week?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "You have a big app idea. Which first step is small enough to finish this week?",
+          "options": [
+            {"key": "a", "label": "Sketch one screen of the idea on paper"},
+            {"key": "b", "label": "Build the whole app"},
+            {"key": "c", "label": "Wait until you have better tools"}
+          ],
+          "answer": ["a"],
+          "explanation": "A paper sketch takes one sitting and gives you something to react to, while the other options never finish or never start."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write your current project idea in one line, then rewrite it as a first step small enough to do this week.",
+          "rubric": {"criteria": ["Reduces the idea to a single concrete task", "Keeps the step doable within one week"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a smaller first step helps you start a big idea.",
+          "rubric": {"criteria": ["Explains that a small step is finishable and produces something to react to", "Contrasts it with a plan that never starts"]}
+        }
+      ]
+    },
+    {
+      "objective": "check_progress",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could notice your progress on a project and adjust your next step?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "You finished one part of your project this week. What is the most useful next move?",
+          "options": [
+            {"key": "a", "label": "Look at what changed, then pick the next small step"},
+            {"key": "b", "label": "Start over with a bigger plan"},
+            {"key": "c", "label": "Ignore it and keep going without checking"}
+          ],
+          "answer": ["a"],
+          "explanation": "Reviewing what changed turns progress into a clear next step, while ignoring it or restarting wastes the work you did."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "List what you finished this week on one side and what is still open on the other, then write one next step.",
+          "rubric": {"criteria": ["Lists at least one thing finished and one thing open", "Ends with a single concrete next step"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain how noticing progress helps you decide what to do next.",
+          "rubric": {"criteria": ["Describes reviewing what changed since last time", "Connects that review to choosing the next step"]}
+        }
+      ]
+    }
+  ]
+}

@@ -355,7 +355,39 @@ class TurnTransaction:
         )
         return turn, message
 
-    async def allowed_messages(self, session_id: UUID) -> list[MessageRow]:
+    async def allowed_messages(
+        self, session_id: UUID, limit: int | None = None
+    ) -> list[MessageRow]:
+        if limit is not None:
+            # Bounded window for the extractor context (Plan 01 W1.5): the full
+            # transcript made the model re-extract every prior turn, ballooning
+            # output tokens (and latency) with conversation length.
+            result = await self.session.execute(
+                text(
+                    """
+                    SELECT id, session_id, content, sequence, role
+                      FROM (
+                        SELECT id, session_id, content, sequence, role::text AS role
+                          FROM conversation.messages
+                         WHERE session_id = :session_id
+                         ORDER BY sequence DESC
+                         LIMIT :limit
+                      ) recent
+                     ORDER BY sequence
+                    """
+                ),
+                {"session_id": session_id, "limit": int(limit)},
+            )
+            return [
+                MessageRow(
+                    id=row["id"],
+                    session_id=row["session_id"],
+                    content=row["content"],
+                    sequence=row["sequence"],
+                    role=row["role"],
+                )
+                for row in result.mappings()
+            ]
         result = await self.session.execute(
             text(
                 """
@@ -1049,7 +1081,14 @@ class TurnTransaction:
                     required_fallback(row["key"]),
                 )
 
-        if interests_ready and not await self.location_established():
+        # Geo is gated behind interest depth so the interview deepens topics
+        # first. That gate must not starve the location probe forever: once the
+        # topics probe has been asked twice without reaching depth, ask for the
+        # place so matching is not blocked by a missing geo constraint
+        # (Plan 01 W1.4, sim_luz).
+        if not await self.location_established() and (
+            interests_ready or asked_by_key.get("topics", 0) >= 2
+        ):
             loc_intent = intent_map.get("location_constraint")
             loc_fallback = (
                 loc_intent["fallback_template"]

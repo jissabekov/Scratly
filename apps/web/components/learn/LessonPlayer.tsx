@@ -9,6 +9,7 @@ import { completeSlideAction } from '@/lib/actions';
 import { newIdempotencyKey } from '@/lib/session';
 import type { LearningModuleSummary, SlideItem } from '@/lib/types';
 import { ModuleCelebration } from './ModuleCelebration';
+import { CheckInWidget } from './CheckInWidget';
 import { SlideBlock } from './SlideBlock';
 
 export type LessonPlayerProps = {
@@ -54,6 +55,7 @@ export function LessonPlayer({
     () => new Set(slides.filter((slide) => slide.completed).map((slide) => slide.id))
   );
   const [celebrating, setCelebrating] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const [error, setError] = useState('');
   const [pending, startTransition] = useTransition();
 
@@ -63,6 +65,10 @@ export function LessonPlayer({
 
   const slide = slides[clamp(index, 1, total) - 1];
   const isLast = index >= total;
+  // A section boundary is the last slide of a lesson: the API decides whether a
+  // check-in is actually due (budget/cooldown/quiz gates), so we only ask there.
+  const isSectionEnd =
+    isLast || slides[clamp(index, 1, total)]?.lesson_seq !== slide?.lesson_seq;
 
   const checks = useMemo(() => {
     const found: { blockIndex: number; answerKey: string; selected?: string }[] = [];
@@ -154,12 +160,26 @@ export function LessonPlayer({
           setCompleted((prev) => new Set(prev).add(slide.id));
         }
         if (isLast) setCelebrating(true);
-        else goTo(target + 1, 1);
+        else {
+          if (isSectionEnd) setCheckinOpen(true);
+          goTo(target + 1, 1);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
     });
-  }, [allCorrect, pending, index, completed, slide.id, sessionId, module.id, isLast, goTo]);
+  }, [
+    allCorrect,
+    pending,
+    index,
+    completed,
+    slide.id,
+    sessionId,
+    module.id,
+    isLast,
+    isSectionEnd,
+    goTo,
+  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -264,6 +284,13 @@ export function LessonPlayer({
       ) : null}
       {celebrating ? (
         <ModuleCelebration moduleTitle={module.title} hubHref={hubHref} quizHref={quizHref} />
+      ) : null}
+      {checkinOpen && !celebrating ? (
+        <CheckInWidget
+          sessionId={sessionId}
+          className="mt-4"
+          onSettled={() => setCheckinOpen(false)}
+        />
       ) : null}
 
       <FlowActionBar

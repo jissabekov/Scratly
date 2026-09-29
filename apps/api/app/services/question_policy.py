@@ -356,6 +356,11 @@ def repetition_block_reason(target: Target) -> str | None:
         return None
     if target.consecutive_count >= 2:
         return "exposure_cap"
+    # Absolute per-dimension ask cap: an alternated pair of dims can otherwise
+    # cycle forever (consecutive_count never reaches 2), starving every other
+    # probe and blocking the review checkpoint (Plan 01 W1.4, sim_luz).
+    if target.asked_count >= ABSOLUTE_MAX_TOPIC_DEPTH + 1:
+        return "repetition_hard_stop"
     if target.asked_count >= 2 and target.coverage_status in {"supported", "established"}:
         return "repetition_hard_stop"
     if (
@@ -457,12 +462,14 @@ def evaluate_review_eligibility(
     dimension_statuses: dict[str, str],
     exhausted_keys: tuple[str, ...] = (),
 ) -> tuple[bool, str | None]:
-    """Decision-sufficient review latch without pretending uncertainty is evidence.
+    """Full-inventory review latch with a fatigue escape.
 
-    A student must not be trapped in an interview because a repeatedly explored
-    preference remains provisional.  After two good-faith probes, review may
-    present that field as tentative and invite correction; it is *not* promoted
-    to supported and matching can still scaffold around the uncertainty.
+    Review normally requires the full required-dimension inventory
+    (``coverage_established >= PROFILE_REVIEW_ESTABLISHED``). A student must not
+    be trapped in an interview because a repeatedly explored preference remains
+    provisional, so the fatigue path still admits review at 0.4+ coverage once a
+    core anchor has been probed twice without resolving; it presents that field
+    as tentative and invites correction rather than promoting it to supported.
     """
     if contradictions > 0:
         return False, None
@@ -483,8 +490,8 @@ def evaluate_review_eligibility(
     } or dimension_statuses.get("assets") in {"supported", "provisional"}
     if not secondary_ok:
         return False, None
-    if coverage_established >= 0.6:
-        return True, "decision_sufficient_review"
+    if coverage_established >= PROFILE_REVIEW_ESTABLISHED:
+        return True, "full_inventory_review"
     if {"work_mode", "motivation"} & exhausted and coverage_established >= 0.4:
         return True, "fatigue_bounded_review"
     return False, None

@@ -33,18 +33,24 @@ class ProposedEvidence(StrictModel):
     score_band: int | None = Field(default=None, ge=0, le=4)
     polarity: Polarity = Polarity.SUPPORT
     source_message_ids: Annotated[list[UUID], Field(min_length=1)]
-    exact_source_quote: Quote
-    rationale: str
+    exact_source_quote: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=600)
+    ]
+    # Bounded fields keep the structured output small: the model was emitting
+    # ~1,500 completion tokens per call (Plan 01 W1.5), which dominated latency.
+    rationale: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
     evidence_type: EvidenceType = EvidenceType.STATED_PREFERENCE
     confidence: Annotated[float, Field(ge=0, le=1)] = 0.5
-    context_tags: list[str] = Field(default_factory=list)
+    context_tags: Annotated[
+        list[Annotated[str, StringConstraints(max_length=40)]], Field(max_length=4)
+    ] = Field(default_factory=list)
 
 
 class EvidencePacket(StrictModel):
-    items: list[ProposedEvidence]
+    items: Annotated[list[ProposedEvidence], Field(max_length=5)]
     no_evidence_reason: str | None = None
     answer_quality: Literal["insufficient", "low", "medium", "high"] = "medium"
-    ambiguities: list[str] = Field(default_factory=list)
+    ambiguities: Annotated[list[str], Field(max_length=4)] = Field(default_factory=list)
     engagement: Literal["unknown", "low", "medium", "high"] = "unknown"
 
 

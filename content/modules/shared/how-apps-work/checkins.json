@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "slug": "how-apps-work",
+  "objectives": [
+    {
+      "objective": "events",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain how a swipe becomes a structured event the system can record?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A student watches a short video for 3.2 seconds and swipes away. Which field in the event record shows what happened rather than what it meant?",
+          "options": [
+            {"key": "a", "label": "watch_time, which records how long the video played"},
+            {"key": "b", "label": "The student's level of boredom with the video"},
+            {"key": "c", "label": "The reason the student decided to swipe away"}
+          ],
+          "answer": ["a"],
+          "explanation": "watch_time is a measured fact, while boredom and reasons are interpretations the system can only infer from evidence."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take one action you did on your phone today, such as a tap, a swipe, or a like. Write the event record a system could create for it, listing at least four fields.",
+          "rubric": {"criteria": ["Lists at least four concrete fields such as user, item, action and timestamp", "Keeps every field to something the device could measure rather than guess"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a computer receives evidence rather than intentions, and what that means for an event record.",
+          "rubric": {"criteria": ["Explains that events store measurable facts about what happened", "States that meaning such as interest must be inferred and can be wrong"]}
+        }
+      ]
+    },
+    {
+      "objective": "state",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain state as what the system currently knows or believes to be true?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A messaging streak shows a fire emoji and a number, and it looks the same on two different phones. What is the streak actually stored as?",
+          "options": [
+            {"key": "a", "label": "The emoji image saved separately on each phone"},
+            {"key": "b", "label": "Saved state plus timing rules that any device reading the account can calculate"},
+            {"key": "c", "label": "A notification the phone creates at midnight"}
+          ],
+          "answer": ["b"],
+          "explanation": "State lives with the account, so any device reading it shows the same value, and the emoji is only what gets rendered."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick one feature you use that remembers something about you, such as a streak, a saved draft, or a like. Write down what state the system must store for it to work.",
+          "rubric": {"criteria": ["Names at least one concrete stored value rather than just the on-screen icon", "Distinguishes the saved state from what the screen renders"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between an event and state, using one example.",
+          "rubric": {"criteria": ["States that events are things that happened while state is what is true now", "Gives a correct example of each"]}
+        }
+      ]
+    },
+    {
+      "objective": "loop",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could trace one action through the loop of request, computation, and response?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "When a swipe sends a request across the internet, what is the internet doing in the loop?",
+          "options": [
+            {"key": "a", "label": "Choosing which video is most likely to interest you"},
+            {"key": "b", "label": "Carrying the request to a computer that can make the decision"},
+            {"key": "c", "label": "Rendering the next video on your screen"}
+          ],
+          "answer": ["b"],
+          "explanation": "The internet transports messages, while the decision happens on a server that reads state and applies rules."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Choose one action in any app, such as sending a message or ordering food. Write the loop as ordered steps from the action to what you see next.",
+          "rubric": {"criteria": ["Orders the steps from action to request to computation to response", "Includes at least one step where a server reads state or computes"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, describe how one action travels through request, computation, and response.",
+          "rubric": {"criteria": ["Names all three stages in the correct order", "Explains that the device renders what the server returns"]}
+        }
+      ]
+    },
+    {
+      "objective": "ai_component",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain why AI is one component inside an application, not the whole application?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "An AI app answers a student's question. Which description of the model's role is correct?",
+          "options": [
+            {"key": "a", "label": "The model is the entire application and handles login, storage and rendering"},
+            {"key": "b", "label": "The model is one computation step in a pipeline that also collects requests, reads state and renders results"},
+            {"key": "c", "label": "The model replaces the server so no other system is needed"}
+          ],
+          "answer": ["b"],
+          "explanation": "The application still collects the request, reads state, applies rules and renders the answer, so the model performs one step."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Think of an AI app you have used. List two jobs the surrounding application still does besides running the model.",
+          "rubric": {"criteria": ["Names two concrete jobs such as collecting the request or reading stored state", "Does not claim the model does everything"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why AI is one computation component inside an application rather than the whole application.",
+          "rubric": {"criteria": ["States that the application handles requests, state, rules and rendering around the model", "Describes the model as performing one step such as inference"]}
+        }
+      ]
+    }
+  ]
+}

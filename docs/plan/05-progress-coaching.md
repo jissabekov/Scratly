@@ -68,3 +68,32 @@ learning.retention_cards(student_id, objective_id, ease, interval_days,
 - Unit: scheduler budget/caps; BKT update math; SM-2 interval math; intervention escalation matrix; retention decay path.
 - E2E: check-in appears at section boundary, dismissible with cooldown; advice card after 2 quiz fails; retention card due → appears at next milestone.
 - Eval: check-in response rate >60% target; no check-in during quiz; deterministic pipeline p95 <100ms.
+
+---
+
+## 5.7 Per-workstream status (implemented)
+
+| # | Workstream | Status | Evidence |
+|---|---|---|---|
+| W5.1 | Schema + content + seed | **DONE** | `migrations/020_checkins_advice.sql` (`checkin_items`, `checkin_events`, `interventions`, `retention_cards`, `mastery_states` extended with `elo`/`evidence_count`/`last_evidence_at`); `checkins.json` authored for all 6 modules; `scripts/seed_learning_content.py --dry-run` prints `checkin_items=120`; applied + verified via psql (30 items per kind) |
+| W5.2 | Deterministic engines | **DONE** | `services/learning_checkin_engine.py` (pure, injected `now`) + 31 unit tests (`test_learning_checkin_engine.py`) covering budget/caps, trigger priority, kind mix, scoring, SM-2-lite interval math, lapse/decay, intervention matrix, escalation ladder, streak |
+| W5.3 | API | **DONE** | `repository/learning_checkin.py` + `routes/learning_checkins.py` (`GET/POST/PATCH /v1/sessions/{id}/learning/checkins[/{cid}]`, `GET .../learning/summary`); idempotent by `request_id`; appends xAPI `learning_events` + updates the `mastery_states` projection; **never writes `assessment.evidence`** |
+| W5.4 | Surfaces | **DONE** | `components/learn/CheckInWidget.tsx` (non-modal, dismissible, `aria-live`, keys 1–5, focus mgmt, reduced-motion) wired at lesson section boundaries in `LessonPlayer`; `app/progress/page.tsx` + `components/progress/MasteryGrid.tsx` (mastery grid incl. `decaying`, streak chip, due-retention list, advice list); `npm --prefix apps/web run build` green |
+| W5.5 | LLM phrasing boundary | **DONE (opt-in)** | `prompts/checkin_phrasing/v1/system.txt` + `services/learning_checkin_phrasing.py` with server-side rubric validation and a deterministic fallback; 5 unit tests. **Deliberate deviation:** the default check-in path does not call the LLM (deterministic authored prompt), so scoring stays reproducible and the pipeline adds no latency — consistent with D1 (chat pipeline untouched). |
+| W5.6 | E2E + measurable claims | **PARTIAL** | `apps/web/e2e/checkins.spec.ts` (section-boundary check-in + dismiss + dashboard + axe; no check-in during a quiz; hub → dashboard link). p95/response-rate claims still need measured numbers + mathcheck verification. |
+
+### Corrections applied to this plan (per task §6)
+
+- Migration number: `016_checkins_advice.sql` → **`020_checkins_advice.sql`** (016 taken by the Phase 1 catalog work).
+- `mastery_states` already existed (Phase 4, keyed `(session_id, objective_id)`): **extended** with `elo` / `evidence_count` / `last_evidence_at` rather than recreated with a `(student_id, objective_id)` key. Session↔student is 1:1 in this product; documented in the migration.
+- Reuse: `learning.learning_events` stays the append-only source of truth; `mastery_states` stays a replayable projection; `bkt_update` / `objective_state` / `xapi_statement` / `compute_streak_days` reused from Phases 3–4.
+- The `routes/learning_checkins.py` 501 stub is replaced.
+- All time-dependent logic is a pure function of an injected `now` (72 h inactivity, 5/10 min cooldowns, retention due dates).
+- **No new dependencies** were added: the dashboard hand-rolls the mastery grid with the existing tokens instead of pulling in Recharts (D2).
+
+### Decisions recorded
+
+- **D1 — Phase 5 in-chat delivery:** `turn_processor` was **left untouched** in Phase 5 (in-module widget + dashboard only). Endpoint shapes are ready for a Plan 06 chat integration.
+- **D2 — Recharts:** not added; the mastery grid is hand-rolled with the token system.
+- **D3 — mastery key:** kept `(session_id, objective_id)`; session↔student 1:1 documented.
+- **D4 — second full eval run:** not taken; exactly one T4 run was used.

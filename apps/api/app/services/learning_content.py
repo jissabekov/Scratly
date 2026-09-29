@@ -14,6 +14,7 @@ from pathlib import Path
 from uuid import UUID, uuid5
 
 from app.contracts.learning import LearningModuleContent
+from app.contracts.learning_checkin import LearningCheckinContent
 from app.contracts.learning_quiz import LearningQuizContent
 
 # Fixed namespace for every learning-content id. Changing it would orphan all
@@ -53,6 +54,11 @@ def quiz_item_id(module_id: UUID, form_id: int, seq: int) -> UUID:
     return uuid5(LEARNING_NAMESPACE, f"quiz_item:{module_id}:{form_id}:{seq}")
 
 
+def checkin_item_id(objective_id: UUID, seq: int) -> UUID:
+    """Stable id for a check-in item identified by its objective and sequence."""
+    return uuid5(LEARNING_NAMESPACE, f"checkin_item:{objective_id}:{seq}")
+
+
 def ordered_slide_ids(archetype_key: str, module: LearningModuleContent) -> list[UUID]:
     """Slide ids in player order (lesson seq, then slide seq) — index 1-based."""
     mid = module_id(archetype_key, module.slug)
@@ -76,6 +82,32 @@ def parse_module_content(payload: object) -> LearningModuleContent:
 def parse_quiz_content(payload: object) -> LearningQuizContent:
     """Validate raw quiz JSON into the typed quiz model."""
     return LearningQuizContent.model_validate(payload)
+
+
+def parse_checkin_content(payload: object) -> LearningCheckinContent:
+    """Validate raw check-in JSON into the typed check-in model."""
+    return LearningCheckinContent.model_validate(payload)
+
+
+def validate_checkins_against_module(
+    checkins: LearningCheckinContent, module: LearningModuleContent
+) -> None:
+    """Cross-file invariants the check-in bank cannot check alone.
+
+    Every bank must name a real objective and every objective must have a bank,
+    otherwise the milestone/section scheduler has an objective it can never ask
+    about. Mirrors ``validate_quiz_against_module``.
+    """
+    if checkins.slug != module.slug:
+        raise ValueError(f"checkins slug {checkins.slug!r} does not match module {module.slug!r}")
+    declared = {objective.code for objective in module.objectives}
+    covered = {bank.objective for bank in checkins.objectives}
+    unknown = covered - declared
+    if unknown:
+        raise ValueError(f"checkins reference unknown objectives: {sorted(unknown)}")
+    missing = declared - covered
+    if missing:
+        raise ValueError(f"checkins missing objectives: {sorted(missing)}")
 
 
 def validate_quiz_against_module(quiz: LearningQuizContent, module: LearningModuleContent) -> None:
