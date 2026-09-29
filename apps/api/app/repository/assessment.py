@@ -19,10 +19,6 @@ from app.contracts import (
     TurnResponse,
     ValidatedEvidence,
 )
-from app.services.elicitation_policy import (
-    build_elicitation_spec,
-    elicitation_dimension_family,
-)
 from app.services.contradiction_engine import (
     ENGINE_VERSION,
     cardinality_for,
@@ -31,6 +27,10 @@ from app.services.contradiction_engine import (
     resolve_with_newest,
     sides_from_evidence,
     values_incompatible,
+)
+from app.services.elicitation_policy import (
+    build_elicitation_spec,
+    elicitation_dimension_family,
 )
 from app.services.grounding_validator import validate_grounding
 from app.services.profile_reducer import reduce_profile
@@ -165,9 +165,7 @@ class AssessmentRepository:
         )
         return [dict(row) for row in result.mappings()]
 
-    async def completed_turn(
-        self, session_id: UUID, idempotency_key: str
-    ) -> TurnOutcome | None:
+    async def completed_turn(self, session_id: UUID, idempotency_key: str) -> TurnOutcome | None:
         result = await self.session.execute(
             text(
                 """
@@ -382,9 +380,7 @@ class TurnTransaction:
 
     async def taxonomy(self) -> dict[str, Any]:
         dims = await self.session.execute(
-            text(
-                "SELECT key, label, required FROM assessment.dimensions ORDER BY ordinal"
-            )
+            text("SELECT key, label, required FROM assessment.dimensions ORDER BY ordinal")
         )
         motivations = await self.session.execute(
             text("SELECT key, label FROM assessment.motivation_values ORDER BY key")
@@ -400,9 +396,7 @@ class TurnTransaction:
         assert self._session_id is not None
         messages = await self.allowed_messages(self._session_id)
         taxonomy = await self.taxonomy()
-        allowed_motivations = {
-            row["key"] for row in taxonomy.get("motivation_values", [])
-        }
+        allowed_motivations = {row["key"] for row in taxonomy.get("motivation_values", [])}
         grounded = validate_grounding(
             items,
             messages,
@@ -432,15 +426,13 @@ class TurnTransaction:
                 item = item.model_copy(
                     update={
                         "accepted": False,
-                        "rejection_reason": item.rejection_reason
-                        or "unknown_dimension_key",
+                        "rejection_reason": item.rejection_reason or "unknown_dimension_key",
                     }
                 )
             elif dimension_id is None and not item.accepted:
                 item = item.model_copy(
                     update={
-                        "rejection_reason": item.rejection_reason
-                        or "unknown_dimension_key",
+                        "rejection_reason": item.rejection_reason or "unknown_dimension_key",
                     }
                 )
             status = "accepted" if item.accepted else "rejected"
@@ -474,9 +466,7 @@ class TurnTransaction:
                         "score_band": item.score_band,
                         "exact_source_quote": item.exact_source_quote,
                         "status": status,
-                        "rejection_reason": item.rejection_reason
-                        if status == "rejected"
-                        else None,
+                        "rejection_reason": item.rejection_reason if status == "rejected" else None,
                         "reducer_version": self._settings.reducer_version
                         if status == "accepted"
                         else None,
@@ -556,9 +546,7 @@ class TurnTransaction:
             if item.accepted and item.evidence_id and item.evidence_id not in seen_ids:
                 evidence_for_reduce.append(item)
 
-        profile = reduce_profile(
-            evidence_for_reduce, version=self._settings.reducer_version
-        )
+        profile = reduce_profile(evidence_for_reduce, version=self._settings.reducer_version)
         previous_result = await self.session.execute(
             text(
                 """
@@ -588,9 +576,7 @@ class TurnTransaction:
         state = profile.state
         changes = _profile_change_summary(before_state, state)
         accepted_ids = [
-            item.evidence_id
-            for item in validated
-            if item.accepted and item.evidence_id is not None
+            item.evidence_id for item in validated if item.accepted and item.evidence_id is not None
         ]
         now = datetime.now(timezone.utc)
         await self.session.execute(
@@ -653,9 +639,7 @@ class TurnTransaction:
 
         contradictions = find_contradictions(evidence_for_reduce)
         active_dims = {c.dimension_key for c in contradictions}
-        sync = await self._sync_contradictions(
-            contradictions, evidence_for_reduce, dim_map
-        )
+        sync = await self._sync_contradictions(contradictions, evidence_for_reduce, dim_map)
 
         open_count = await self.session.execute(
             text(
@@ -776,7 +760,9 @@ class TurnTransaction:
             {"session_id": self._session_id},
         )
         for row in obsolete.mappings():
-            keep_open = row["dimension_key"] in active_dims and await self._should_open_contradiction(
+            keep_open = row[
+                "dimension_key"
+            ] in active_dims and await self._should_open_contradiction(
                 int(row["dimension_id"]),
                 row["dimension_key"],
                 evidence_for_reduce,
@@ -842,9 +828,7 @@ class TurnTransaction:
         fresh = [
             item
             for item in evidence_for_reduce
-            if item.accepted
-            and item.dimension_key == dimension_key
-            and item.evidence_id
+            if item.accepted and item.dimension_key == dimension_key and item.evidence_id
         ]
         # Load created_at for fresh evidence ids.
         if not fresh:
@@ -861,7 +845,6 @@ class TurnTransaction:
             ),
             {"session_id": self._session_id, "ids": ids},
         )
-        from app.services.contradiction_engine import values_incompatible
 
         for ev in created.mappings():
             if cutoff is not None and ev["created_at"] <= cutoff:
@@ -914,7 +897,6 @@ class TurnTransaction:
             entry = exposure.get(elicitation_dimension_family(key)) or {}
             return int(entry.get("consecutive") or 0)
 
-
         open_contradictions = await self.session.execute(
             text(
                 """
@@ -952,8 +934,7 @@ class TurnTransaction:
             {"session_id": self._session_id},
         )
         asked_by_key = {
-            row["target_key"]: int(row["asked_count"])
-            for row in question_history.mappings()
+            row["target_key"]: int(row["asked_count"]) for row in question_history.mappings()
         }
         latest_evidence = await self.session.execute(
             text(
@@ -1012,11 +993,7 @@ class TurnTransaction:
                 break
         if not topic_label:
             for dim in public_profile.get("dimensions") or []:
-                if (
-                    isinstance(dim, dict)
-                    and dim.get("key") == "topics"
-                    and dim.get("value")
-                ):
+                if isinstance(dim, dict) and dim.get("key") == "topics" and dim.get("value"):
                     topic_label = str(dim["value"])
                     break
 
@@ -1129,8 +1106,7 @@ class TurnTransaction:
                 (
                     r["key"]
                     for r in coverage_rows
-                    if r["status"] == "provisional"
-                    and asked_by_key.get(r["key"], 0) < 2
+                    if r["status"] == "provisional" and asked_by_key.get(r["key"], 0) < 2
                 ),
                 None,
             )
@@ -1154,8 +1130,7 @@ class TurnTransaction:
         # candidate. Re-emitting it caused late conversations to ask for the same
         # confirmation on every turn (and could starve useful project feedback).
         if (
-            established_ratio >= 0.9
-            or current_stage in {"profile_review", "project_matching"}
+            established_ratio >= 0.9 or current_stage in {"profile_review", "project_matching"}
         ) and asked_by_key.get("profile", 0) == 0:
             add("profile_validation", "profile")
 
@@ -1208,7 +1183,8 @@ class TurnTransaction:
         )
         asked_counts = {r["target_key"]: int(r["n"]) for r in asked.mappings()}
         exhausted_keys = tuple(
-            key for key, status in dimension_statuses.items()
+            key
+            for key, status in dimension_statuses.items()
             if status == "provisional" and asked_counts.get(key, 0) >= 2
         )
         total = int(row["required_total"] or 0) or 1
@@ -1224,9 +1200,7 @@ class TurnTransaction:
             {"session_id": self._session_id},
         )
         session = await self.session.execute(
-            text(
-                "SELECT stage::text AS stage FROM core.sessions WHERE id = :session_id"
-            ),
+            text("SELECT stage::text AS stage FROM core.sessions WHERE id = :session_id"),
             {"session_id": self._session_id},
         )
         current_stage = session.scalar_one()
@@ -1284,11 +1258,10 @@ class TurnTransaction:
             "exhausted_keys": exhausted_keys,
             "review_eligible": review_eligible,
             "review_reason": review_reason,
+            "current_stage": current_stage,
         }
 
-    async def contradiction_sides(
-        self, dimension_key: str
-    ) -> tuple[str | None, str | None]:
+    async def contradiction_sides(self, dimension_key: str) -> tuple[str | None, str | None]:
         assert self._session_id is not None
         rows = await self.session.execute(
             text(
@@ -1452,9 +1425,7 @@ class TurnTransaction:
             "status": "open",
         }
 
-    async def _restore_coverage_from_snapshot(
-        self, dimension_key: str, dimension_id: int
-    ) -> None:
+    async def _restore_coverage_from_snapshot(self, dimension_key: str, dimension_id: int) -> None:
         assert self._session_id is not None
         snap = await self.session.execute(
             text(
@@ -1709,9 +1680,7 @@ class TurnTransaction:
         if intent_row is None:
             # Map elicitation / location keys to closest seeded intent if missing.
             fallback_key = (
-                "provisional_dimension"
-                if intent_key == "elicitation"
-                else "required_hard_variable"
+                "provisional_dimension" if intent_key == "elicitation" else "required_hard_variable"
             )
             intent = await self.session.execute(
                 text("SELECT id FROM assessment.question_intents WHERE key = :key"),
@@ -1937,9 +1906,7 @@ class TurnTransaction:
         return run_id
 
     async def _dimension_map(self) -> dict[str, int]:
-        result = await self.session.execute(
-            text("SELECT id, key FROM assessment.dimensions")
-        )
+        result = await self.session.execute(text("SELECT id, key FROM assessment.dimensions"))
         return {row["key"]: row["id"] for row in result.mappings()}
 
     async def location_established(self) -> bool:
@@ -2166,9 +2133,7 @@ class TurnTransaction:
 
         motivation = public.get("motivation") or {}
         primary = motivation.get("primary") if isinstance(motivation, dict) else None
-        secondary = (
-            motivation.get("secondary") if isinstance(motivation, dict) else None
-        )
+        secondary = motivation.get("secondary") if isinstance(motivation, dict) else None
         motivations = {x for x in (primary, secondary) if x}
 
         execution = public.get("execution") or {}

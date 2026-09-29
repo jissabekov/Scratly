@@ -59,6 +59,8 @@ STAGES = (
     "complete",
 )
 
+STAGE_RANK = {stage: rank for rank, stage in enumerate(STAGES)}
+
 GAP_RESOLUTION_ESTABLISHED = 0.5
 PROFILE_REVIEW_ESTABLISHED = 0.9
 MEASUREMENT_TOUCHED = 0.4
@@ -76,12 +78,12 @@ DISCOVERY_KEY_ORDER = ANCHOR_KEY_ORDER
 
 # Base decision value per target kind (adaptive-conversation PR).
 BASE_VALUE = {
-    "behavioral_anchor": .20,
-    "required_hard_variable": .18,
-    "project_critical_unknown": .16,
-    "project_discrimination": .14,
-    "provisional_dimension": .10,
-    "profile_validation": .05,
+    "behavioral_anchor": 0.20,
+    "required_hard_variable": 0.18,
+    "project_critical_unknown": 0.16,
+    "project_discrimination": 0.14,
+    "provisional_dimension": 0.10,
+    "profile_validation": 0.05,
 }
 
 
@@ -136,19 +138,32 @@ class PlannerDecision:
 
 def is_topic_rejection(text: str) -> bool:
     normalized = " ".join((text or "").lower().split())
-    return any(cue in normalized for cue in (
-        "talk about something else", "change the subject", "different topic",
-        "move on", "stop asking about", "don't want to talk about",
-        "dont want to talk about",
-    ))
+    return any(
+        cue in normalized
+        for cue in (
+            "talk about something else",
+            "change the subject",
+            "different topic",
+            "move on",
+            "stop asking about",
+            "don't want to talk about",
+            "dont want to talk about",
+        )
+    )
 
 
 def is_frustration(text: str) -> bool:
     normalized = " ".join((text or "").lower().split())
-    return is_topic_rejection(normalized) or any(cue in normalized for cue in (
-        "why are you asking", "why do you keep asking", "this is annoying",
-        "are you analyzing me", "personality test",
-    ))
+    return is_topic_rejection(normalized) or any(
+        cue in normalized
+        for cue in (
+            "why are you asking",
+            "why do you keep asking",
+            "this is annoying",
+            "are you analyzing me",
+            "personality test",
+        )
+    )
 
 
 def plan_next(
@@ -181,7 +196,9 @@ def plan_next(
     current_depth = max((c.asked_count for c in current), default=0)
 
     if rejected or frustrated:
-        target = select_next(major_uncovered or [c for c in pool if c.key != last_target_key] or pool)
+        target = select_next(
+            major_uncovered or [c for c in pool if c.key != last_target_key] or pool
+        )
         return PlannerDecision(
             target=target,
             action=PlannerAction.SWITCH,
@@ -191,8 +208,12 @@ def plan_next(
         )
 
     if classify_reply(student_text) == ReplySignal.INSUFFICIENT and major_uncovered:
-        target = select_next([c for c in major_uncovered if c.key != last_target_key] or major_uncovered)
-        return PlannerDecision(target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "branch_yield_collapsed")
+        target = select_next(
+            [c for c in major_uncovered if c.key != last_target_key] or major_uncovered
+        )
+        return PlannerDecision(
+            target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "branch_yield_collapsed"
+        )
 
     if last_target_key and current_depth >= 3:
         switch_pool = [c for c in pool if c.key != last_target_key and not is_repetition_blocked(c)]
@@ -206,13 +227,16 @@ def plan_next(
             )
 
     if not breadth_complete and major_uncovered and current_depth >= DEFAULT_MAX_TOPIC_DEPTH:
-        target = select_next([c for c in major_uncovered if c.key != last_target_key] or major_uncovered)
-        return PlannerDecision(target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "topic_budget_reached")
+        target = select_next(
+            [c for c in major_uncovered if c.key != last_target_key] or major_uncovered
+        )
+        return PlannerDecision(
+            target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "topic_budget_reached"
+        )
 
     # A fourth ask is invalid before breadth completes, regardless of score.
     eligible = [
-        c for c in pool
-        if breadth_complete or c.asked_count < ABSOLUTE_MAX_TOPIC_DEPTH
+        c for c in pool if breadth_complete or c.asked_count < ABSOLUTE_MAX_TOPIC_DEPTH
     ] or pool
     target = select_next(eligible)
     if target is None:
@@ -226,7 +250,9 @@ def plan_next(
     if target.kind == "contradiction":
         action, reason = PlannerAction.CLARIFY, "resolve_contradiction"
     elif target.kind == "required_hard_variable" and target.key in {
-        "constraints", "constraints:geo", "execution:outreach_willingness",
+        "constraints",
+        "constraints:geo",
+        "execution:outreach_willingness",
         "execution:public_visibility",
     }:
         action, reason = PlannerAction.GATE, "hard_feasibility"
@@ -281,9 +307,7 @@ EXPOSURE_CONSECUTIVE_CAP = 2
 
 # Kinds that never accrue or bind to exposure: repairs answer an explicit
 # student correction, introductions are one-shot conversation contracts.
-EXEMPT_FROM_EXPOSURE_CAP = frozenset(
-    {"contradiction", "conversation_repair", "social_intro"}
-)
+EXEMPT_FROM_EXPOSURE_CAP = frozenset({"contradiction", "conversation_repair", "social_intro"})
 
 
 def classify_reply(text: str) -> ReplySignal:
@@ -358,31 +382,26 @@ def should_force_review_checkpoint(
     contradictions: int,
 ) -> bool:
     """Review once all useful probes are exhausted; never synthesize another probe."""
-    return (
-        candidate_count == 0
-        and not has_social_target
-        and not reviewed
-        and contradictions == 0
-    )
+    return candidate_count == 0 and not has_social_target and not reviewed and contradictions == 0
 
 
 def question_value(target: Target) -> float:
     """Auditable V1 proxy for expected reduction in project-decision uncertainty."""
     value = target.value
     positive = (
-        .30 * value.project_discrimination
-        + .25 * max(value.uncertainty_reduction, target.information_gain)
-        + .15 * value.evidence_weakness
-        + .15 * value.contradiction_resolution
-        + .10 * max(value.conversational_relevance, target.continuity)
-        + .05 * value.novelty
+        0.30 * value.project_discrimination
+        + 0.25 * max(value.uncertainty_reduction, target.information_gain)
+        + 0.15 * value.evidence_weakness
+        + 0.15 * value.contradiction_resolution
+        + 0.10 * max(value.conversational_relevance, target.continuity)
+        + 0.05 * value.novelty
     )
     penalties = (
         value.repetition_penalty
         + value.leading_penalty
         + value.sensitivity_penalty
         + value.fatigue_penalty
-        + target.asked_count * .35
+        + target.asked_count * 0.35
     )
     return round(BASE_VALUE.get(target.kind, 0.0) + positive - penalties, 6)
 
@@ -458,10 +477,10 @@ def evaluate_review_eligibility(
             return False, None
     if dimension_statuses.get("execution") not in {"supported", "provisional"}:
         return False, None
-    secondary_ok = (
-        dimension_statuses.get("capability") in {"supported", "provisional"}
-        or dimension_statuses.get("assets") in {"supported", "provisional"}
-    )
+    secondary_ok = dimension_statuses.get("capability") in {
+        "supported",
+        "provisional",
+    } or dimension_statuses.get("assets") in {"supported", "provisional"}
     if not secondary_ok:
         return False, None
     if coverage_established >= 0.6:
@@ -481,6 +500,7 @@ def derive_stage(
     coverage: float | None = None,
     location_ready: bool | None = None,
     dimension_statuses: dict[str, str] | None = None,
+    current_stage: str | None = None,
     **_ignored: Any,
 ) -> str:
     """Derive stage from supported coverage and open true contradictions.
@@ -489,7 +509,45 @@ def derive_stage(
     Contested dims contribute only to ``coverage_touched``.
 
     ``project_matching`` requires reviewed + location_ready (when provided).
+
+    Stages never regress: when ``current_stage`` is provided, a freshly derived
+    stage ranking below it is clamped up to ``current_stage`` (``complete``
+    stays terminal). The only sanctioned regression is the caller-side
+    review-checkpoint override in turn_processor, applied and traced after
+    this function returns.
     """
+    stage = _derive_stage_fresh(
+        contradictions=contradictions,
+        reviewed=reviewed,
+        projects_ready=projects_ready,
+        coverage_established=coverage_established,
+        coverage_touched=coverage_touched,
+        coverage=coverage,
+        location_ready=location_ready,
+        dimension_statuses=dimension_statuses,
+        **_ignored,
+    )
+    if current_stage is None:
+        return stage
+    current_rank = STAGE_RANK.get(current_stage)
+    if current_rank is not None and STAGE_RANK[stage] < current_rank:
+        return current_stage
+    return stage
+
+
+def _derive_stage_fresh(
+    *,
+    contradictions: int,
+    reviewed: bool,
+    projects_ready: bool,
+    coverage_established: float | None = None,
+    coverage_touched: float | None = None,
+    coverage: float | None = None,
+    location_ready: bool | None = None,
+    dimension_statuses: dict[str, str] | None = None,
+    **_ignored: Any,
+) -> str:
+    """Derive the stage from inputs alone, before the monotonicity clamp."""
     established = (
         coverage
         if coverage_established is None and coverage is not None
@@ -556,9 +614,7 @@ def interest_depth_ready(profile: dict[str, Any] | None) -> bool:
             continue
         score_i = int(score)
         evidence = int(item.get("evidence_count") or 0)
-        if score_i > best_score or (
-            score_i == best_score and evidence > best_evidence
-        ):
+        if score_i > best_score or (score_i == best_score and evidence > best_evidence):
             best_score = score_i
             best_evidence = evidence
 
@@ -583,9 +639,7 @@ def should_emit_required(key: str, *, interests_ready: bool) -> bool:
     return True
 
 
-def contradiction_fallback(
-    dimension_key: str, value_a: str | None, value_b: str | None
-) -> str:
+def contradiction_fallback(dimension_key: str, value_a: str | None, value_b: str | None) -> str:
     """Seeded contradiction wording that names the concrete options."""
     label = dimension_key.replace("_", " ")
     if value_a and value_b:
@@ -606,19 +660,13 @@ _REQUIRED_FALLBACKS = {
         "Hey — good to meet you. When you've had free time lately, what have you "
         "actually been spending it on?"
     ),
-    "work_mode": (
-        "Thinking about what you just described, which part do you enjoy doing most?"
-    ),
-    "motivation": (
-        "What usually makes something feel worth the time you put into it?"
-    ),
+    "work_mode": ("Thinking about what you just described, which part do you enjoy doing most?"),
+    "motivation": ("What usually makes something feel worth the time you put into it?"),
     "execution": (
-        "What's something difficult you kept working at after it became frustrating "
-        "or boring?"
+        "What's something difficult you kept working at after it became frustrating or boring?"
     ),
     "execution:persistence": (
-        "What's something difficult you kept working at after it became frustrating "
-        "or boring?"
+        "What's something difficult you kept working at after it became frustrating or boring?"
     ),
     "execution:ambiguity_tolerance": (
         "If I said 'find a way to make something useful in your area' with no steps, "
@@ -634,9 +682,7 @@ _REQUIRED_FALLBACKS = {
     "constraints": (
         "Any must-haves I should keep in mind — deadline, tools, budget, or other limits?"
     ),
-    "constraints:geo": (
-        "Where are you based (city or region), or is remote fine too?"
-    ),
+    "constraints:geo": ("Where are you based (city or region), or is remote fine too?"),
     "capability": "What skills or tools are you already comfortable using?",
     "assets": (
         "Do you have any unusual access that could help — people, teams, datasets, "
@@ -650,14 +696,12 @@ def interest_depth_fallback(topic: str | None = None) -> str:
     if topic:
         label = str(topic).replace("_", " ").strip()
         if any(word in label.lower() for word in ("game", "gaming")):
-            return f"Nice — what games have you been playing lately?"
+            return "Nice — what games have you been playing lately?"
         return f"Nice — what do you enjoy most about {label}?"
     return "Nice — what do you enjoy most about it?"
 
 
-def social_intro_target(
-    last_target_key: str | None, student_text: str | None
-) -> Target | None:
+def social_intro_target(last_target_key: str | None, student_text: str | None) -> Target | None:
     """Return the next low-pressure introduction turn, if one is due.
 
     Introductions are deliberately outside the assessment dimensions. This makes
