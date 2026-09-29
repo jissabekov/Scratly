@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Exec(.venv/Scripts/python -m pytest*)",
+      "Exec(.venv/Scripts/python -m compileall*)",
+      "Exec(.venv/Scripts/python scripts/*)",
+      "Exec(.venv/Scripts/python eval/*)",
+      "Exec(docker compose*)",
+      "Exec(git status*)",
+      "Exec(git log*)",
+      "Exec(git diff*)",
+      "Exec(git branch*)",
+      "Exec(npm --prefix apps/web*)"
+    ],
+    "deny": [
+      "Exec(git push*)",
+      "Exec(sudo*)",
+      "Read(.env)",
+      "Read(apps/api/.env)",
+      "Read(**/.env.*)"
+    ]
+  }
+}

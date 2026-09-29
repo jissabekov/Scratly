@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "crystaldba/postgres-mcp",
+        "postgresql://scratly:scratly_local_only@host.docker.internal:5432/scratly",
+        "--access-mode=restricted"
+      ]
+    }
+  }
+}

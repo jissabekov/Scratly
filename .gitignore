@@ -14,3 +14,8 @@ apps/web/playwright/.cache/
 .last-probe-session.txt
 eval/traces/
 sim-*.json
+
+# Devin local overrides (auto-ignored by CLI, explicit here for other tools)
+.devin/config.local.json
+.devin/mcp_config.local.json
+AGENTS.local.md
