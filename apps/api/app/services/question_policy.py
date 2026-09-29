@@ -267,6 +267,23 @@ class Target:
     value: QuestionValue = field(default_factory=QuestionValue)
     target_dimensions: tuple[str, ...] = ()
     project_modes: tuple[str, ...] = ()
+    # CAT item-exposure control (Plan 01 W1.1): how many consecutive turns this
+    # target's dimension was just asked. Persisted per session in
+    # core.sessions.dim_ask_counts; 0 when the dimension was not the previous
+    # commit or the session has no ledger yet.
+    consecutive_count: int = 0
+
+
+# Dimensions at this many consecutive asks become ineligible regardless of
+# decision value. Repair/correction kinds are exempt (see
+# _EXPOSURE_EXEMPT_KINDS); a fresh dimension always wins over a capped one.
+EXPOSURE_CONSECUTIVE_CAP = 2
+
+# Kinds that never accrue or bind to exposure: repairs answer an explicit
+# student correction, introductions are one-shot conversation contracts.
+EXEMPT_FROM_EXPOSURE_CAP = frozenset(
+    {"contradiction", "conversation_repair", "social_intro"}
+)
 
 
 def classify_reply(text: str) -> ReplySignal:
@@ -303,21 +320,34 @@ def classify_reply(text: str) -> ReplySignal:
     return ReplySignal.SUBSTANTIVE
 
 
-def is_repetition_blocked(target: Target) -> bool:
-    """Hard-stop re-asking anchors that stop yielding new evidence."""
-    if target.kind in {"contradiction", "conversation_repair"}:
-        return False
+def repetition_block_reason(target: Target) -> str | None:
+    """Classify why a target must not be selected again this turn.
+
+    ``exposure_cap`` — the dimension was asked on the last two committed turns
+    (consecutive_count >= 2), regardless of decision value; or the cumulative
+    hard-stop rules below fired. Contradictions, repairs, and social
+    introductions never bind.
+    """
+    if target.kind in {"contradiction", "conversation_repair", "social_intro"}:
+        return None
+    if target.consecutive_count >= 2:
+        return "exposure_cap"
     if target.asked_count >= 2 and target.coverage_status in {"supported", "established"}:
-        return True
+        return "repetition_hard_stop"
     if (
         target.asked_count >= 2
         and target.coverage_status == "provisional"
         and target.key in HIGH_REPEAT_KEYS
     ):
-        return True
+        return "repetition_hard_stop"
     if target.asked_count >= 3 and target.key in HIGH_REPEAT_KEYS:
-        return True
-    return False
+        return "repetition_hard_stop"
+    return None
+
+
+def is_repetition_blocked(target: Target) -> bool:
+    """Hard-stop re-asking anchors that stop yielding new evidence."""
+    return repetition_block_reason(target) is not None
 
 
 def should_force_review_checkpoint(

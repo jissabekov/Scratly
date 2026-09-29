@@ -29,9 +29,9 @@ from app.services.question_policy import (
     classify_reply,
     derive_stage,
     interest_depth_fallback,
-    is_repetition_blocked,
     plan_next,
     question_value,
+    repetition_block_reason,
     select_next,
     social_intro_target,
     is_topic_rejection,
@@ -49,11 +49,74 @@ from app.services.turn_intent_classifier import TurnIntentClassifier
 from app.services.web_research_client import WebResearchClient
 from uuid import UUID
 
-_FALLBACK_TARGET = Target(
-    "profile_validation",
-    "profile",
-    "Does this description of your preferences feel accurate?",
+# Distinct validation probes used when every scored candidate is exhausted.
+# Each entry is its own exposure dimension so the deterministic rotation below
+# can never repeat one key three turns in a row (assertion A2).
+_PROFILE_FALLBACK_BANK = (
+    Target(
+        "profile_validation",
+        "profile",
+        "Does this description of your preferences feel accurate?",
+    ),
+    Target(
+        "profile_validation",
+        "profile:corrections",
+        "What should I fix — what did I get wrong about what you're looking for?",
+    ),
+    Target(
+        "profile_validation",
+        "profile:depth",
+        "What matters most to you in a project that I haven't asked about yet?",
+    ),
 )
+
+
+def _exposure_entry(exposure: dict[str, Any], dim: str) -> dict[str, int]:
+    entry = exposure.get(dim) if isinstance(exposure, dict) else None
+    return entry if isinstance(entry, dict) else {}
+
+
+def _exposure_consecutive(exposure: dict[str, Any], dim: str) -> int:
+    return int((_exposure_entry(exposure, dim) or {}).get("consecutive") or 0)
+
+
+def _exposure_total(exposure: dict[str, Any], dim: str) -> int:
+    entry = exposure.get(dim) or {}
+    return int(entry.get("total") or 0)
+
+
+def _bump_exposure(dim: str, exposure: dict[str, Any]) -> dict[str, Any]:
+    """Commit one ask of ``dim``: bump its totals, reset every other streak."""
+    previous = exposure.get(dim) or {}
+    updated = {
+        key: {
+            "total": int((entry or {}).get("total") or 0),
+            "consecutive": 0,
+            "last_asked_turn": int((entry or {}).get("last_asked_turn") or 0),
+        }
+        for key, entry in exposure.items()
+        if isinstance(entry, dict)
+    }
+    ordinal = sum(int(e.get("total") or 0) for e in updated.values()) + 1
+    updated[dim] = {
+        "total": int(previous.get("total") or 0) + 1,
+        "consecutive": int((previous or {}).get("consecutive") or 0) + 1,
+        "last_asked_turn": ordinal,
+    }
+    return updated
+
+
+def _exposure_fallback(exposure: dict[str, Any]) -> Target:
+    """Least-exposed validation probe; never a third consecutive repeat."""
+    ranked = sorted(
+        _PROFILE_FALLBACK_BANK,
+        key=lambda t: (
+            _exposure_consecutive(exposure, t.key),
+            _exposure_total(exposure, t.key),
+            t.key,
+        ),
+    )
+    return ranked[0]
 
 
 async def process_student_turn(repo, extractor, writer, context_builder, session_id, request):
@@ -460,36 +523,22 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         )
 
         candidates = await tx.question_candidates()
+        exposure = counters.get("dim_ask_counts") if isinstance(counters.get("dim_ask_counts"), dict) else {}
         blocked_candidates: list[dict[str, Any]] = []
         filtered_candidates: list[Target] = []
         for candidate in candidates:
-            if is_repetition_blocked(candidate):
-                blocked_candidates.append(
-                    {
-                        "blocked_key": candidate.key,
-                        "asked_count": candidate.asked_count,
-                        "status": candidate.coverage_status,
-                        "kind": candidate.kind,
-                    }
-                )
+            reason = repetition_block_reason(candidate)
+            if reason is None:
+                filtered_candidates.append(candidate)
                 continue
-            filtered_candidates.append(candidate)
-        if blocked_candidates:
-            replacement = select_next(filtered_candidates or candidates)
-            await trace.record(
-                "question_target_blocked",
-                "question_policy",
-                "v1",
-                f"Blocked {len(blocked_candidates)} over-asked supported target(s).",
-                "repetition_hard_stop",
-                outputs={
-                    "blocked": blocked_candidates,
-                    "chosen_instead": (
-                        {"kind": replacement.kind, "key": replacement.key}
-                        if replacement
-                        else None
-                    ),
-                },
+            blocked_candidates.append(
+                {
+                    "blocked_key": candidate.key,
+                    "asked_count": candidate.asked_count,
+                    "status": candidate.coverage_status,
+                    "kind": candidate.kind,
+                    "reason": reason,
+                }
             )
         # Never put blocked targets back merely because every current candidate
         # is exhausted. That was the main source of 4–12 identical target runs in
@@ -565,11 +614,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         target = (
             social_target
             or (planner_decision.target if planner_decision else None)
-            or Target(
-                "profile_validation",
-                "profile",
-                "I may not get every detail perfectly, and that's okay. Want to check my read so far and change anything I got wrong?",
-            )
+            or _exposure_fallback(exposure)
         )
         if planner_decision:
             if planner_decision.reason == "follow_up_exhausted":
@@ -757,7 +802,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     and c.key != elicit_key
                     and c.key != f"constraints:geo"
                 ]
-                target = select_next(remaining) or _FALLBACK_TARGET
+                target = select_next(remaining) or _exposure_fallback(exposure)
                 await tx.update_session_counters(
                     elicitation_attempts_for_target=0,
                     clear_elicitation_target=True,
@@ -768,6 +813,24 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 clear_elicitation_target=True,
             )
 
+        if blocked_candidates:
+            # Emitted after every target override (planner, pushback,
+            # elicitation) so ``chosen_instead`` always names the target that
+            # was actually committed — the Aug 4 traces showed the two
+            # disagreeing during fallback streaks.
+            await trace.record(
+                "question_target_blocked",
+                "question_policy",
+                "v2",
+                f"Blocked {len(blocked_candidates)} over-asked target(s).",
+                "exposure_cap"
+                if any(b["reason"] == "exposure_cap" for b in blocked_candidates)
+                else "repetition_hard_stop",
+                outputs={
+                    "blocked": blocked_candidates,
+                    "chosen_instead": {"kind": target.kind, "key": target.key},
+                },
+            )
         await trace.record(
             "question_target_selected",
             "question_policy",
@@ -1011,6 +1074,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                 used_fallback = True
 
         # --- Project matching when stage allows ---
+        matching_feedback_closed = False
         matching_already_completed = bool(counters.get("matching_completed"))
         existing_projects = (
             await tx.list_generated_projects()
@@ -1060,6 +1124,7 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             # The message following an offer is feedback/selection, not a signal
             # to regenerate the same recommendations. Persisting the student turn
             # already preserves that feedback; now close the matching workflow.
+            matching_feedback_closed = True
             await tx.update_session_counters(matching_completed=True)
             assistant_prefix = None
             question = (
@@ -1084,6 +1149,22 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
             if elicit_key == "constraints:geo":
                 elicit_key = "constraints"
             elicitation_spec = build_elicitation_spec(elicit_key)
+
+        # CAT item-exposure control: commit the ask ledger for the probe that
+        # actually went out. Offers, selections, and the terminal thanks line
+        # are not dimension probes and must not accrue exposure.
+        if (
+            stage != "complete"
+            and message_kind not in {"project_offer", "post_match_feedback"}
+            and not matching_feedback_closed
+        ):
+            probe_dim = (
+                target.key
+                if target.kind == "profile_validation"
+                else elicitation_dimension_family(target.key)
+            )
+            exposure = _bump_exposure(probe_dim, exposure)
+            await tx.update_session_counters(dim_ask_counts=exposure)
 
         assistant = await tx.persist_question_and_complete(
             turn,

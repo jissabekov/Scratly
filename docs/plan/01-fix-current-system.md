@@ -11,7 +11,15 @@ Every workstream below follows the same contract: **root cause → change → un
 
 **Evidence (Aug 4 run):** every scenario repeats one committed target 4–17 consecutive turns (`sim_luz` 17, `sim_nia` 16, `profile_review_reject_repair` 14). The `repetition_hard_stop` (PR #4/#5 era) reduced repeats vs baseline but loops persist under live LLM variance.
 
-**Root cause to verify first (forensic, half a day):** dump per-turn `question_target_selected` / `question_target_blocked` events from `eval/traces/latest/*.json` for the 3 worst scenarios; classify why the same key wins again (a) blocked pool fallback, (b) planner FOLLOW_UP override, (c) value score still highest. Commit the table into this file before coding.
+**Forensic result (committed 2026-09-29, from `eval/traces/latest/*.json`):** the hypothesized causes (a) blocked-pool fallback, (b) planner FOLLOW_UP override, (c) value score still highest are all **ruled out**. The actual mechanism, identical in all 3 worst scenarios: a **`profile_validation` fallback loop**. Every streak turn selects the pseudo-target `profile` (kind `profile_validation`, reason `priority_profile_validation`) with `inputs.candidates=[]`, `candidate_count: 0`, `planner_action: null`, constant `decision_value: 0.175`, and `asked_count: 0` that never increments — so neither a consecutive nor a total exposure cap can bind to it. Each streak turn also runs `research_started` → `research_failed(RuntimeError)` → `project_matching_abstained(no_relevant_opportunity, findings=0)` → identical `matching_unavailable` message. Trace inconsistency: during streaks, `question_target_blocked.outputs.chosen_instead` (e.g. `work_mode`) disagrees with the actually selected `target_key: "profile"`.
+
+| scenario | streak length | streak turns | streak target | (a) blocked-pool | (b) planner FOLLOW_UP | (c) value-highest | (d) other | blocked events |
+|---|---|---|---|---|---|---|---|---|
+| sim_luz_bilingual_food | 17 (t8–t24) | 17 | `profile`/`profile_validation` | 0 | 0 | 0 | 16 | 18 |
+| sim_nia_creative_community | 16 (t9–t24) | 16 | `profile` | 0 | 0 | 0 | 15 | 2 |
+| profile_review_reject_repair | 14 (t7–t20) | 14 | `profile` | 0 | 0 | 0 | 13 | 1 |
+
+Suite-wide corroboration: all 21 scenarios show the same signature (`profile`/`profile_validation` fallback streaks 4–17 turns); `research_started=225`, `research_failed=225` (100% failure, `RuntimeError`), `project_matching_abstained=224`; `question_target_blocked(repetition_hard_stop)` fires only against real dims (e.g. `work_mode` at `asked_count=2, status=supported`) and its `chosen_instead` disagrees with the actual selection during streaks.
 
 **Fix (deterministic, code-owned — CAT item-exposure control):**
 - New per-dimension exposure state on `core.sessions` (migration `013_learning_foundations.sql` or a dedicated `013_exposure_control.sql`):

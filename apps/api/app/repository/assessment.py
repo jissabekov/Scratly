@@ -19,7 +19,10 @@ from app.contracts import (
     TurnResponse,
     ValidatedEvidence,
 )
-from app.services.elicitation_policy import build_elicitation_spec
+from app.services.elicitation_policy import (
+    build_elicitation_spec,
+    elicitation_dimension_family,
+)
 from app.services.contradiction_engine import (
     ENGINE_VERSION,
     cardinality_for,
@@ -895,6 +898,23 @@ class TurnTransaction:
         )
         intent_map = {row["key"]: row for row in intents.mappings()}
 
+        exposure_row = await self.session.execute(
+            text("SELECT dim_ask_counts FROM core.sessions WHERE id = :session_id"),
+            {"session_id": self._session_id},
+        )
+        raw_exposure = exposure_row.scalar_one()
+        if isinstance(raw_exposure, str):
+            try:
+                raw_exposure = json.loads(raw_exposure)
+            except ValueError:
+                raw_exposure = {}
+        exposure: dict[str, dict[str, int]] = raw_exposure if isinstance(raw_exposure, dict) else {}
+
+        def consecutive_for(key: str) -> int:
+            entry = exposure.get(elicitation_dimension_family(key)) or {}
+            return int(entry.get("consecutive") or 0)
+
+
         open_contradictions = await self.session.execute(
             text(
                 """
@@ -1023,6 +1043,7 @@ class TurnTransaction:
                     asked_count=asked_by_key.get(key, 0),
                     coverage_status=status,
                     continuity=continuity,
+                    consecutive_count=consecutive_for(key),
                     value=QuestionValue(
                         uncertainty_reduction=uncertainty,
                         evidence_weakness=uncertainty,
@@ -1997,14 +2018,23 @@ class TurnTransaction:
                        elicitation_attempts_for_target,
                        elicitation_target_key,
                        profile_reviewed,
-                       matching_completed
+                       matching_completed,
+                       dim_ask_counts
                   FROM core.sessions
                  WHERE id = :session_id
                 """
             ),
             {"session_id": self._session_id},
         )
-        return dict(result.mappings().one())
+        counters = dict(result.mappings().one())
+        raw_exposure = counters.get("dim_ask_counts")
+        if isinstance(raw_exposure, str):
+            try:
+                raw_exposure = json.loads(raw_exposure)
+            except ValueError:
+                raw_exposure = {}
+        counters["dim_ask_counts"] = raw_exposure if isinstance(raw_exposure, dict) else {}
+        return counters
 
     async def update_session_counters(
         self,
@@ -2015,6 +2045,7 @@ class TurnTransaction:
         clear_elicitation_target: bool = False,
         profile_reviewed: bool | None = None,
         matching_completed: bool | None = None,
+        dim_ask_counts: dict[str, Any] | None = None,
     ) -> None:
         assert self._session_id is not None
         sets: list[str] = ["updated_at = now()"]
@@ -2036,6 +2067,9 @@ class TurnTransaction:
         if matching_completed is not None:
             sets.append("matching_completed = :mc")
             params["mc"] = matching_completed
+        if dim_ask_counts is not None:
+            sets.append("dim_ask_counts = CAST(:dac AS jsonb)")
+            params["dac"] = json.dumps(dim_ask_counts)
         await self.session.execute(
             text(f"UPDATE core.sessions SET {', '.join(sets)} WHERE id = :session_id"),
             params,
