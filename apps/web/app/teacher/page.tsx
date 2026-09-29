@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '../../lib/api';
 import type { AdminSessionRow } from '../../lib/types';
 
@@ -73,8 +74,18 @@ function summarize(item: Record<string, unknown>): { title: string; body: string
 }
 
 export default function TeacherPage() {
+  return (
+    <Suspense fallback={null}>
+      <TeacherConsole />
+    </Suspense>
+  );
+}
+
+function TeacherConsole() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<AdminSessionRow[]>([]);
-  const [sessionId, setSessionId] = useState('');
+  const [sessionId, setSessionId] = useState(searchParams.get('session') || '');
   const [stage, setStage] = useState<string>('');
   const [turnText, setTurnText] = useState(
     'I like building small science projects with data from my neighborhood.'
@@ -143,6 +154,15 @@ export default function TeacherPage() {
       }
     })();
   }, [sessionId, loadSessionViews]);
+
+  // Keep the selected session in the URL so the console is deep-linkable and
+  // survives refresh (?session=<id>); soft replace, no full navigation.
+  useEffect(() => {
+    if (!sessionId) return;
+    if (searchParams.get('session') !== sessionId) {
+      router.replace(`/teacher?session=${encodeURIComponent(sessionId)}`, { scroll: false });
+    }
+  }, [sessionId, router, searchParams]);
 
   const selectedLabel = useMemo(() => {
     const row = sessions.find((s) => s.session_id === sessionId);

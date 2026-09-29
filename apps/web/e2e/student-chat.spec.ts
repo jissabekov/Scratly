@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { axeViolations } from './helpers';
 
 const API = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -42,6 +43,12 @@ test.describe('Student chat conversation', () => {
 
     const sessionId = await sessionIdFromPage(page);
 
+    // Accessibility: the booted chat must be axe-clean (WCAG 2.2 AA tags).
+    const bootViolations = await axeViolations(page, ['wcag2a', 'wcag2aa', 'wcag22aa']);
+    expect(
+      bootViolations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join('; ')}`)
+    ).toEqual([]);
+
     const before = await request.get(`${API}/v1/sessions/${sessionId}/messages`);
     expect(before.ok()).toBeTruthy();
     const beforeBody = await before.json();
@@ -62,6 +69,12 @@ test.describe('Student chat conversation', () => {
     expect(assistantText.length).toBeGreaterThan(15);
     // Working indicator should clear after reply
     await expect(page.locator('.chat-bubble.working')).toHaveCount(0);
+
+    // Accessibility must hold with live transcript content rendered.
+    const replyViolations = await axeViolations(page, ['wcag2a', 'wcag2aa', 'wcag22aa']);
+    expect(
+      replyViolations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join('; ')}`)
+    ).toEqual([]);
 
     const afterTurn = await request.get(`${API}/v1/sessions/${sessionId}/messages`);
     expect(afterTurn.ok()).toBeTruthy();
