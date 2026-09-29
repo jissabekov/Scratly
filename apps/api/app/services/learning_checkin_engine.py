@@ -296,12 +296,22 @@ def escalation_next(level: InterventionLevel) -> InterventionLevel:
 # --- streak ------------------------------------------------------------------
 
 
+STREAK_VERB_SUFFIXES = ("completed", "answered", "checked_in", "experienced")
+
+
 def streak_steps(events: Sequence[Mapping[str, Any]]) -> int:
-    """Streak unit = "one step counts": a check-in or a module step (not time)."""
+    """Streak unit = "one step counts": a check-in or a module step (not time).
+
+    xAPI verb ids are full URIs (``http://adlnet.gov/expapi/verbs/completed``);
+    match on the trailing segment so both shapes work.
+    """
     steps = 0
     for event in events:
         verb = event.get("verb") or {}
-        if isinstance(verb, dict) and verb.get("id") in {"completed", "answered", "checked_in"}:
+        verb_id = verb.get("id") if isinstance(verb, dict) else None
+        if not verb_id:
+            continue
+        if str(verb_id).rsplit("/", 1)[-1] in STREAK_VERB_SUFFIXES:
             steps += 1
     return steps
 

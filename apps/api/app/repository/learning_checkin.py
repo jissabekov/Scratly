@@ -58,7 +58,7 @@ from app.services.learning_checkin_engine import (
     update_card_state,
     with_decay,
 )
-from app.services.learning_progress import xapi_statement
+from app.services.learning_progress import XAPI_VERB_COMPLETED, xapi_statement
 from app.services.learning_quiz_engine import bkt_update, objective_state
 
 CHECKIN_VERB = "checked_in"
@@ -203,16 +203,22 @@ class CheckinRepository:
                 SELECT max(occurred_at) AS last_activity,
                        count(*) FILTER (
                            WHERE occurred_at >= now() - (:window || ' minutes')::interval
-                             AND verb->>'id' = 'completed'
+                             AND verb->>'id' = :completed
+                             AND object->>'id' LIKE 'module:%'
                        ) AS milestone_recent,
                        count(*) FILTER (
                            WHERE occurred_at >= now() - (:window || ' minutes')::interval
-                             AND verb->>'id' = 'experienced'
+                             AND verb->>'id' = :completed
+                             AND object->>'id' LIKE 'slide:%'
                        ) AS section_recent
                   FROM learning.learning_events WHERE session_id = :session_id
                 """
             ),
-            {"session_id": session_id, "window": str(SECTION_WINDOW_MINUTES)},
+            {
+                "session_id": session_id,
+                "window": str(SECTION_WINDOW_MINUTES),
+                "completed": XAPI_VERB_COMPLETED,
+            },
         )
         act = activity.mappings().one()
         due = await self.session.execute(

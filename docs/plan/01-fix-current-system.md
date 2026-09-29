@@ -28,21 +28,80 @@ PYTHONIOENCODING=utf-8 .venv/Scripts/python scripts/eval_conversation_suite.py \
 .venv/Scripts/python eval/analyze_post_fix.py 2026-09-30-phase1-final
 ```
 
-Results are recorded in §Before/after metrics below once the run completes.
+**Result: 21/21 clean runs, Findings=0, AssertionViolations=2** (both A2, see below).
+
+| metric | before | after (T4) |
+|---|---|---|
+| scenarios reaching `complete` | 7/21 | **19/21** |
+| p50 turn latency | 13,179 ms | **5,305.5 ms** |
+| p95 turn latency | 26,339 ms | **8,647 ms** (nearest) / 8,659.1 ms (linear) |
+| duplicate assistant messages (total) | 5 | **0** |
+| stage regressions | 0 | **0** |
+| adaptive sims fully green (A18) | 0/3 | **3/3** |
+| adaptive sims presenting options | 1/3 | **3/3** |
+| evidence acceptance rate | 0.565 | **0.997** |
+
+The two remaining violations are `A2: <scenario> repeated one target 3 consecutive
+times` in `thin_elicitation_loop` and `greeting_slow_warm_up`. Root cause: the
+thin-answer elicitation override built a fresh `Target` with `asked_count = 0`,
+bypassing the exposure ledger. Fixed by respecting
+`_exposure_consecutive(exposure, elicit_key) < 2` before retargeting; proven in
+`eval/traces/2026-09-30-phase1-a2` (see below).
+
+### A2 follow-up proof (`eval/traces/2026-09-30-phase1-a2`)
+
+```bash
+PYTHONIOENCODING=utf-8 .venv/Scripts/python scripts/eval_conversation_suite.py \
+  --only thin_elicitation_loop,greeting_slow_warm_up \
+  --out-dir eval/traces/2026-09-30-phase1-a2 --resume
+```
+
+**Result: 2/2 clean, AssertionViolations=0**; `max_consecutive_target_repeats = 2`
+for both scenarios (was 3).
 
 ---
 
 ## Before/after metric rows (Plan 01)
 
-| Finding | Metric | Before (`2026-09-29-phase1-full`) | After (T3/T4) | How proven |
+| Finding | Metric | Before (`2026-09-29-phase1-full`) | After (T4 `2026-09-30-phase1-final`) | How proven |
 |---|---|---|---|---|
-| F1 (A2) | max consecutive target repeats | ≤2 | ≤2 | T3 subsets; A2 clean |
-| A14 | duplicate assistant ratio (assessment turns) | 0.05 worst | ≤0.10 | T3 subsets; A14 clean |
-| W1.4 | scenarios reaching `complete` | 7/21 | ≥15/21 (T4) | full run |
-| W1.3/A18 | adaptive sims with `options_presented` | 1/3 | **3/3** | T3 `2026-09-30-phase1-t3c` (`all_checks_passed: 3`) |
-| W1.3/A18 | adaptive sims fully green | 0/3 | **3/3** | T3 `2026-09-30-phase1-t3c` (`AssertionViolations=0`) |
-| W1.5 | p95 turn latency | 26,339 ms | T4 | `verify_percentile` over measured per-turn ms |
-| W1.5 | p50 turn latency | 13,179 ms | T4 | `verify_percentile` |
+| F1 (A2) | max consecutive target repeats | ≤2 | ≤2 after the elicitation-override fix | A2 subset run `2026-09-30-phase1-a2` |
+| A14 | duplicate assistant messages | 5 | **0** | full run |
+| W1.4 | scenarios reaching `complete` | 7/21 (0.333, Wilson 95% CI 0.172–0.546) | **19/21** (0.905, Wilson 95% CI 0.711–0.973) | full run + `verify_wilson_ci` |
+| W1.3/A18 | adaptive sims with `options_presented` | 1/3 | **3/3** | full run `adaptive_end_to_end` |
+| W1.3/A18 | adaptive sims fully green | 0/3 | **3/3** | full run `AssertionViolations` (no A18) |
+| W1.5 | p95 turn latency | 26,339 ms | **8,647 ms** | `verify_percentile` over measured per-turn ms |
+| W1.5 | p50 turn latency | 13,179 ms | **5,305.5 ms** | `verify_percentile` over measured per-turn ms |
+
+### Math verification (mathcheck MCP; assumptions + uncertainty reported)
+
+| Claim | Tool | Result | Assumptions |
+|---|---|---|---|
+| completion 19/21 | `verify_wilson_ci` | point 0.905, 95% CI **0.711–0.973** | binomial, normal-approx z=1.96, n=21 (<30 → wide interval) |
+| completion 7/21 (before) | `verify_wilson_ci` | point 0.333, 95% CI **0.172–0.546** | same |
+| p50 after 5,305.5 ms | `verify_percentile` | recomputed **5,305.5** (match) | empirical, numpy linear, q=0.5, n=400 |
+| p95 after 8,647 ms | `verify_percentile` | recomputed **8,659.1** (linear); suite uses nearest-rank 8,647 | empirical, n=400, 362 unique |
+| p50 before 13,179 ms | `verify_percentile` | recomputed **13,179.0** (match) | empirical, numpy linear, q=0.5, n=411 |
+| p95 before 26,339 ms | `verify_percentile` | recomputed **26,318.5** (linear); suite nearest-rank 26,339 | empirical, n=411 |
+
+Uncertainty: the completion intervals overlap-free but n=21 is small (tool warns
+"interval is wide"); the latency numbers are the measured distribution of a single
+live run against one Azure deployment, so they carry run-to-run variance not
+captured by the percentile.
+
+### Targets not fully met (recorded honestly)
+
+- **p95 ≤ 8 s:** achieved **8,647 ms** — 8 % over target. The extractor's
+  reasoning/output tokens are the floor at `reasoning_effort="low"`; `none` measured
+  2.9 s but was not adopted to protect extraction quality (evidence acceptance is
+  already 0.997 with `low`).
+- **p50 ≤ 3 s:** achieved **5,305.5 ms** — driven by two serial LLM calls per turn.
+  Streaming the writer (a UI change, coordinated with Plan 02) is the remaining
+  lever and was not in scope for this phase.
+- **A2:** the two T4 violations are fixed in code and proven in the A2 subset run;
+  the full-suite re-run was deliberately **not** taken (one T4 run budget, D4).
+
+---
 
 ### W1.4 root cause and fix (recorded)
 

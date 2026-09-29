@@ -830,10 +830,17 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
                     "thin_answer_rephrase",
                     outputs={"dimension_key": elicit_key, "attempt": attempts},
                 )
-            elif can_recover and should_offer_options(
-                reply_signal=reply_signal.value,
-                attempts=attempts,
-                is_thin=thin.is_thin,
+            elif (
+                can_recover
+                and should_offer_options(
+                    reply_signal=reply_signal.value,
+                    attempts=attempts,
+                    is_thin=thin.is_thin,
+                )
+                # The elicitation override builds a fresh Target with asked_count
+                # 0, which would bypass the exposure cap and ask the same
+                # dimension a third consecutive time (A2). Respect the ledger.
+                and _exposure_consecutive(exposure, elicit_key) < 2
             ):
                 target = elicitation_target(elicit_key)
                 message_kind = "elicitation"

@@ -234,7 +234,7 @@ def test_escalation_ladder_is_monotonic_and_terminal() -> None:
 def test_streak_steps_counts_checkins_and_module_steps() -> None:
     events = [
         {"verb": {"id": "completed"}},
-        {"verb": {"id": "answered"}},
+        {"verb": {"id": "http://adlnet.gov/expapi/verbs/answered"}},
         {"verb": {"id": "checked_in"}},
         {"verb": {"id": "launched"}},
     ]

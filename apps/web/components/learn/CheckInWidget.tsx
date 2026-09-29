@@ -165,7 +165,7 @@ export function CheckInWidget({ sessionId, onSettled, className }: CheckInWidget
           onClick={dismiss}
           disabled={pending}
           className="rounded-md p-1 text-muted-foreground hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          aria-label="Not now"
+          aria-label="Dismiss check-in"
         >
           <X aria-hidden="true" className="size-4" />
         </button>

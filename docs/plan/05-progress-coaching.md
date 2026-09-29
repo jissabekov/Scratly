@@ -80,7 +80,13 @@ learning.retention_cards(student_id, objective_id, ease, interval_days,
 | W5.3 | API | **DONE** | `repository/learning_checkin.py` + `routes/learning_checkins.py` (`GET/POST/PATCH /v1/sessions/{id}/learning/checkins[/{cid}]`, `GET .../learning/summary`); idempotent by `request_id`; appends xAPI `learning_events` + updates the `mastery_states` projection; **never writes `assessment.evidence`** |
 | W5.4 | Surfaces | **DONE** | `components/learn/CheckInWidget.tsx` (non-modal, dismissible, `aria-live`, keys 1–5, focus mgmt, reduced-motion) wired at lesson section boundaries in `LessonPlayer`; `app/progress/page.tsx` + `components/progress/MasteryGrid.tsx` (mastery grid incl. `decaying`, streak chip, due-retention list, advice list); `npm --prefix apps/web run build` green |
 | W5.5 | LLM phrasing boundary | **DONE (opt-in)** | `prompts/checkin_phrasing/v1/system.txt` + `services/learning_checkin_phrasing.py` with server-side rubric validation and a deterministic fallback; 5 unit tests. **Deliberate deviation:** the default check-in path does not call the LLM (deterministic authored prompt), so scoring stays reproducible and the pipeline adds no latency — consistent with D1 (chat pipeline untouched). |
-| W5.6 | E2E + measurable claims | **PARTIAL** | `apps/web/e2e/checkins.spec.ts` (section-boundary check-in + dismiss + dashboard + axe; no check-in during a quiz; hub → dashboard link). p95/response-rate claims still need measured numbers + mathcheck verification. |
+| W5.6 | E2E + measurable claims | **PARTIAL** | `apps/web/e2e/checkins.spec.ts` (section-boundary check-in + dismiss + dashboard + axe; no check-in during a quiz; hub → dashboard link). Full Playwright suite: **14/14 green** (`npm --prefix apps/web run test:e2e`, baseline was 11/11). Remaining: measured p95 / response-rate claims with `verify_percentile` / `verify_wilson_ci` on real check-in traffic (needs a seeded traffic run). |
+
+**Fix recorded during W5.6:** the section-complete trigger originally matched a
+`experienced` verb and the streak counter matched short verb ids, but the slide
+tracker writes full xAPI URIs with `completed` / `slide:<id>` objects. Both now
+match the real statements, which is what makes the widget appear at a section
+boundary (proven by the e2e test).
 
 ### Corrections applied to this plan (per task §6)
 
