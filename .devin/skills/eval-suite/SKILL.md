@@ -1,6 +1,6 @@
 ---
 name: eval-suite
-description: Run the 21-scenario live conversation eval harness, analyze results, and interpret assertions A1-A18
+description: Run the 28-scenario live conversation eval harness, analyze results, and interpret assertions A1–A23
 allowed-tools:
   - exec
   - read
@@ -16,4 +16,4 @@ Prereqs: Postgres running (`docker compose up -d --wait postgres`), API on :8000
 3. Baseline comparison: `--analyze-only --out-dir <dir> --baseline-report eval/traces/latest/suite_report.json` (writes `reassessment.json`).
 4. Summarize: `.venv/Scripts/python eval/analyze_post_fix.py <dir>`.
 5. Interpret: exit code 1 = assertion violations or scenario errors. Key assertions: A2 = no target repeated >2 consecutive turns; A14 = duplicate assistant ratio ≤10%; A15 = no stage regressions; A18 = adaptive `sim_*` end-to-end rubric. Quote exact violation lines from the log tail.
-6. Proof workflow: run affected `--only` scenarios after policy changes; run all 21 when touching stage/elicitation/repetition/matching; attach the `suite_report.json` diff or analyzer output to the PR; quote one decision-trace excerpt per closed finding.
+6. Proof workflow: run affected `--only` scenarios after policy changes; run all 28 (assertions A1–A23) when touching stage/elicitation/repetition/matching; attach the `suite_report.json` diff or analyzer output to the PR; quote one decision-trace excerpt per closed finding.

@@ -9,6 +9,10 @@ allowed-tools:
   - exec
 ---
 
+Acquired skills (Phase 10, 2026-09-30) live in `.agents/skills/`. `npx skills add -a cursor` wrote that directory (skills CLI 1.7.0 maps the Cursor agent there). There is no second copy under `.cursor/skills/`.
+
+Before visual UI work, read `frontend-design`, `web-design-guidelines`, and `shadcn` in that folder. Also read `vercel-react-best-practices` when the change touches `app/layout.tsx` or a client boundary (`LessonPlayer`, `QuizRunner`, `StudentChat`, `SessionBootstrap`). `apps/web/AGENTS.md` and the canon tokens (`--ink`, `--paper`, `--panel`, `--line`, `--accent`, `--muted`, `--warn`) win. Progress stays on the server; the client stores the session id only. Use `npx shadcn@latest` only to search or print docs. `components/ui/` stays generated. Plan 08 back navigation: every non-root route has a Back control, and on the first slide Back leaves the flow.
+
 Process: brainstorm → explore existing components → plan → implement → critique → critique again (visual + a11y).
 
 Rules:
