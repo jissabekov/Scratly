@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { RouteBackLink } from '@/components/flow/RouteBackLink';
 import { api } from '../../lib/api';
 import type { AdminSessionRow } from '../../lib/types';
 
@@ -87,6 +87,7 @@ export default function TeacherPage() {
 function TeacherConsole() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [sessions, setSessions] = useState<AdminSessionRow[]>([]);
   const [sessionId, setSessionId] = useState(searchParams.get('session') || '');
   const [stage, setStage] = useState<string>('');
@@ -220,12 +221,19 @@ function TeacherConsole() {
   return (
     <main className="teacher-main">
       <header>
+        <RouteBackLink href="/" label="Back to chat" className="-ml-3 mb-2" />
         <p className="eyebrow">SCRATLY · TEACHER INSPECTION</p>
-        <h1>Student assessment console</h1>
+        <h1
+          ref={titleRef}
+          id="teacher-top"
+          tabIndex={-1}
+          className="outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          Student assessment console
+        </h1>
         <p className="lede">
-          Every conclusion remains traceable to the student’s own words. Live data from the
-          local API.{' '}
-          <Link href="/">Back to student chat</Link>
+          Every conclusion remains traceable to the student&apos;s own words. Live data from the
+          local API.
         </p>
       </header>
 
@@ -284,13 +292,23 @@ function TeacherConsole() {
         {stage ? ` · stage ${stage}` : ''}
       </p>
 
-      <nav>
+      <nav aria-label="Teacher views">
         {VIEWS.map(([label]) => (
           <a key={label} href={`#${label.replaceAll(' ', '-')}`}>
             {label}
           </a>
         ))}
         <a href="#Decision-trace">Decision trace</a>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => {
+            titleRef.current?.focus({ preventScroll: false });
+            titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+        >
+          Back to top
+        </button>
       </nav>
 
       <section className="grid">

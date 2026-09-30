@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "apis-integrations",
   "seq": 7,
   "title": "Your Product Does Not Live Alone",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Build Uber and you need a rider app, a driver app, and a booking screen, plus maps, GPS coordinates, address search, route calculation, payments, identity verification, SMS, push notifications, and fraud detection. You could theoretically build all of it. You probably should not. Modern products are assembled from systems that own different capabilities and different information."
+              "text": "Build Uber and you need a rider app, a driver app, and a booking screen, plus maps, GPS coordinates, address search, route calculation, payments, identity verification, SMS, push notifications, and fraud detection.\n\nYou could theoretically build all of it. You probably should not. Modern products are assembled from systems that own different capabilities and different information.\n\nYour product is a system that coordinates other systems, not one giant piece of software that owns everything."
             }
           ]
         },
@@ -67,6 +67,10 @@
                 "Your Product asks the Messaging Service to notify the user",
                 "Your Product reads and writes the database it owns"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Architecture is deciding where your product ends and another system begins. You own the booking state and the student profile. The mapping provider owns address interpretation. The payment provider owns charging the card.\n\nCrossing that boundary means asking, waiting, and planning for failure."
             }
           ]
         },
@@ -78,11 +82,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A Community Opportunity Finder owns its students, organizations, opportunities, and saved opportunities. When a student asks for opportunities within 20 miles, the database holds the address \"123 Main Street, Norman, OK\" but cannot turn it into coordinates. The product sends the address to a mapping system and gets back latitude 35.22, longitude -97.44."
-            },
-            {
-              "type": "text",
-              "text": "Your application owns the profile, the opportunity, and whether the student saved it. The mapping provider owns address interpretation, coordinates, and map data. That division of responsibility is the system boundary, and architecture is deciding where your product ends and another system begins."
+              "text": "A Community Opportunity Finder owns its students, organizations, opportunities, and saved opportunities. When a student asks for opportunities within 20 miles, the database holds the address \"123 Main Street, Norman, OK\" but cannot turn it into coordinates.\n\nThe product sends the address to a mapping system and gets back latitude 35.22, longitude -97.44. Your application owns the profile, the opportunity, and whether the student saved it. The mapping provider owns address interpretation, coordinates, and map data.\n\nThat division of responsibility is the system boundary."
             }
           ]
         },
@@ -121,7 +121,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "An API is not a mysterious component. It is a defined agreement for communicating with another system: send me street, city, and state, and if the request is valid I will return latitude and longitude. That promise is the API contract, and it is far more useful than telling an agent to \"add the Maps API.\""
+              "text": "An API is not a mysterious component. It is a defined agreement for communicating with another system: send me street, city, and state, and if the request is valid I will return latitude and longitude.\n\nThat promise is the API contract. It answers five questions: what am I asking, what input do you need, how do you know I am allowed, what comes back on success, and what failure looks like.\n\nThat is far more useful than telling an agent to \"add the Maps API.\""
             }
           ]
         },
@@ -143,6 +143,10 @@
                 "Response: what will you send back?",
                 "Failure: what will you tell me when something goes wrong?"
               ]
+            },
+            {
+              "type": "text",
+              "text": "How the provider implements the service internally is theirs to change. The contract at the boundary is what your product depends on.\n\nIf you cannot answer the five questions, you are not ready to integrate."
             }
           ]
         },
@@ -175,11 +179,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A request looks like POST https://api.example.com/analyze with a JSON body {\"text\": \"I want to volunteer with animals.\"} and a response {\"category\": \"animal_welfare\", \"confidence\": 0.93}. The endpoint names a capability; GET asks for information, POST does or creates, PUT updates, DELETE removes; and the status says whether it worked."
-            },
-            {
-              "type": "text",
-              "text": "Only send what the service actually needs. If the AI only needs the essay text, sending the student's name, address, and full record anyway is a privacy risk, not a feature. That discipline is called data minimization."
+              "text": "A request looks like POST https://api.example.com/analyze with a JSON body {\"text\": \"I want to volunteer with animals.\"} and a response {\"category\": \"animal_welfare\", \"confidence\": 0.93}. The endpoint names a capability; GET asks for information, POST does or creates, PUT updates, DELETE removes; and the status says whether it worked.\n\nOnly send what the service actually needs. If the AI only needs the essay text, sending the student's name, address, and full record anyway is a privacy risk, not a feature. That discipline is called data minimization.\n\nThe database stores it. The API transports it."
             },
             {
               "type": "callout",
@@ -224,7 +224,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A user clicks Analyze My Essay and your backend calls an AI API. Normally it answers in 3 seconds. Today it takes 45, or is unavailable, or your usage limit is exceeded, or your API key expired. The product needs a plan for each: how long to wait (timeout), whether to try again (retry), whether the product can continue without it (fallback), what the user sees (error state), and how you will know it failed (logging)."
+              "text": "A user clicks Analyze My Essay and your backend calls an AI API. Normally it answers in 3 seconds. Today it takes 45, or is unavailable, or your usage limit is exceeded, or your API key expired.\n\nThe product needs a plan for each: how long to wait (timeout), whether to try again (retry), whether the product can continue without it (fallback), what the user sees (error state), and how you will know it failed (logging).\n\nAn external integration is a dependency you do not control. Your code may be perfect; the product can still fail."
             },
             {
               "type": "callout",
@@ -272,6 +272,10 @@
                 "Scheduled sync: check occasionally, like every night at 2 AM",
                 "Batch import: exchange a file, like students.csv every Friday"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Request and response fits when you need an answer now. A webhook inverts the direction: the other system pushes when something happens, so you are not polling forever.\n\nScheduled sync and batch import fit slower, bulk exchanges. Match the pattern to how fresh the information must be."
             }
           ]
         },

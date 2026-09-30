@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "how-apps-work",
   "seq": 1,
   "title": "Behind the Swipe: How an Application Actually Works",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "You watch a short video for about three seconds, then swipe away. The next video seems to guess something about you. What did the application actually receive in those three seconds?"
+              "text": "You watch a short video for about three seconds, then swipe away. The next video seems to guess something about you. What did the application actually receive in those three seconds?\n\nCommon guesses say you were bored, not interested, or that the topic should stop. The phone never receives the sentence \"I am bored.\" It cannot directly observe boredom, enjoyment, or intention.\n\nIt observes behavior. The difference between what a person means and what a system can measure is one of the core problems in product design."
             }
           ]
         },
@@ -69,6 +69,10 @@
                 "action: swipe_next",
                 "timestamp: 9:07:14 AM"
               ]
+            },
+            {
+              "type": "text",
+              "text": "An event is a structured record that something happened. Fields like watch_time, completed, and action: swipe_next store measurable facts, not feelings.\n\nNowhere in this record does it say the viewer was bored. The system must infer possible interest from the actions it can observe, and that inference can be wrong."
             }
           ]
         },
@@ -134,6 +138,10 @@
                 "Selected video information returns",
                 "The application renders the next video"
               ]
+            },
+            {
+              "type": "text",
+              "text": "The touchscreen first measures where and how the finger moved. The application then interprets that gesture as an event such as SWIPE_NEXT. A request is a message asking another part of the system to perform work or return information.\n\nBefore choosing the next video, the server reads state: who is asking, what has already been shown, and which videos are available. Computation then validates, searches, scores, ranks, and selects. The response returns information. Rendering turns those fields into video, text, and buttons the person can use.\n\nA feed is not simply a list of videos. It is a repeated decision. The next video is a prediction generated from previous evidence."
             }
           ]
         },
@@ -200,7 +208,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A messaging app streak looks like a fire emoji and a number. The emoji is only what the application renders. The real feature is stored state, plus timing rules, plus each new Snap event."
+              "text": "A messaging app streak looks like a fire emoji and a number. The emoji is only what the application renders. The real feature is stored state, plus timing rules, plus each new Snap event.\n\nState is what the system currently knows or believes to be true: last Snap times both ways, streak days, and whether the streak is still active. The displayed emoji can leave one screen while that stored record still exists on another device.\n\nEvents are records of what happened. State is the current picture the system calculates from those events and its rules."
             },
             {
               "type": "callout",
@@ -220,14 +228,11 @@
               "type": "worked_example",
               "title": "How a streak is computed",
               "steps": [
-                "A student sends a Snap.",
-                "The application creates a send event.",
-                "The system checks the sender and the recipient.",
-                "The system decides whether this is a qualifying Snap.",
-                "The timestamp of the Snap is stored.",
-                "The system checks both directions and the time window.",
-                "The streak state is kept, increased, or allowed to expire.",
-                "The application renders the fire, the number, or the hourglass."
+                "A student sends a Snap. The application creates a SEND_SNAP event with sender, recipient, and time.",
+                "The system verifies the sender and recipient, then decides whether this Snap qualifies for the streak.",
+                "It stores the timestamp and checks both directions against the daily time window.",
+                "The streak state is kept, increased, or allowed to expire from those rules.",
+                "Updated state returns. The application renders the fire, the number, or the hourglass from that calculated state."
               ]
             }
           ]
@@ -261,7 +266,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "In an online game, your device sends an action and the server decides what is true. When the two disagree, the server wins and your screen is corrected. Your device is not the whole game. It is one part of a loop that runs across two computers."
+              "text": "In an online game, pressing Jump does not send a video of the character to every other player. The client on your device detects the input, may show a predicted jump immediately, and sends a message describing the action to the server.\n\nThe server is the referee. It checks whether the jump is valid, updates the official shared state, and sends that state to connected players. Each device then renders the result. When the local prediction and the server disagree, the server wins and the screen snaps back.\n\nYour device proposes an action. The server settles the argument. The screen may show what the application expects to become true before the server has confirmed it."
             }
           ]
         },
@@ -273,7 +278,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "When an AI app answers, the model is one step in the pipeline. The application still collects the request, reads state, applies rules, calls other systems, and renders the answer. AI is one computation component inside the application, not the entire application."
+              "text": "When an AI app answers, the screen first collects the message, conversation context, account information, and instructions. The application packages a request that often contains far more than the one visible sentence.\n\nA server may verify identity, choose a model, retrieve saved context, and limit the request. The model then performs inference: it processes the supplied context and calculates likely next pieces of the response. The application may also search, query a database, or call other tools before it checks, stores, and renders the result.\n\nThe model does not automatically know the user. It knows the context the system provides. AI is a computation service inside a product pipeline, not the entire application."
             }
           ]
         },

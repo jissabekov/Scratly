@@ -173,4 +173,66 @@ test.describe('Learning hub and slide player', () => {
 
     await expectAxeClean(page);
   });
+
+  test('route Back controls return to the parent and preserve history', async ({
+    page,
+    request,
+  }) => {
+    const { sessionId } = await seedSessionViaApi(request);
+    const hub = await fetchHub(request, sessionId);
+    const moduleId = hub.modules[0].id;
+    const detail = await fetchDetail(request, sessionId, moduleId);
+    const total = detail.slides.length;
+    expect(total).toBeGreaterThan(1);
+
+    // Hub Back → chat (no session query on chat URL).
+    await openLearningHub(page, sessionId);
+    await expect(page.getByRole('heading', { name: 'Your learning path' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByRole('link', { name: 'Back to chat' }).click();
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+    expect(new URL(page.url()).searchParams.get('session')).toBeNull();
+
+    // Progress Back → hub with the same session query.
+    await page.goto(`/progress?session=${sessionId}`);
+    await expect(page.getByRole('heading', { name: 'Progress' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expectAxeClean(page);
+    await page.getByRole('link', { name: 'Back to learning path' }).click();
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/modules');
+    await expect.poll(() => new URL(page.url()).searchParams.get('session')).toBe(sessionId);
+
+    // Slide 1 action-bar Back → hub.
+    await page.goto(`/modules/${moduleId}?session=${sessionId}&slide=1`);
+    await expect(page.getByText(`Step 1 of ${total}`)).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect(page).toHaveURL(new RegExp(`/modules\\?session=${sessionId}`));
+    await expect(page.getByRole('heading', { name: 'Your learning path' })).toBeVisible({
+      timeout: 30_000,
+    });
+
+    // Slide 2 action-bar Back → slide 1; browser goBack still restores history.
+    await page.goto(`/modules/${moduleId}?session=${sessionId}&slide=1`);
+    await expect(page.getByText(`Step 1 of ${total}`)).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByText(`Step 2 of ${total}`)).toBeVisible({ timeout: 30_000 });
+    expect(new URL(page.url()).searchParams.get('slide')).toBe('2');
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('slide'), { timeout: 30_000 })
+      .toBe('1');
+    await expect(page.getByText(`Step 1 of ${total}`)).toBeVisible({ timeout: 30_000 });
+    // Continue again so history has slide 2, then browser Back restores slide 1.
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByText(`Step 2 of ${total}`)).toBeVisible({ timeout: 30_000 });
+    await page.goBack();
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('slide'), { timeout: 30_000 })
+      .toBe('1');
+    await expect(page.getByText(`Step 1 of ${total}`)).toBeVisible({ timeout: 30_000 });
+
+    await expectAxeClean(page);
+  });
 });

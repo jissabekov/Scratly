@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { FlowActionBar } from '@/components/flow/FlowActionBar';
+import { RouteBackLink } from '@/components/flow/RouteBackLink';
 import { SlideProgress } from '@/components/flow/SlideProgress';
 import { completeSlideAction } from '@/lib/actions';
 import { newIdempotencyKey } from '@/lib/session';
@@ -44,6 +45,7 @@ export function LessonPlayer({
   initialIndex,
   quizHref = null,
 }: LessonPlayerProps) {
+  const router = useRouter();
   const total = slides.length;
   const reduced = useReducedMotion();
   const hubHref = `/modules?session=${encodeURIComponent(sessionId)}`;
@@ -103,6 +105,10 @@ export function LessonPlayer({
     },
     [total, updateUrl]
   );
+
+  const leaveToHub = useCallback(() => {
+    router.push(hubHref);
+  }, [hubHref, router]);
 
   // Restore position on browser Back/Forward.
   useEffect(() => {
@@ -200,6 +206,7 @@ export function LessonPlayer({
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
         if (index > 1) goTo(index - 1, -1);
+        else leaveToHub();
       } else if (event.key === 'Enter') {
         event.preventDefault();
         advance();
@@ -210,18 +217,14 @@ export function LessonPlayer({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [advance, goTo, index, selectOption]);
+  }, [advance, goTo, index, leaveToHub, selectOption]);
 
   if (total === 0) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 pt-10">
-        <h1 className="text-2xl font-semibold">{module.title}</h1>
+        <RouteBackLink href={hubHref} label="Back to learning path" />
+        <h1 className="mt-4 text-2xl font-semibold">{module.title}</h1>
         <p className="mt-3 text-muted-foreground">This module has no slides yet.</p>
-        <p className="mt-4">
-          <Link className="underline underline-offset-4" href={hubHref}>
-            Back to your learning path
-          </Link>
-        </p>
       </main>
     );
   }
@@ -229,24 +232,19 @@ export function LessonPlayer({
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-6">
       <div className="mb-4 flex items-center gap-3">
-        <Link
-          href={hubHref}
-          className="shrink-0 text-sm text-muted-foreground underline underline-offset-4"
-        >
-          ← Learning path
-        </Link>
-        <div className="flex-1">
+        <RouteBackLink href={hubHref} label="Back to learning path" className="-ml-3 shrink-0" />
+        <div className="min-w-0 flex-1">
           <SlideProgress current={index} total={total} />
         </div>
       </div>
 
-      <p className="text-xs tracking-wide text-muted-foreground uppercase">
+      <p className="font-[family-name:var(--font-body)] text-xs tracking-wide text-muted-foreground">
         {module.title} · {slide.lesson_title}
       </p>
       <h2
         ref={headingRef}
         tabIndex={-1}
-        className="mt-1 text-xl font-semibold outline-none"
+        className="mt-1 font-[family-name:var(--font-display)] text-xl font-semibold outline-none"
       >
         {slide.title || `Slide ${index}`}
       </h2>
@@ -294,7 +292,7 @@ export function LessonPlayer({
       ) : null}
 
       <FlowActionBar
-        onBack={index > 1 ? () => goTo(index - 1, -1) : undefined}
+        onBack={index > 1 ? () => goTo(index - 1, -1) : leaveToHub}
         backLabel="Back"
         primaryLabel={celebrating ? 'Module complete' : isLast ? 'Finish module' : 'Continue'}
         onPrimary={advance}

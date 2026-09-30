@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "ai-models-agents",
   "seq": 9,
   "title": "AI Models and Agents: Putting Intelligence Inside a Product",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "One product reads a photo of a handwritten form and returns fields. Another answers questions from a 300-page handbook. A third checks calendars and proposes meeting times. A fourth edits code, runs tests and fixes its own errors. A fifth reschedules your appointment by phone. Are these five kinds of AI? Not necessarily. The underlying models may be similar — what makes the products different is everything surrounding the model."
+              "text": "One product reads a photo of a handwritten form and returns fields. Another answers questions from a 300-page handbook. A third checks calendars and proposes meeting times. A fourth edits code, runs tests and fixes its own errors. A fifth reschedules your appointment by phone.\n\nAre these five kinds of AI? Not necessarily. The underlying models may be similar — what makes the products different is everything surrounding the model.\n\nThe interesting question is no longer can I put a model in my app. It is what role intelligence should play inside my system."
             }
           ]
         },
@@ -68,6 +68,10 @@
                 "Memory: what the product stores for it",
                 "Interface: how people reach it"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Instructions, data, tools, normal software logic, permissions, memory, and the interface decide what the same model can do in your product.\n\nChange those surroundings and you change the product without changing the model brand."
             }
           ]
         },
@@ -89,6 +93,10 @@
                 "Decide: route an ambiguous request to billing or account support",
                 "Act: request a tool so the system can actually do something"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Most AI features are one or two of these jobs wearing a product's clothes. AI is good at ambiguity. Code is good at certainty.\n\nDo not replace a clear rule such as \"under 18 requires parental consent\" with a model just because AI exists."
             }
           ]
         },
@@ -141,7 +149,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "By itself, a model cannot update your database, send an email, issue a refund or create a calendar event. It produces text, data or a decision. To make anything happen in the world it needs tools — defined operations that the surrounding software can execute on its behalf."
+              "text": "By itself, a model cannot update your database, send an email, issue a refund or create a calendar event. It produces text, data or a decision.\n\nTo make anything happen in the world it needs tools — defined operations that the surrounding software can execute on its behalf.\n\nTool use is a contract: developers define the operations; the model decides when to request one; application code performs the real operation. Words from the model do not move money."
             }
           ]
         },
@@ -157,9 +165,9 @@
               "steps": [
                 "The model decides it needs the customer's current order status.",
                 "It requests the tool: get_order_status(order_id = 4821).",
-                "The application executes the tool against the real system.",
-                "The result returns: shipped, expected delivery July 21.",
-                "The model continues its answer using that result."
+                "The application executes the tool against the real system and returns shipped, expected delivery July 21.",
+                "The model continues its answer using that result.",
+                "The model never touched the order database directly; it only requested an action the software performed."
               ]
             }
           ]
@@ -204,6 +212,10 @@
                 "Inspect the result",
                 "Task complete? No → choose the next action; yes → respond"
               ]
+            },
+            {
+              "type": "text",
+              "text": "The developer did not program the exact path. That flexibility is what makes an agent an agent — and what makes it harder to control and evaluate.\n\nAn agent architecture is mostly about deciding who controls the next step: your code or the model."
             }
           ]
         }
@@ -232,6 +244,10 @@
                 "Level 4 — agent: the model decides what to do next",
                 "Level 5 — multi-agent: one AI delegates work to others"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Start as low on the ladder as possible. Complexity should be earned. One input and one structured extraction is often a single model call, not a multi-agent system.\n\nClimb only when the problem truly needs search, a fixed workflow, or model-chosen next steps."
             }
           ]
         },
@@ -243,7 +259,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "In a workflow, the steps are predetermined: code validates fields, calls the model, checks duplicates and stores results; the AI participates but software controls the process. In an agent, the exact path is not programmed — the model inspects, chooses and acts until it decides the task is done. An agent architecture is mostly about deciding who controls the next step: your code or the model."
+              "text": "In a workflow, the steps are predetermined: code validates fields, calls the model, checks duplicates and stores results; the AI participates but software controls the process.\n\nIn an agent, the exact path is not programmed — the model inspects, chooses and acts until it decides the task is done.\n\nAn agent architecture is mostly about deciding who controls the next step: your code or the model."
             }
           ]
         },
@@ -276,7 +292,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Everything the model receives becomes its context: instructions, the user request, current state, retrieved information, tool definitions, tool results and examples. Context engineering asks not which prompt to write but what information the model should have at the moment it makes this decision. Too little context and it guesses; the wrong context and it concludes wrongly; too much and cost rises while the important facts get buried."
+              "text": "Everything the model receives becomes its context: instructions, the user request, current state, retrieved information, tool definitions, tool results and examples.\n\nContext engineering asks not which prompt to write but what information the model should have at the moment it makes this decision. Too little context and it guesses; the wrong context and it concludes wrongly; too much and cost rises while the important facts get buried.\n\nAI saying something wrong and AI doing something wrong are different risk levels."
             }
           ]
         },
@@ -309,7 +325,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A venue-finding agent could search forever unless the architecture limits it: a maximum of 10 tool calls, 2 minutes, fifty cents of model cost, 3 retries, or a rule to stop after 5 qualified venues. Limits like these are part of the product. An agent without stopping rules is not more autonomous — it is unfinished software."
+              "text": "A venue-finding agent could search forever unless the architecture limits it: a maximum of 10 tool calls, 2 minutes, fifty cents of model cost, 3 retries, or a rule to stop after 5 qualified venues.\n\nLimits like these are part of the product. An agent without stopping rules is not more autonomous — it is unfinished software.\n\nThe more autonomy you give an AI, the more verification and control you must build around it."
             },
             {
               "type": "callout",

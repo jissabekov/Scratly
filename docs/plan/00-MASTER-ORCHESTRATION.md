@@ -1,6 +1,6 @@
 # MASTER ORCHESTRATION — Scratly execution plan
 
-> **Version:** 2026-09-30 · **Status:** Phases 1–4 and 6 done · Phase 5 in progress · Plan 07 (conversation quality) is in implementation and stays outside this table · **Phase 10 done** · **Phases 8–9 planned** (learning-surface track) · **Entry point for every agent working on this repo.**
+> **Version:** 2026-09-30 · **Status:** Phases 1–4 and 6 done · Phase 5 in progress · Plan 07 (conversation quality) is in implementation and stays outside this table · **Phases 8–10 done** (learning-surface track) · **Entry point for every agent working on this repo.**
 > Read this file first; each phase has its own detailed plan file. Update the status column as work completes — this file is the single source of truth for sequencing.
 
 ## 0. Ground rules (apply to every phase)
@@ -34,10 +34,10 @@ These phases do not mutate assessment policy, prompts, or migrations. They are n
 | Phase | Plan file | Scope | Depends on | Harness | Status |
 |---|---|---|---|---|---|
 | **10** | [10-skills-and-harnesses.md](10-skills-and-harnesses.md) | Acquire UI skills; extend `/frontend-ui` and `/web-e2e` | Phase 2 skills already in `.devin/skills/` | `create-skill` storage rules; `npx skills add` (project, `-a cursor`, no `-g`); no app code | **DONE — W10.1–W10.4:** `npx skills add -a cursor` (skills CLI 1.7.0) wrote `.agents/skills/` (Cursor project path; no `.cursor/skills/` copy): `frontend-design`, `web-design-guidelines`, `vercel-react-best-practices`, `shadcn`. `migrate-radix-to-base` absent. `/frontend-ui`, `/web-e2e`, and `/eval-suite` (28 scenarios, A1–A23) updated. No app/content/migration diff. compileall + pytest 263 passed. |
-| **8** | [08-ui-navigation-and-type.md](08-ui-navigation-and-type.md) | Back on every non-root route, visible buttons, diagram rendering, loaded type | Phase 10 | `/frontend-ui` + acquired design skills; `/web-e2e`; `cursor-ide-browser` at 1280px and 390px; `/verify` | **PLANNED** |
-| **9** | [09-lesson-explanations.md](09-lesson-explanations.md) | Expand shared slide explanations from week markdown | Phase 3 schema + Phase 8 for acceptance screenshots | `seed_learning_content.py --dry-run`; `test_learning_content.py`; `/verify`; browser read-through. No `/eval-suite` | **PLANNED** |
+| **8** | [08-ui-navigation-and-type.md](08-ui-navigation-and-type.md) | Back on every non-root route, visible buttons, diagram rendering, loaded type | Phase 10 | `/frontend-ui` + acquired design skills; `/web-e2e`; `cursor-ide-browser` at 1280px and 390px; `/verify` | **DONE — W8.1–W8.6:** `RouteBackLink` (ghost Button + `asChild` + `next/link`) on hub, progress (error path keeps `?session=`), player, quiz (empty draw + gates), and teacher (Back to top focuses the h1). `SessionBootstrap` keeps the current pathname. Slide/question 1 Back and ArrowLeft leave to the hub and do not complete. Source Serif 4 / Source Sans 3 as `--font-display` / `--font-body`. `SlideBlock` diagrams render steps; blank lines become paragraphs. Gates: compileall · pytest 263 · web build · Playwright 21/21 (existing `goBack` kept + new Back assertions, axe). Browser Back at 1280px and 390px changed the URL. See plan 08 §8.6 |
+| **9** | [09-lesson-explanations.md](09-lesson-explanations.md) | Expand shared slide explanations from week markdown | Phase 3 schema + Phase 8 for acceptance screenshots | `seed_learning_content.py --dry-run`; `test_learning_content.py`; `/verify`; browser read-through. No `/eval-suite` | **DONE — W9.1–W9.3:** ten shared `module.json` files at `1.1.0` (text lengthened, no seq renumber). Archetype modules and quiz/check-in JSON unchanged. `how-apps-work` slide 1 stays `kind: "text"`; title stays “Behind the Swipe”. Dry-run and seed: modules=55, slides=725. Gates: compileall · pytest 263 (incl. learning content and quiz tests) · web build · Playwright 21/21 with `LEARNING_QUIZ_COOLDOWN_SECONDS=0`. Browser read of week 2 and later modules at 1280px and 390px, overflow 0. See plan 09 §9.8 |
 
-Phase 10 is the gate for implementation of 8 and 9. Skills are installed in `.agents/skills/` (see plan 10). Phases 8 and 9 stay planned.
+Phase 10 is the gate for implementation of 8 and 9. Skills are installed in `.agents/skills/` (see plan 10). Phase 8 and Phase 9 acceptance are met.
 
 ## 2. Phase summaries
 

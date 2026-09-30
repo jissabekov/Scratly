@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "how-apps-remember",
   "seq": 2,
   "title": "How Applications Remember",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Open a social post. It looks like one thing: a video, a name, a caption, a like count, some comments. But what information does the application actually need to draw that screen?"
+              "text": "Open a social post. It looks like one thing: a video, a name, a caption, a like count, some comments. But what information does the application actually need to draw that screen?\n\nBehind that screen sit an account, a post record, a video file, like and follow relationships, comments, view history, privacy rules, recommendation signals, and often a temporary cached copy on the phone.\n\nWhat looks like one post is assembled from several different kinds of storage. The screen combines those pieces into one experience."
             }
           ]
         },
@@ -70,6 +70,10 @@
                 "Recommendation information",
                 "Temporary cached copy on the phone"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Applications need different shapes of memory: individual values, structured records, collections, relationships, files, events, and sometimes meaning representations for search.\n\nA record tells the system which fields belong to which thing. A relationship such as a Like connects two things without stuffing a full copy of every liked post into the user. A file lives in file storage while a database record remembers its name, owner, and location."
             }
           ]
         },
@@ -83,11 +87,11 @@
               "type": "worked_example",
               "title": "The catalog and the shelves",
               "steps": [
-                "A student uploads resume.pdf.",
-                "File storage keeps the actual file.",
-                "A database record stores the file name, owner, upload date, type, and storage location.",
-                "The record also stores who is allowed to see it.",
-                "The database is the library catalog. File storage is the shelves containing the books."
+                "A student uploads resume.pdf. The browser collects the file and shows upload progress.",
+                "File storage keeps the actual PDF bytes on the shelves.",
+                "A database record stores the file name, owner, upload date, type, storage location, and who may see it.",
+                "That record is the library catalog. It points to the file without stuffing the whole PDF into a small profile field.",
+                "Later retrieval uses the catalog first, then fetches the file from storage when the student or teacher opens it."
               ]
             }
           ]
@@ -141,7 +145,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "You type a long comment, accidentally refresh the page, and it disappears. The comment existed, but only on the device. It was never saved. Every piece of information has a lifetime, and the product has to choose it."
+              "text": "You type a long comment, accidentally refresh the page, and it disappears. The comment existed, but only on the device. It was never saved. Every piece of information has a lifetime, and the product has to choose it.\n\nScreen state covers unsaved form text, an open menu, or scroll position. Session state lasts across several actions, such as being logged in or a half-finished quiz, but may expire.\n\nPersistent state must survive closing the browser, restarting the device, and switching phones. Ask: should this still exist after the page closes?"
             }
           ]
         },
@@ -162,6 +166,10 @@
                 "Persistent state: a published post, a submitted assignment, a grade",
                 "Cache: a fast temporary copy of information that officially lives elsewhere"
               ]
+            },
+            {
+              "type": "text",
+              "text": "A cache is a temporary copy kept for speed: the next videos before a swipe, album art, or common search results. If the cache disappears, the product should retrieve or rebuild the official information from its real home.\n\nChoosing the wrong lifetime is why drafts vanish on refresh and why submissions must not live only in the open tab."
             }
           ]
         },
@@ -214,7 +222,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Do not ask only where to store information. Ask how the product will need to find it again. And give every important thing a stable ID: two students can share a name and usernames can change, but student_id never changes its meaning."
+              "text": "Do not ask only where to store information. Ask how the product will need to find it again.\n\nGive every important thing a stable ID. Two students can share a name and usernames can change, but student_id never changes its meaning. Exact lookup, filters, sorting, relationships, text search, semantic search, and time-based queries all depend on what you chose to store.\n\nIf time matters to the product, the system must record time."
             }
           ]
         },
@@ -238,6 +246,10 @@
                 "Semantic: similar in meaning, even when the words differ",
                 "Time-based: what changed since the last login"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Exact facts such as county, age eligibility, and deadlines need structured filters. Similarity of meaning needs semantic search, which may use embeddings that place related ideas closer on a map of meaning.\n\nSemantic similarity should never decide whether a deadline passed or a student is eligible. Filter first using facts. Rank or search using meaning."
             }
           ]
         },
@@ -284,7 +296,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Telling an agent to build an app that uses a database forces it to guess the records, fields, relationships, files, events, and retrievals. Naming them turns a guess into a build. And remember: an AI model does not automatically remember a student or a past recommendation. The application must retrieve the saved context and send it to the model."
+              "text": "Telling an agent to build an app that uses a database forces it to guess the records, fields, relationships, files, events, and retrievals. Naming them turns a guess into a build.\n\nSay what each record holds, how long it lives, how it will be found again, and which work runs on the device versus a server. An AI model does not automatically remember a student or a past recommendation. The application must retrieve the saved context and send it to the model.\n\nYou do not need to memorize database brands. You need to see information clearly enough that an agent is not inventing your architecture."
             },
             {
               "type": "callout",

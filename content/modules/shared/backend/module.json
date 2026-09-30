@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "backend",
   "seq": 5,
   "title": "Backend: Where the Product Becomes Real",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "You press the heart on a song and it fills in. The button did not decide anything, and the database did not decide anything either. Between what you wanted and what got stored, something ran the product. That something is the backend."
+              "text": "You press the heart on a song and it fills in. The button did not decide anything, and the database did not decide anything either. Between what you wanted and what got stored, something ran the product. That something is the backend.\n\nA database can store likes. A payment service can charge cards. An AI model can classify music. None of those parts decides when each thing happens, in what order, with which information, and under which rules.\n\nThe backend is the product's operating system: it coordinates those pieces so intent becomes a controlled change."
             }
           ]
         },
@@ -68,6 +68,10 @@
                 "What changes permanently",
                 "What result goes back to the user"
               ]
+            },
+            {
+              "type": "text",
+              "text": "The frontend captures intent. The backend turns that intent into controlled changes in the system: which rules apply, which data is read, which other services are called, and what becomes permanent.\n\nWithout that coordination layer, you have screens and storage with no shared product behavior."
             }
           ]
         },
@@ -120,7 +124,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "\"I need a button called Approve\" is frontend thinking. The better question is: what happens to the system when something becomes approved? Products are systems that move between states, and the backend controls which moves are legal and what else must happen when they occur."
+              "text": "\"I need a button called Approve\" is frontend thinking. The better question is: what happens to the system when something becomes approved?\n\nProducts are systems that move between states. A scholarship application may move from Draft to Submitted to Under Review, then to Approved, Needs More Information, or Rejected. Jumping from Idea straight to Completed is usually not a legal move.\n\nThe backend controls which moves are legal, who may cause them, and what else must happen when they occur."
             }
           ]
         },
@@ -143,6 +147,10 @@
                 "Under Review -> Rejected",
                 "Idea -> Completed? Probably not a legal move"
               ]
+            },
+            {
+              "type": "text",
+              "text": "A transition has preconditions and consequences: who may cause it, what must already be true, what gets recorded, and what else must happen, such as a notification.\n\nDefining those legal moves is backend architecture. Decide them before you ask an agent to code a button."
             }
           ]
         },
@@ -175,11 +183,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "The frontend runs on a device the user controls; the backend runs on infrastructure the product controls. Everything crossing that line is a request, not truth. A game that sends coins_to_add = 1,000,000 or a store that sends price = $1.00 is only asking. The backend decides what is true."
-            },
-            {
-              "type": "text",
-              "text": "And every important fact needs one authoritative home, a source of truth. If a student's county is copied into the profile, the project, and the recommendation, a move to a new county leaves three disagreeing copies. The backend should know which system owns each fact; everywhere else references or derives it."
+              "text": "The frontend runs on a device the user controls; the backend runs on infrastructure the product controls. Everything crossing that line is a request, not truth. A game that sends coins_to_add = 1,000,000 or a store that sends price = $1.00 is only asking. The backend decides what is true.\n\nEvery important fact needs one authoritative home, a source of truth. If a student's county is copied into the profile, the project, and the recommendation, a move to a new county leaves three disagreeing copies.\n\nThe backend should know which system owns each fact; everywhere else references or derives it."
             },
             {
               "type": "callout",
@@ -238,6 +242,10 @@
                 "Trigger side effects",
                 "Return the result"
               ]
+            },
+            {
+              "type": "text",
+              "text": "One request moves through the same conceptual stages every time: identify, validate, authorize, apply rules, read state, change state, trigger side effects, return a result.\n\nThe frontend only displays that result. The product decisions live in this pipeline."
             }
           ]
         },
@@ -253,12 +261,10 @@
               "steps": [
                 "The backend receives the request to reserve seat 14C. It is intent; nothing has happened yet.",
                 "It identifies the user from the trusted login session, not a user_id typed by the browser.",
-                "It validates that flight 817 and seat 14C actually exist.",
-                "It authorizes: is this user allowed to book this seat?",
-                "It reads current state: is 14C available right now?",
-                "It applies rules, like exit-row eligibility or fare restrictions.",
-                "It performs the operation: 14C changes from AVAILABLE to RESERVED FOR USER 9182.",
-                "It triggers side effects and replies confirmed; the frontend displays the result."
+                "It validates that flight 817 and seat 14C actually exist, then authorizes whether this user may book.",
+                "It reads current state and applies rules: is 14C available, exit-row eligibility, fare restrictions.",
+                "It performs the operation: 14C changes from AVAILABLE to RESERVED FOR USER 9182 as one protected change.",
+                "It triggers side effects such as confirmation work and replies confirmed; the frontend displays the result."
               ]
             }
           ]
@@ -271,11 +277,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Two people see seat 14C as available and both press Reserve. A badly designed backend lets both check, both pass, and both reserve. Now two people own one seat. Some operations must be treated as one protected change: atomic means it happens completely or does not happen, never halfway, like a $100 transfer that cannot subtract without adding."
-            },
-            {
-              "type": "text",
-              "text": "The same thinking covers repeats and extras. A slow network can deliver the same Pay request twice, so the backend must recognize it as one operation rather than two charges. And a failed confirmation email should not undo a saved order: the core action and its side effects are different things."
+              "text": "Two people see seat 14C as available and both press Reserve. A badly designed backend lets both check, both pass, and both reserve. Now two people own one seat. Some operations must be treated as one protected change: atomic means it happens completely or does not happen, never halfway, like a $100 transfer that cannot subtract without adding.\n\nThe same thinking covers repeats and extras. A slow network can deliver the same Pay request twice, so the backend must recognize it as one operation rather than two charges. That property is called idempotency.\n\nAnd a failed confirmation email should not undo a saved order: the core action and its side effects are different things. Separate them so later work can retry without inventing a second purchase."
             },
             {
               "type": "callout",

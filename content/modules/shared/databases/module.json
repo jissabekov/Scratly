@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "databases",
   "seq": 6,
   "title": "Databases: How Applications Organize, Connect, and Retrieve Information",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Imagine Instagram stored everything in one giant spreadsheet: users, posts, comments, likes, followers. For 100 students and 500 posts, it might work. Now scale to 100,000 users, 10 million posts, and 500 million likes, with thousands of people liking, posting, and following at the same moment. What breaks is not the row count. It is finding the newest 20 posts fast, letting thousands change data at once without corrupting each other, and never creating the same account twice."
+              "text": "Imagine Instagram stored everything in one giant spreadsheet: users, posts, comments, likes, followers. For 100 students and 500 posts, it might work.\n\nNow scale to 100,000 users, 10 million posts, and 500 million likes, with thousands of people liking, posting, and following at the same moment. What breaks is not the row count.\n\nIt is finding the newest 20 posts fast, letting thousands change data at once without corrupting each other, and never creating the same account twice. Choosing how to store data is an architectural decision."
             }
           ]
         },
@@ -67,6 +67,10 @@
                 "Concurrency: thousands changing data at once",
                 "Reliability: never leaving money half-transferred"
               ]
+            },
+            {
+              "type": "text",
+              "text": "A database is not a place where data sits. It is a system that solves several problems at once: storing bytes, structuring records, retrieving one row among millions, enforcing rules, coordinating simultaneous writers, and leaving money transfers complete or undone, never halfway.\n\nA spreadsheet is organized around documents people work with. A database is organized around data that systems continuously operate on."
             }
           ]
         },
@@ -119,7 +123,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A relational database organizes information into tables and connects them using identifiers. In a Discord-like product, users, servers, channels, and messages each get their own table. A message does not store username = \"Alex\" as its identity; it stores user_id = 83912, because usernames can change while the relationship stays stable."
+              "text": "A relational database organizes information into tables and connects them using identifiers. In a Discord-like product, users, servers, channels, and messages each get their own table.\n\nA message does not store username = \"Alex\" as its identity; it stores user_id = 83912, because usernames can change while the relationship stays stable.\n\nA primary key identifies one record. A foreign key points at another record, and the database can refuse a link to something that does not exist."
             }
           ]
         },
@@ -141,6 +145,10 @@
                 "CHANNEL contains MESSAGE",
                 "message.user_id is a foreign key pointing at one user"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Relationships are why relational databases matter for products. USER writes MESSAGE, USER owns SERVER, SERVER contains CHANNEL, CHANNEL contains MESSAGE.\n\nEach link uses a stable id so the connection survives when display names change."
             }
           ]
         },
@@ -173,7 +181,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "One player can join many games, and one game can hold many players. Two tables alone cannot represent that cleanly, so you create a third: GAME_PARTICIPANTS, with game_id, player_id, joined_at, team, and score."
+              "text": "One player can join many games, and one game can hold many players. Two tables alone cannot represent that cleanly, so you create a third: GAME_PARTICIPANTS, with game_id, player_id, joined_at, team, and score.\n\nFacts like team and score belong to the pairing, not to the player or the game alone. Each membership gets its own row.\n\nSometimes the relationship between two things is itself a thing."
             },
             {
               "type": "callout",
@@ -218,11 +226,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "If every comment row also copies the video's title, description, and channel name, a video with 50,000 comments carries the same information 50,000 times. When the title changes, which copy is correct? Normalization means storing an important fact in one logical place: the comment points to the video instead of copying it."
-            },
-            {
-              "type": "text",
-              "text": "The tradeoff runs both ways. Systems sometimes deliberately duplicate information to make reading faster, which is called denormalization. Database design is often a tradeoff between keeping information clean and retrieving it quickly."
+              "text": "If every comment row also copies the video's title, description, and channel name, a video with 50,000 comments carries the same information 50,000 times. When the title changes, which copy is correct?\n\nNormalization means storing an important fact in one logical place: the comment points to the video instead of copying it. Systems sometimes deliberately duplicate information to make reading faster, which is called denormalization.\n\nDatabase design is often a tradeoff between keeping information clean and retrieving it quickly."
             }
           ]
         },
@@ -255,7 +259,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Ask a database for video_id = 82739102731 out of 10 billion rows. Checking row by row is a full scan. An index is an extra organized structure, like the back of a textbook, that lets the database navigate toward matching records instead of reading everything. Indexes speed up reads but cost storage and make every write update the index too."
+              "text": "Ask a database for video_id = 82739102731 out of 10 billion rows. Checking row by row is a full scan. An index is an extra organized structure, like the back of a textbook, that lets the database navigate toward matching records instead of reading everything.\n\nIndexes speed up reads but cost storage and make every write update the index too. Do not design your database only by asking what information you have. Ask how your application will need to retrieve it.\n\nQuery patterns determine which indexes and table shapes are worth the cost."
             },
             {
               "type": "callout",
@@ -273,11 +277,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Different stores fit different shapes of information: document databases hold nested records that vary, key-value stores answer fast lookups like sessions and counters, graph databases are built for exploring relationships, and vector search finds information that is semantically similar, which powers AI retrieval."
-            },
-            {
-              "type": "text",
-              "text": "For most student applications a relational database like PostgreSQL is a very good default. Vector search can find documents that explain what happens after approval, but the exact fact application_status = approved belongs in the structured database, your source of truth."
+              "text": "Different stores fit different shapes of information: document databases hold nested records that vary, key-value stores answer fast lookups like sessions and counters, graph databases are built for exploring relationships, and vector search finds information that is semantically similar, which powers AI retrieval.\n\nFor most student applications a relational database like PostgreSQL is a very good default. Vector search can find documents that explain what happens after approval, but the exact fact application_status = approved belongs in the structured database, your source of truth.\n\nA vector index should usually not be your application's main source of truth."
             }
           ]
         },

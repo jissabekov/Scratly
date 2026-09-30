@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'motion/react';
 import { CheckCircle2, RotateCcw, Users } from 'lucide-react';
+import { RouteBackLink } from '@/components/flow/RouteBackLink';
 import type { QuizAttemptResult } from '@/lib/types';
 
 const NEXT_ACTION_COPY: Record<QuizAttemptResult['next_action'], string> = {
@@ -138,9 +139,7 @@ export function QuizResult({
             Try form {result.next_form_id ?? '2'}
           </Link>
         )}
-        <Link href={hubHref} className="text-sm underline underline-offset-4">
-          Back to your learning path
-        </Link>
+        <RouteBackLink href={hubHref} label="Back to learning path" />
       </div>
     </main>
   );

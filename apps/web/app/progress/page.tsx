@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { RouteBackLink } from '@/components/flow/RouteBackLink';
 import { api } from '../../lib/api';
 import type { CoachSummary } from '../../lib/types';
 import { SessionBootstrap } from '../../components/learn/SessionBootstrap';
@@ -25,6 +25,8 @@ export default async function ProgressPage({
     return <SessionBootstrap />;
   }
 
+  const hubHref = `/modules?session=${encodeURIComponent(session)}`;
+
   let summary: CoachSummary | null = null;
   try {
     summary = await api<CoachSummary>(
@@ -36,35 +38,26 @@ export default async function ProgressPage({
 
   if (summary === null) {
     return (
-      <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-10">
-        <h1 className="text-2xl font-semibold">Progress</h1>
+      <main className="mx-auto w-full max-w-3xl px-4 pb-10 pt-10">
+        <RouteBackLink href={hubHref} label="Back to learning path" />
+        <h1 className="mt-4 text-2xl font-semibold">Progress</h1>
         <p className="mt-3 text-muted-foreground">
           We couldn&apos;t load progress for this session.
-        </p>
-        <p className="mt-4">
-          <Link className="underline underline-offset-4" href="/modules">
-            Back to the learning path
-          </Link>
         </p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-10">
+    <main className="mx-auto w-full max-w-3xl px-4 pb-10 pt-10">
       <header className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Progress</h1>
+          <RouteBackLink href={hubHref} label="Back to learning path" className="-ml-3" />
+          <h1 className="mt-2 text-2xl font-semibold">Progress</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Mastery, streaks, and what to revisit next.
           </p>
         </div>
-        <Link
-          href={`/modules?session=${encodeURIComponent(session)}`}
-          className="shrink-0 text-sm text-muted-foreground underline underline-offset-4"
-        >
-          Learning path →
-        </Link>
       </header>
 
       <div className="mb-5 flex flex-wrap items-center gap-2">

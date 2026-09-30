@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "production-reality",
   "seq": 10,
   "title": "Make It Survive Reality",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Ask a team where their project is and you hear GitHub, or on my computer. GitHub may hold the code, but code existing is not code running, and a laptop that turns off cannot serve anyone. For a real product, several pieces have to be operating at the same time — whether or not any one computer is awake."
+              "text": "Ask a team where their project is and you hear GitHub, or on my computer. GitHub may hold the code, but code existing is not code running, and a laptop that turns off cannot serve anyone.\n\nFor a real product, several pieces have to be operating at the same time — whether or not any one computer is awake.\n\nDeploy my app is not an instruction. Deployment answers, for every piece: what is it, where does it run, how do other pieces reach it, what does it need, and what happens if it stops?"
             }
           ]
         },
@@ -68,6 +68,10 @@
                 "Background workers: compress video and make thumbnails",
                 "External APIs: maps, messaging, sports data"
               ]
+            },
+            {
+              "type": "text",
+              "text": "The application is several different pieces, possibly on different machines in different companies. The frontend may load from one host while the backend, database, file storage, AI, and workers live elsewhere.\n\nA common failure: the frontend deploys, but still calls http://localhost:8000. Localhost on the visitor's computer is not the team's backend."
             }
           ]
         },
@@ -120,7 +124,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Here is the test: if the backend server were deleted this second, what should disappear? Ideally, nothing important. Backend code can be restarted or replaced — compute is disposable. User accounts, scores and videos are state, and state must survive. A new backend starts, connects to the same database and the same storage, and the product continues."
+              "text": "Here is the test: if the backend server were deleted this second, what should disappear? Ideally, nothing important. Backend code can be restarted or replaced — compute is disposable.\n\nUser accounts, scores and videos are state, and state must survive. A new backend starts, connects to the same database and the same storage, and the product continues.\n\nSaving uploads to a folder inside the running backend is not a coding bug. It is an architecture bug — the next backend starts empty."
             }
           ]
         },
@@ -138,7 +142,7 @@
                 "The video's bytes go into object storage; the database never holds the file.",
                 "The database keeps the record: video_id, user_id, game_id, filename, upload_time, processing_status, storage_location.",
                 "One logical video may map to several stored objects: original, 1080p, 720p and a thumbnail.",
-                "The record is how every piece of the system finds and describes the file."
+                "The record is how every piece of the system finds and describes the file after any backend restart."
               ]
             }
           ]
@@ -192,7 +196,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "One endpoint returns a game's score in 50 milliseconds. Another asks an AI for a summary and waits 5 to 20 seconds. A third accepts a 500 MB video that needs compression, thumbnails and analysis — minutes of work. Fast request, slow job and heavy computation should feel different, because forcing all of them through the same request shape makes the architecture fragile."
+              "text": "One endpoint returns a game's score in 50 milliseconds. Another asks an AI for a summary and waits 5 to 20 seconds. A third accepts a 500 MB video that needs compression, thumbnails and analysis — minutes of work.\n\nFast request, slow job and heavy computation should feel different, because forcing all of them through the same request shape makes the architecture fragile.\n\nAsk of every task: does the user need to wait for this?"
             }
           ]
         },
@@ -215,6 +219,10 @@
                 "Worker compresses, creates thumbnails and runs AI analysis",
                 "Database updated: status = ready"
               ]
+            },
+            {
+              "type": "text",
+              "text": "A queue is a list of work waiting to happen. A worker is a separate program that performs it. The upload request stores the file, sets status = processing, enqueues the job, and responds immediately.\n\nThe worker compresses, creates thumbnails, runs analysis, and marks the record ready. The same pattern sits behind report generation, mass email, and document analysis."
             }
           ]
         },
@@ -226,7 +234,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "When ten thousand people replay the winning touchdown, the backend should not download a 500 MB file and forward it to every viewer. Frequently requested large files are served from object storage through a CDN — copies kept closer to the people asking. The backend controls access; the media system handles delivery."
+              "text": "When ten thousand people replay the winning touchdown, the backend should not download a 500 MB file and forward it to every viewer.\n\nFrequently requested large files are served from object storage through a CDN — copies kept closer to the people asking. The backend controls access; the media system handles delivery.\n\nThat split keeps the product's API free for decisions while media travels on a path built for size."
             }
           ]
         },
@@ -259,7 +267,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Reality has its own test plan. The AI provider goes down — scores and video should still work while summaries show a temporary error; that is graceful degradation. Someone uploads a 40 GB file — size limits and type validation are architecture, not UI polish. Twenty thousand viewers want the same summary — generate it once, store it, reuse it instead of paying twenty thousand times. A leaked API key in frontend code becomes a stranger's cloud bill — secrets live in the backend environment, never in code users can read."
+              "text": "Reality has its own test plan. The AI provider goes down — scores and video should still work while summaries show a temporary error; that is graceful degradation. Someone uploads a 40 GB file — size limits and type validation are architecture, not UI polish.\n\nTwenty thousand viewers want the same summary — generate it once, store it, reuse it instead of paying twenty thousand times. A leaked API key in frontend code becomes a stranger's cloud bill — secrets live in the backend environment, never in code users can read.\n\nKill the laptop. Kill the backend. Multiply users, files, AI calls and traffic by one hundred. What breaks first?"
             }
           ]
         },

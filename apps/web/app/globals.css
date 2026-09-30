@@ -112,11 +112,15 @@
   --radius-md: 0px;
   --radius-lg: 0px;
   --radius-xl: 0px;
+
+  /* Loaded via next/font in app/layout.tsx (Source Serif 4 / Source Sans 3). */
+  --font-display: var(--font-source-serif), "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-body: var(--font-source-sans), "Segoe UI", ui-sans-serif, sans-serif;
 }
 
 @layer base {
   :root {
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-family: var(--font-display), "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
     color: var(--ink);
     background:
       radial-gradient(circle at 12% 8%, var(--accent-tint) 0%, transparent 42%),
@@ -165,7 +169,7 @@
     flex-wrap: wrap;
     gap: 0.5rem 0.85rem;
     margin-bottom: 1rem;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.85rem;
   }
 
@@ -184,10 +188,16 @@
     border: 1px solid var(--line);
     padding: 1rem 1rem 1.15rem;
     min-height: 12rem;
+    scroll-margin-top: 4rem;
+  }
+
+  button,
+  [data-slot="button"] {
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
   }
 
   article span {
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.75rem;
     color: var(--muted);
   }
@@ -211,7 +221,7 @@
     font-size: 0.75rem;
     color: var(--accent);
     margin: 0 0 0.4rem;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-weight: 600;
   }
 
@@ -232,7 +242,7 @@
     gap: 0.25rem;
     font-size: 0.8rem;
     color: var(--muted);
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
   }
 
   .toolbar input,
@@ -259,7 +269,7 @@
     color: var(--accent-contrast);
     padding: 0.5rem 0.9rem;
     cursor: pointer;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
   }
 
   .toolbar button.secondary,
@@ -269,7 +279,7 @@
   }
 
   .status {
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.85rem;
     color: var(--muted);
     margin: 0 0 1rem;
@@ -310,7 +320,7 @@
   .item-list strong {
     display: block;
     font-size: 0.8rem;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     margin-bottom: 0.15rem;
   }
 
@@ -382,7 +392,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.55rem;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
   }
 
   .stage-chip {
@@ -412,7 +422,7 @@
     color: var(--accent);
     padding: 0.4rem 0.75rem;
     cursor: pointer;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.85rem;
   }
 
@@ -523,7 +533,7 @@
 
   .kind-label {
     display: block;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.7rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -546,7 +556,7 @@
     background: transparent;
     color: var(--accent-contrast);
     padding: 0.25rem 0.55rem;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.8rem;
     cursor: pointer;
   }
@@ -556,7 +566,7 @@
     align-items: center;
     gap: 0.5rem;
     color: var(--muted);
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.9rem;
   }
 
@@ -579,7 +589,7 @@
     background: var(--panel);
     color: var(--accent);
     padding: 0.45rem 0.75rem;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
     transition:
@@ -628,7 +638,7 @@
     flex-wrap: wrap;
     gap: 0.35rem;
     margin-top: 0.65rem;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.72rem;
     color: var(--accent);
   }
@@ -663,13 +673,13 @@
     color: var(--accent-contrast);
     padding: 0.5rem 0.95rem;
     cursor: pointer;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
   }
 
   .chat-error {
     margin: 0 0 0.5rem;
     color: var(--warn);
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     font-size: 0.85rem;
   }
 
@@ -713,7 +723,7 @@
     color: var(--accent-contrast);
     padding: 0.7rem 1.1rem;
     cursor: pointer;
-    font-family: "Segoe UI", ui-sans-serif, sans-serif;
+    font-family: var(--font-body), "Segoe UI", ui-sans-serif, sans-serif;
     height: fit-content;
   }
 

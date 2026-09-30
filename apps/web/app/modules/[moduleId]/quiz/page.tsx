@@ -5,6 +5,7 @@ import { api } from '../../../../lib/api';
 import type { LearningHub, QuizDraw } from '../../../../lib/types';
 import { QuizRunner } from '../../../../components/learn/QuizRunner';
 import { SessionBootstrap } from '../../../../components/learn/SessionBootstrap';
+import { RouteBackLink } from '../../../../components/flow/RouteBackLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,14 +22,10 @@ function GateNotice({
 }) {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-16 pt-10">
-      <h1 className="text-2xl font-semibold">{title}</h1>
+      <RouteBackLink href={hubHref} label="Back to learning path" />
+      <h1 className="mt-4 text-2xl font-semibold">{title}</h1>
       <p className="mt-3 text-muted-foreground">{body}</p>
       {extra}
-      <p className="mt-6">
-        <Link className="underline underline-offset-4" href={hubHref}>
-          Back to your learning path
-        </Link>
-      </p>
     </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'motion/react';
+import { RouteBackLink } from '@/components/flow/RouteBackLink';
 
 /** Deterministic spark offsets — no randomness, so renders stay reproducible. */
 const SPARKS = [
@@ -67,9 +68,9 @@ export function ModuleCelebration({
           </Link>
         </p>
       ) : null}
-      <Link href={hubHref} className="mt-4 inline-block underline underline-offset-4">
-        Back to your learning path
-      </Link>
+      <div className="mt-4">
+        <RouteBackLink href={hubHref} label="Back to learning path" />
+      </div>
     </motion.section>
   );
 }

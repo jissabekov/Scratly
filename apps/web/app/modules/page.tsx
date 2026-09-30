@@ -1,8 +1,9 @@
-import Link from 'next/link';
+import { RouteBackLink } from '@/components/flow/RouteBackLink';
 import { api } from '../../lib/api';
 import type { LearningHub } from '../../lib/types';
 import { SessionBootstrap } from '../../components/learn/SessionBootstrap';
 import { ModulePath } from '../../components/progress/ModulePath';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,25 +35,22 @@ export default async function ModulesPage({
 
   if (hub === null) {
     return (
-      <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-10">
-        <h1 className="text-2xl font-semibold">Learning path</h1>
+      <main className="mx-auto w-full max-w-3xl px-4 pb-10 pt-10">
+        <RouteBackLink href="/" label="Back to chat" />
+        <h1 className="mt-4 text-2xl font-semibold">Learning path</h1>
         <p className="mt-3 text-muted-foreground">
           We couldn&apos;t load this learning path. It may belong to a different session.
-        </p>
-        <p className="mt-4">
-          <Link className="underline underline-offset-4" href="/">
-            Back to the chat
-          </Link>
         </p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-32 pt-10">
+    <main className="mx-auto w-full max-w-3xl px-4 pb-10 pt-10">
       <header className="mb-2 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Your learning path</h1>
+          <RouteBackLink href="/" label="Back to chat" className="-ml-3" />
+          <h1 className="mt-2 text-2xl font-semibold">Your learning path</h1>
           <p className="mt-2 text-muted-foreground">
             {hub.mastery_pct}% of lessons complete
             {hub.streak_days > 0 ? ` · ${hub.streak_days}-day streak` : ''}

@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { api } from '../../lib/api';
 import {
   clearStoredSessionId,
@@ -248,16 +249,13 @@ export function StudentChat() {
             New chat
           </button>
           {learningEnabled && sessionId ? (
-            <Link
-              className="teacher-link"
-              href={`/modules?session=${encodeURIComponent(sessionId)}`}
-            >
-              Learning
-            </Link>
+            <Button asChild variant="ghost" className="min-h-11">
+              <Link href={`/modules?session=${encodeURIComponent(sessionId)}`}>Learning</Link>
+            </Button>
           ) : null}
-          <Link className="teacher-link" href="/teacher">
-            Teacher
-          </Link>
+          <Button asChild variant="ghost" className="min-h-11">
+            <Link href="/teacher">Teacher</Link>
+          </Button>
         </div>
       </header>
 

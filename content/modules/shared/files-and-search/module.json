@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "files-and-search",
   "seq": 8,
   "title": "Files, Documents, Images, and Search: How Applications Find Information",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A nonprofit application tracks hundreds of community organizations. Name, city, category and active status fit a table perfectly. But each organization also has a 40-page annual report, photos, flyers and meeting recordings. You cannot create a column called annual_report_paragraph_1. The question has changed from how do I organize facts to how do I organize knowledge."
+              "text": "A nonprofit application tracks hundreds of community organizations. Name, city, category and active status fit a table perfectly. But each organization also has a 40-page annual report, photos, flyers and meeting recordings.\n\nYou cannot create a column called annual_report_paragraph_1. The question has changed from how do I organize facts to how do I organize knowledge.\n\nHaving access to a file is not the same thing as understanding its contents."
             }
           ]
         },
@@ -64,6 +64,10 @@
                 "Semi-structured: a JSON document whose fields can differ from record to record, like API payloads and logs",
                 "Unstructured: a PDF full of paragraphs, tables, photos and charts — it arrives as one file"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Structured information has named fields the system can filter. Semi-structured information, such as JSON logs, has fields that can vary from record to record.\n\nUnstructured information arrives as a file. Names and dates may live inside a PDF, but until something extracts them, the application cannot address them as fields."
             }
           ]
         },
@@ -124,6 +128,10 @@
                 "File storage: the actual PDFs, photos, videos and recordings",
                 "Search index: prepared structures that make information findable"
               ]
+            },
+            {
+              "type": "text",
+              "text": "These systems are not competing. The database holds facts and permissions. Object storage holds the bytes. A search index holds structures prepared so finding information is fast.\n\nA real product may use all three at once."
             }
           ]
         },
@@ -137,11 +145,11 @@
               "type": "worked_example",
               "title": "Maya uploads a report",
               "steps": [
-                "Maya uploads tulsa-youth-sports-annual-report-2026.pdf.",
+                "Maya uploads tulsa-youth-sports-annual-report-2026.pdf through the application.",
                 "The actual PDF goes into object storage at /files/organizations/381/reports/2026-report.pdf.",
                 "The database creates a document record: document_id 9127, organization_id 381, filename, document_type annual_report, uploaded_at.",
-                "The record also stores the storage_location pointing at the real file.",
-                "IDs, ownership, type and permissions live in the database; the bytes live in storage."
+                "The record also stores the storage_location pointing at the real file outside the database.",
+                "IDs, ownership, type and permissions live in the database; the bytes live in storage. The record is a relationship that crosses systems."
               ]
             }
           ]
@@ -204,6 +212,10 @@
                 "\"Find programs for a teenager who enjoys sports\" → semantic search: match by meaning, not exact words",
                 "Pipelines combine them: filter by county and status first, then semantic-search within that smaller set"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Different retrieval problems need different tools. Named fields with exact values use a database filter. Exact words inside documents use keyword search. Similarity of meaning uses semantic search.\n\nPipelines often combine them: filter by county and status first, then search by meaning inside that smaller set."
             }
           ]
         },
@@ -215,7 +227,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A user searches for opportunities for teenagers who enjoy sports. A perfect document says it organizes basketball leagues for students ages 14 to 18. Almost no words overlap, yet the meaning matches. An embedding is a mathematical representation of meaning that lets a computer compare pieces of information by similarity. Searching on those representations is called semantic or vector search."
+              "text": "A user searches for opportunities for teenagers who enjoy sports. A perfect document says it organizes basketball leagues for students ages 14 to 18. Almost no words overlap, yet the meaning matches.\n\nAn embedding is a mathematical representation of meaning that lets a computer compare pieces of information by similarity. Searching on those representations is called semantic or vector search.\n\nSemantic search does not replace filters for exact facts such as county or active status."
             }
           ]
         },
@@ -260,6 +272,10 @@
                 "Later: a question triggers search and retrieval of the strongest passages",
                 "The AI receives the question plus the retrieved passages and generates the answer"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Find first, generate second. That order is retrieval-augmented generation, or RAG. A bad answer can be born long before the model: weak extraction, poor chunking, bad indexing, or bad retrieval all deliver the wrong passages.\n\nChanging the prompt at the bottom of that pipeline may accomplish nothing if the wrong page never reached the model."
             }
           ]
         },

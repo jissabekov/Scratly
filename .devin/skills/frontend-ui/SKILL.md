@@ -13,6 +13,12 @@ Acquired skills (Phase 10, 2026-09-30) live in `.agents/skills/`. `npx skills ad
 
 Before visual UI work, read `frontend-design`, `web-design-guidelines`, and `shadcn` in that folder. Also read `vercel-react-best-practices` when the change touches `app/layout.tsx` or a client boundary (`LessonPlayer`, `QuizRunner`, `StudentChat`, `SessionBootstrap`). `apps/web/AGENTS.md` and the canon tokens (`--ink`, `--paper`, `--panel`, `--line`, `--accent`, `--muted`, `--warn`) win. Progress stays on the server; the client stores the session id only. Use `npx shadcn@latest` only to search or print docs. `components/ui/` stays generated. Plan 08 back navigation: every non-root route has a Back control, and on the first slide Back leaves the flow.
 
+### Leaving a flow
+
+- Every non-root route renders a visible Back ghost (`RouteBackLink` or `FlowActionBar` Back) that returns to the parent route.
+- On the first slide / first quiz question, action-bar Back (and ArrowLeft) navigates to the parent hub — it must not call complete or check.
+- Browser history Back keeps working because `?slide=` / `?q=` stay in the URL; do not replace those params out of the history stack.
+
 Process: brainstorm → explore existing components → plan → implement → critique → critique again (visual + a11y).
 
 Rules:

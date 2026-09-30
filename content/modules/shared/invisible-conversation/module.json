@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "slug": "invisible-conversation",
   "seq": 3,
   "title": "The Invisible Conversation Behind Every Tap",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Two students each see '1 ticket remaining' and press Buy at almost the same time. Both screens believe the ticket is available. Neither screen can decide, because each device knows only part of what is happening. A system both students talk to must decide."
+              "text": "Two students each see \"1 ticket remaining\" and press Buy at almost the same time. Both screens believe the ticket is available. Neither screen can decide, because each device knows only part of what is happening.\n\nStudent A's browser does not know what Student B is doing. Student B's browser does not know whether the ticket is already reserved. A system both students talk to must decide.\n\nWhen multiple users share or compete for the same information, the browser cannot be the final authority. The shared server owns the truth."
             }
           ]
         },
@@ -69,6 +69,10 @@
                 "The response travels back",
                 "The interface decides what to show"
               ]
+            },
+            {
+              "type": "text",
+              "text": "The ticket server asks: is the ticket still available, is the user signed in, has this request already been processed, and what response should each student receive?\n\nThe screen is only the visible edge of that conversation. The product designer must define what leaves the device, what the server verifies, and what comes back."
             }
           ]
         },
@@ -121,7 +125,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Pressing Buy does not send the screen anywhere. The application builds a small structured message, called the payload, with named fields such as ticketId, eventId, quantity and requestId. Without names the server would receive 9082, 441, 1, 7719 and have to guess what each number means."
+              "text": "Pressing Buy does not send the screen anywhere. The application builds a small structured message, called the payload, with named fields such as ticketId, eventId, quantity and requestId.\n\nWithout names the server would receive 9082, 441, 1, 7719 and have to guess what each number means. Named fields let both systems agree on what each value is.\n\nWhen you tell an agent to \"send the form,\" you still must name which fields leave the device, which are required, and which exist only for display."
             }
           ]
         },
@@ -141,6 +145,10 @@
                 "api.stagepass.app - a human-readable domain; DNS finds the network address behind it",
                 "/events/441/tickets/9082/reserve - the path, naming the exact capability the app wants to use"
               ]
+            },
+            {
+              "type": "text",
+              "text": "An endpoint is not just where the server lives. It names a capability: reserve, cancel, upload, login. Vague paths such as /saveData hide which data, for which user, under which rules.\n\nClear paths make the product's conversations readable: which event, which ticket, which action."
             }
           ]
         },
@@ -175,13 +183,13 @@
               "type": "worked_example",
               "title": "A request is not automatically trusted",
               "steps": [
-                "Does this ticket exist?",
-                "Is it still available?",
-                "Is the event still active?",
-                "Is the user signed in?",
-                "Is this user allowed to buy it?",
-                "Has this exact request already been processed?",
-                "Does the server's stored price match the transaction?"
+                "Does this ticket exist? The server looks up the ticket, not the screen claim.",
+                "Is it still available? Shared truth lives on the server, not in either browser.",
+                "Is the event still active, and is the user signed in?",
+                "Is this user allowed to buy it? Authorization is separate from knowing who they are.",
+                "Has this exact request already been processed? A requestId prevents double sales on retry.",
+                "Does the server's stored price match the transaction? Never trust a price the client invents.",
+                "Only after those checks does the server reserve once and return success or conflict."
               ]
             }
           ]
@@ -200,7 +208,7 @@
             },
             {
               "type": "text",
-              "text": "Hiding the Delete button is interface behavior, not security. The server must still reject unauthorized requests, even ones sent manually without any button."
+              "text": "Hiding the Delete button is interface behavior, not security. The server must still reject unauthorized requests, even ones sent manually without any button.\n\nKnowing who someone is does not decide what they may do. The server checks both on every important request."
             }
           ]
         }
@@ -218,7 +226,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A user presses Save and the interface immediately shows 'Saved'. But the network request failed. Was it saved? No. The button changed, and that does not prove the action succeeded. Confident screens can lie."
+              "text": "A user presses Save and the interface immediately shows \"Saved\". But the network request failed. Was it saved? No. The button changed, and that does not prove the action succeeded. Confident screens can lie.\n\nOptimistic updates show the expected result before confirmation. That feels fast, but the product must reverse the screen if the server rejects the request or never answers.\n\nDesign for loading, success, empty results, validation errors, auth failures, conflicts, timeouts, and offline — not only for the happy path."
             }
           ]
         },
@@ -244,6 +252,10 @@
                 "Conflict - the request clashes with the current state",
                 "Timeout or offline - no usable answer arrived"
               ]
+            },
+            {
+              "type": "text",
+              "text": "Retrying Buy should not sell the ticket twice. A unique request ID lets the server recognize the same attempt and return the existing result.\n\nDisabling the button helps the user, but the server must guard too, because buttons cannot stop a resent request."
             }
           ]
         },
@@ -276,7 +288,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Opening an album is one request and one answer, often a page at a time rather than the whole library. Equipping an item is a command that changes shared state on the server. A video upload moves a large file with progress and a processing status. AI generation is a job you check by polling or receive by streaming. A typing indicator lives on an ongoing connection and is never stored."
+              "text": "Opening an album is one request and one answer, often a page at a time rather than the whole library. Equipping an item is a command that changes shared state on the server.\n\nA video upload moves a large file with progress and a processing status. AI generation is a job you check by polling or receive by streaming. A typing indicator lives on an ongoing connection and is never stored.\n\nMatch the feature to the conversation pattern before you ask an agent to build it."
             }
           ]
         },

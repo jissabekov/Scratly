@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { FlowActionBar } from '@/components/flow/FlowActionBar';
+import { RouteBackLink } from '@/components/flow/RouteBackLink';
 import { SlideProgress } from '@/components/flow/SlideProgress';
 import { checkQuizItemAction, submitQuizAttemptAction } from '@/lib/actions';
 import { newIdempotencyKey } from '@/lib/session';
@@ -37,6 +38,7 @@ export function QuizRunner({
   nextModuleHref,
   hubHref,
 }: QuizRunnerProps) {
+  const router = useRouter();
   const total = attempt.items.length;
   const reduced = useReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -54,6 +56,10 @@ export function QuizRunner({
   const checked = feedback[item?.id];
   const isLast = index >= total;
   const isMulti = item?.kind === 'select_all';
+
+  const leaveToHub = useCallback(() => {
+    router.push(hubHref);
+  }, [hubHref, router]);
 
   const setIndex = useCallback(
     (next: number) => {
@@ -166,9 +172,10 @@ export function QuizRunner({
       } else if (event.key === 'ArrowRight' && checked && !isLast) {
         event.preventDefault();
         setIndex(index + 1);
-      } else if (event.key === 'ArrowLeft' && index > 1) {
+      } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        setIndex(index - 1);
+        if (index > 1) setIndex(index - 1);
+        else leaveToHub();
       } else if (/^[1-4]$/.test(event.key) && item) {
         const option = item.options[Number(event.key) - 1];
         if (option) {
@@ -179,7 +186,7 @@ export function QuizRunner({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [advance, checked, choose, index, isLast, item, setIndex]);
+  }, [advance, checked, choose, index, isLast, item, leaveToHub, setIndex]);
 
   const primaryLabel = useMemo(() => {
     if (!checked) return 'Check answer';
@@ -202,7 +209,8 @@ export function QuizRunner({
   if (!item) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 pt-10">
-        <p className="text-muted-foreground">This quiz has no questions.</p>
+        <RouteBackLink href={hubHref} label="Back to learning path" />
+        <p className="mt-4 text-muted-foreground">This quiz has no questions.</p>
       </main>
     );
   }
@@ -210,21 +218,20 @@ export function QuizRunner({
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-28 pt-6">
       <div className="mb-4 flex items-center gap-3">
-        <Link
-          href={hubHref}
-          className="shrink-0 text-sm text-muted-foreground underline underline-offset-4"
-        >
-          ← Learning path
-        </Link>
+        <RouteBackLink href={hubHref} label="Back to learning path" className="-ml-3 shrink-0" />
         <div className="flex-1">
           <SlideProgress current={index} total={total} label={`Question ${index} of ${total}`} />
         </div>
       </div>
 
-      <p className="text-xs tracking-wide text-muted-foreground uppercase">
+      <p className="font-[family-name:var(--font-body)] text-xs tracking-wide text-muted-foreground">
         {moduleTitle} · attempt {attempt.attempt_no} of {maxAttempts} · form {attempt.form_id}
       </p>
-      <h2 ref={headingRef} tabIndex={-1} className="mt-1 text-xl font-semibold outline-none">
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="mt-1 font-[family-name:var(--font-display)] text-xl font-semibold outline-none"
+      >
         Question {index} of {total}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">{attempt.pass_rule}</p>
@@ -288,7 +295,7 @@ export function QuizRunner({
       ) : null}
 
       <FlowActionBar
-        onBack={index > 1 ? () => setIndex(index - 1) : undefined}
+        onBack={index > 1 ? () => setIndex(index - 1) : leaveToHub}
         backLabel="Back"
         primaryLabel={primaryLabel}
         onPrimary={advance}
