@@ -4,6 +4,7 @@ __pycache__/
 node_modules/
 .next/
 .env
+.env*.local
 compose.override.yaml
 *.pyc
 apps/web/test-results/

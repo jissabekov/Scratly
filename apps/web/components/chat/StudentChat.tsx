@@ -247,6 +247,14 @@ export function StudentChat() {
           >
             New chat
           </button>
+          {learningEnabled && sessionId ? (
+            <Link
+              className="teacher-link"
+              href={`/modules?session=${encodeURIComponent(sessionId)}`}
+            >
+              Learning
+            </Link>
+          ) : null}
           <Link className="teacher-link" href="/teacher">
             Teacher
           </Link>
