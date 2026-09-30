@@ -11,6 +11,7 @@ const KIND_LABELS: Partial<Record<NonNullable<MessageKind>, string>> = {
   assessment_question: '',
   matching_unavailable: 'Matching unavailable',
   post_match_feedback: 'Follow-up',
+  progress_checkin: 'Progress check-in',
 };
 
 type Props = {

@@ -5,14 +5,21 @@ from sqlalchemy.exc import IntegrityError
 
 from app.contracts import (
     MessageItem,
+    SessionCreateRequest,
     SessionMessagesResponse,
     SessionProjectsResponse,
     StudentProjectItem,
     TurnRequest,
     TurnResponse,
 )
-from app.deps import get_context_builder, get_extractor, get_repo, get_writer
-from app.repository import AssessmentRepository, TurnOutcome
+from app.deps import (
+    get_checkin_repo,
+    get_context_builder,
+    get_extractor,
+    get_repo,
+    get_writer,
+)
+from app.repository import AssessmentRepository, CheckinRepository, TurnOutcome
 from app.services.azure_openai import QuestionWriter
 from app.services.context_builder import ContextBuilder
 from app.services.evidence_extractor import EvidenceExtractor
@@ -22,12 +29,16 @@ router = APIRouter(tags=["student"])
 
 
 @router.post("/sessions")
-async def start_session(repo: AssessmentRepository = Depends(get_repo)):
-    created = await repo.create_session()
+async def start_session(
+    body: SessionCreateRequest | None = None,
+    repo: AssessmentRepository = Depends(get_repo),
+):
+    created = await repo.create_session(learning_enabled=body.learning_enabled if body else None)
     return {
         "session_id": created["session_id"],
         "student_id": created["student_id"],
         "stage": created["stage"],
+        "learning_enabled": created["learning_enabled"],
     }
 
 
@@ -43,6 +54,7 @@ async def resume_session(session_id: UUID, repo: AssessmentRepository = Depends(
         "created_at": session["created_at"],
         "updated_at": session["updated_at"],
         "completed_at": session["completed_at"],
+        "learning_enabled": bool(session.get("learning_enabled")),
     }
 
 
@@ -56,6 +68,7 @@ async def list_session_messages(session_id: UUID, repo: AssessmentRepository = D
         session_id=session_id,
         stage=session["stage"],
         completed_at=session.get("completed_at"),
+        learning_enabled=bool(session.get("learning_enabled")),
         items=[MessageItem.model_validate(row) for row in rows],
     )
 
@@ -80,13 +93,14 @@ async def submit_turn(
     extractor: EvidenceExtractor = Depends(get_extractor),
     writer: QuestionWriter = Depends(get_writer),
     context_builder: ContextBuilder = Depends(get_context_builder),
+    checkin_repo: CheckinRepository = Depends(get_checkin_repo),
 ):
     session = await repo.get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
     try:
         outcome = await process_student_turn(
-            repo, extractor, writer, context_builder, session_id, body
+            repo, extractor, writer, context_builder, session_id, body, checkin_repo
         )
     except IntegrityError as err:
         # Concurrent idempotent retry lost the insert race; return the winner.

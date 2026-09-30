@@ -15,6 +15,9 @@ const VIEWS: [string, string, string][] = [
   ['Question history', 'Targets, rationale, and fallback use', 'question-history'],
   ['Why this question?', 'Deterministic priority trace', 'why-next-question'],
   ['Project ranking', 'Eligibility, weighted fit, execution gates, scaffolding', 'project-fit'],
+  ['Learning progress', 'Module slide progress, quiz gate, mastery, check-in budget', 'learning-progress'],
+  ['Quiz history', 'Attempts, forms, scores, gate outcomes, replay keys', 'quiz-history'],
+  ['Interventions', 'Advice escalation ladder and spaced-repetition cards', 'interventions'],
 ];
 
 function summarize(item: Record<string, unknown>): { title: string; body: string } {

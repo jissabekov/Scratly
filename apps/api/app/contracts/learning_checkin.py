@@ -180,6 +180,7 @@ class CheckinDeliverResponse(LearningModel):
     gate: CheckinGate
     item: CheckinItemView | None = None
     retry_after_seconds: int | None = None
+    event_id: UUID | None = None
     checkins_used: int = 0
     max_checkins: int = MAX_CHECKINS_PER_SESSION
 

@@ -246,3 +246,75 @@ API for live runs:
 Update `docs/plan/00-MASTER-ORCHESTRATION.md` (Phase 6 column), this file (per-workstream status +
 before/after metric rows), and commit + push. Every result must be reproducible: content version,
 seeds, trace dirs, and the exact commands.
+
+## 6.8 Execution status (Phase 6 run)
+
+Executed on `main` over HEAD `ce5b37c` + Phase 6 working tree. Tiered loop followed
+(T0 fixtures → T1 re-analyze → T2 deterministic probes → T3 live subset → T4 full last).
+
+### Per-workstream status
+
+| WS | Result | Evidence |
+|---|---|---|
+| W6.1 migration `022_learning_integration.sql` | **DONE** | Applied to the live volume; re-apply emits `NOTICE … already exists` and ends `IDEMPOTENT-OK`. Adds `progress_checkin` to `conversation.assistant_message_kind` (9 values), 10 `learning_*` values to `audit.decision_event_type` (47 total), `core.sessions.learning_enabled NOT NULL DEFAULT false`, `audit.decision_events.turn_id` nullable + partial unique index `(correlation_id, sequence) WHERE turn_id IS NULL`. |
+| W6.2 chat routing | **DONE** | Terminal fast path checks `learning_enabled` + `CheckinRepository.deliver` before `_post_match_reply`; emits `message_kind="progress_checkin"` with a `learning` payload (`CheckinDeliverResponse`, includes `event_id`). `TurnOutcome` carries `learning` so replayed turns return the identical payload. Stage stays `complete`; no assessment write from this path. |
+| W6.3 learning tracing | **DONE** | `services/learning_trace.py` (turn-less recorder reusing the shared privacy guard) wired into `learning.py` (hub_viewed, slide_completed, module_unlocked), `learning_quiz.py` (quiz_drawn, quiz_scored), `learning_checkin.py` (checkin_delivered/answered/dismissed, intervention_opened, retention_card_due). Live probe: `learning_hub_viewed\|1, learning_slide_completed\|14, learning_quiz_drawn\|1, learning_quiz_scored\|1, learning_checkin_delivered\|1, learning_checkin_answered\|1` + 25 xAPI events + 4 mastery states → `T2B-VERIFICATION-OK`. |
+| W6.3 admin views | **DONE** | `learning-progress` (row kinds `checkin_budget`/`mastery`/`module`), `quiz-history`, `interventions` in `routes/admin.py`; rendered via the generic teacher-console table (`apps/web/app/teacher/page.tsx` + 3 VIEWS rows). Live probe `ADMIN-VIEWS-OK`. |
+| W6.4 eval harness | **DONE** | 28 scenarios (21 assessment + 7 `learn_*`), A19–A23 in `apps/api/tests/test_eval_learning_assertions.py`; `analyze_dump` emits `learning` section + metrics (`module_completion_rate`, `first_attempt_pass_rate`, `checkin_response_rate`, `intervention_count`). Assessment dumps unchanged (empty learning section). |
+| W6.5 rollout seam | **DONE** | `learning_enabled` DB default `false`; `Settings.learning_enabled_default` (`LEARNING_ENABLED_DEFAULT` env) fallback; per-session opt-in `POST /v1/sessions {"learning_enabled": true}`. Session + messages responses echo the flag. Verified by e2e contract test. |
+| W6.6 acceptance | **DONE** | T4 full run at `eval/traces/2026-09-30-phase6-final` (see metrics below); mobile 390px journey review over chat → hub → lesson → quiz → progress: 0px horizontal overflow, 0 axe violations (wcag2a/2aa/22aa), screenshots in `apps/web/eval/screenshots/mobile390/`. |
+
+### Decisions recorded
+
+- **D1 — chat routing: YES.** Terminal fast path returns `progress_checkin` when the session is
+  `learning_enabled`, `matching_completed`, and a check-in is deliverable; otherwise unchanged
+  `post_match_feedback`. Mandatory full-suite run executed **last** (below).
+- **D2 — scenario set (7):** `learn_module_quiz_unlock`, `learn_quiz_remediation_loop`,
+  `learn_checkin_budget`, `learn_retention_due`, `learn_advice_handoff` (scripted);
+  `learn_inactivity_reengagement` (adaptive, `min_turns` 10), `learn_chat_checkin_replay`
+  (adaptive, `min_turns` 14 — must reach `complete` before the terminal check-in probe).
+- **D3 — seam:** `learning_enabled` defaults `false` everywhere; the single e2e/eval toggle is the
+  per-session `POST /v1/sessions` flag (env `LEARNING_ENABLED_DEFAULT` only changes the default).
+  Mirrors `LEARNING_QUIZ_COOLDOWN_SECONDS` — a documented config seam, never a weakened assertion.
+- **D4 — exactly one T4.** D1 changed the shared conversation pipeline, so one combined run over
+  A1–A23 is the release gate; T3 covered the learning subset first (cheapest doctrine) so the
+  single T4 runs on a stable tree. No second full run: nothing changed after it.
+- **D5 — discovered blocker (not in prompt):** `audit.decision_events.turn_id` was `NOT NULL`,
+  so turn-less learning endpoints could not emit audit events. Migration 022 drops the
+  constraint and adds the partial unique index `(correlation_id, sequence) WHERE turn_id IS NULL`
+  (the `UNIQUE(turn_id, sequence)` constraint cannot order NULLs).
+
+### Latent defects found and fixed during integration
+
+- `learning_checkin` SQL used `:param::jsonb` shorthand → asyncpg bind/parse failure (HTTP 500 on
+  check-in respond). Fixed with `CAST(:param AS jsonb)`; pinned by
+  `apps/api/tests/test_repository_sql_bind_casts.py`.
+- `checkin_events` CHECK (`dismissed = false OR responded_at IS NULL`) made dismiss always fail —
+  dismiss now sets `dismissed=true` without `responded_at`. HTTP 200 verified + e2e coverage.
+- Check-in write key confusion (item id vs event id) fixed by adding `event_id` to
+  `CheckinDeliverResponse`; e2e regression guard asserts POST-by-item-id → 404.
+
+### Metrics — before (Phase 1 baseline) vs after (Phase 6 gate)
+
+| Metric | `2026-09-30-phase1-final` (21 scen.) | `2026-09-30-phase6-final` (28 scen.) |
+|---|---|---|
+| Clean runs | 21/21 | T4_RUNNING |
+| Findings | 0 | T4_RUNNING |
+| Assertion violations | 2 (A2; fixed, proven in `…-phase1-a2`) | T4_RUNNING |
+| Completion | 19/21 | T4_RUNNING |
+| p50 / p95 latency | 5,305.5 / 8,647 ms | T4_RUNNING |
+| Duplicate assistant msgs / stage regressions | 0 / 0 | T4_RUNNING |
+| Learning: first-attempt pass rate, check-in response rate | n/a | T4_RUNNING |
+
+### Gate results (all run on the Phase 6 tree)
+
+- `compileall` clean · `pytest apps/api/tests` **245 passed** · `ruff check` pass ·
+  `ruff format --check apps/api` 76 files clean · `mypy` 51 files clean.
+- `seed_learning_content.py --dry-run` + apply: modules=10, objectives=30, lessons=25,
+  slides=85, quiz_items=125, checkin_items=120.
+- `npm --prefix apps/web run build` green (Next 15.1.4).
+- `npm --prefix apps/web run test:e2e` **20/20** (14 baseline + 6 new:
+  `e2e/learning-chat.spec.ts`, `e2e/teacher-learning.spec.ts`), API launched with
+  `LEARNING_QUIZ_COOLDOWN_SECONDS=0`.
+- T3 learning subsets: `eval/traces/2026-09-30-phase6-t3a` 3/3 clean, `…-t3b` 2/2 clean;
+  Findings=0, AssertionViolations=0.

@@ -638,6 +638,12 @@
     padding: 0.2rem 0.45rem;
   }
 
+  .chat-checkin {
+    margin-top: 0.5rem;
+    align-self: flex-start;
+    width: min(100%, 34rem);
+  }
+
   .chat-complete {
     margin-top: 0.5rem;
     padding: 1rem;

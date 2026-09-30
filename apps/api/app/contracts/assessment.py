@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from .learning_checkin import CheckinDeliverResponse
+
 Quote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 
 
@@ -258,6 +260,12 @@ class ProjectComposeOutput(StrictModel):
     projects: Annotated[list[ComposedProjectPacket], Field(min_length=1, max_length=3)]
 
 
+class SessionCreateRequest(StrictModel):
+    """Optional session-creation options (Plan 06 W6.5 rollout seam)."""
+
+    learning_enabled: bool | None = None
+
+
 class TurnRequest(StrictModel):
     idempotency_key: Annotated[str, StringConstraints(min_length=8, max_length=128)]
     text: Annotated[str, StringConstraints(min_length=1, max_length=10000)]
@@ -269,6 +277,7 @@ class TurnResponse(StrictModel):
     stage: str
     message_kind: str | None = None
     elicitation: ElicitationSpec | None = None
+    learning: CheckinDeliverResponse | None = None
     student_message_id: UUID | None = None
     assistant_message_id: UUID | None = None
 
@@ -287,6 +296,7 @@ class SessionMessagesResponse(StrictModel):
     session_id: UUID
     stage: str
     completed_at: datetime | None = None
+    learning_enabled: bool = False
     items: list[MessageItem]
 
 

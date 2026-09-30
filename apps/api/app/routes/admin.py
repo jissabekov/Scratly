@@ -87,6 +87,9 @@ async def inspect(
         "question-history": _question_history,
         "why-next-question": _why_next_question,
         "project-fit": _project_fit,
+        "learning-progress": _learning_progress,
+        "quiz-history": _quiz_history,
+        "interventions": _interventions,
     }
     handler = handlers.get(view)
     if handler is None:
@@ -351,3 +354,136 @@ async def _project_fit(db: AsyncSession, session_id: UUID) -> list[dict]:
         }
         for row in opportunities.mappings()
     ]
+
+
+# --- learning track views (Plan 06 W6.3) ------------------------------------
+#
+# Read-only projections over the `learning` schema. They mirror the assessment
+# views' shape (`{items: [...]}`) so the teacher console renders them with the
+# same generic table component. Nothing here writes state.
+
+
+async def _learning_progress(db: AsyncSession, session_id: UUID) -> list[dict]:
+    """Per-module slide progress, quiz gate, mastery, and check-in budget."""
+    items: list[dict] = []
+
+    modules = await db.execute(
+        text(
+            """
+            SELECT m.slug, m.seq, m.title,
+                   pr.slides_completed, pr.slides_total, pr.time_on_module_ms,
+                   pr.last_slide_id::text AS last_slide_id, pr.updated_at,
+                   COALESCE((
+                     SELECT count(*) FROM learning.quiz_attempts qa
+                      WHERE qa.session_id = :session_id AND qa.module_id = m.id
+                        AND qa.submitted_at IS NOT NULL
+                   ), 0) AS quiz_attempts,
+                   COALESCE((
+                     SELECT bool_or(qa.passed) FROM learning.quiz_attempts qa
+                      WHERE qa.session_id = :session_id AND qa.module_id = m.id
+                   ), false) AS quiz_passed,
+                   'module' AS row_kind
+              FROM learning.progress_rollups pr
+              JOIN learning.modules m ON m.id = pr.module_id
+             WHERE pr.session_id = :session_id
+             ORDER BY m.seq
+            """
+        ),
+        {"session_id": session_id},
+    )
+    items.extend(dict(row) for row in modules.mappings())
+
+    mastery = await db.execute(
+        text(
+            """
+            SELECT o.code AS objective_code, o.label, o.is_critical,
+                   m.slug AS module_slug, ms.p_mastery, ms.state::text AS state,
+                   ms.correct_count, ms.wrong_count, ms.elo, ms.evidence_count,
+                   ms.last_evidence_at, 'mastery' AS row_kind
+              FROM learning.mastery_states ms
+              JOIN learning.objectives o ON o.id = ms.objective_id
+              JOIN learning.modules m ON m.id = o.module_id
+             WHERE ms.session_id = :session_id
+             ORDER BY m.seq, o.ordinal
+            """
+        ),
+        {"session_id": session_id},
+    )
+    items.extend(dict(row) for row in mastery.mappings())
+
+    checkins = await db.execute(
+        text(
+            """
+            SELECT count(*) FILTER (WHERE delivered_at IS NOT NULL) AS checkins_delivered,
+                   count(*) FILTER (WHERE responded_at IS NOT NULL) AS checkins_answered,
+                   count(*) FILTER (WHERE dismissed) AS checkins_dismissed,
+                   'checkin_budget' AS row_kind
+              FROM learning.checkin_events
+             WHERE session_id = :session_id
+            """
+        ),
+        {"session_id": session_id},
+    )
+    items.extend(dict(row) for row in checkins.mappings())
+    return items
+
+
+async def _quiz_history(db: AsyncSession, session_id: UUID) -> list[dict]:
+    """Every quiz attempt with its form, score, gate outcome, and replay key."""
+    result = await db.execute(
+        text(
+            """
+            SELECT qa.id::text AS id, m.slug AS module_slug, m.title AS module_title,
+                   qa.attempt_no, qa.form_id, qa.score, qa.passed, qa.provisional,
+                   qa.critical_missed, qa.request_id, qa.started_at, qa.submitted_at,
+                   (SELECT count(*) FROM learning.quiz_responses r
+                     WHERE r.attempt_id = qa.id) AS responses,
+                   (SELECT count(*) FROM learning.quiz_responses r
+                     WHERE r.attempt_id = qa.id AND r.correct) AS correct
+              FROM learning.quiz_attempts qa
+              JOIN learning.modules m ON m.id = qa.module_id
+             WHERE qa.session_id = :session_id
+             ORDER BY qa.started_at
+            """
+        ),
+        {"session_id": session_id},
+    )
+    return [dict(row) for row in result.mappings()]
+
+
+async def _interventions(db: AsyncSession, session_id: UUID) -> list[dict]:
+    """The advice escalation ladder plus the spaced-repetition card state."""
+    items: list[dict] = []
+
+    interventions = await db.execute(
+        text(
+            """
+            SELECT i.id::text AS id, i.level::text AS level, i.trigger_rule,
+                   o.code AS objective_code, i.content, i.request_id,
+                   i.created_at, i.resolved_at, 'intervention' AS row_kind
+              FROM learning.interventions i
+         LEFT JOIN learning.objectives o ON o.id = i.objective_id
+             WHERE i.session_id = :session_id
+             ORDER BY i.created_at
+            """
+        ),
+        {"session_id": session_id},
+    )
+    items.extend(dict(row) for row in interventions.mappings())
+
+    cards = await db.execute(
+        text(
+            """
+            SELECT rc.objective_id::text AS id, o.code AS objective_code, o.label,
+                   rc.ease, rc.interval_days, rc.due_at, rc.reps, rc.lapses,
+                   (rc.due_at <= now()) AS overdue, 'retention_card' AS row_kind
+              FROM learning.retention_cards rc
+              JOIN learning.objectives o ON o.id = rc.objective_id
+             WHERE rc.session_id = :session_id
+             ORDER BY rc.due_at
+            """
+        ),
+        {"session_id": session_id},
+    )
+    items.extend(dict(row) for row in cards.mappings())
+    return items

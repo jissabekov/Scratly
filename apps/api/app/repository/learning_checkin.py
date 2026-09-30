@@ -60,6 +60,7 @@ from app.services.learning_checkin_engine import (
 )
 from app.services.learning_progress import XAPI_VERB_COMPLETED, xapi_statement
 from app.services.learning_quiz_engine import bkt_update, objective_state
+from app.services.learning_trace import learning_trace
 
 CHECKIN_VERB = "checked_in"
 CHECKIN_OBJECT_TYPE = "http://adlnet.gov/expapi/activities/assessment"
@@ -245,7 +246,15 @@ class CheckinRepository:
 
     # --- deliver -------------------------------------------------------------
 
-    async def deliver(self, session_id: UUID) -> CheckinDeliverResponse | None:
+    async def deliver(
+        self, session_id: UUID, *, commit: bool = True
+    ) -> CheckinDeliverResponse | None:
+        """Deliver (or resume) the next check-in.
+
+        ``commit=False`` runs the delivery inside a caller-owned transaction —
+        the chat terminal fast path delivers a check-in in the same transaction
+        as the turn that surfaces it (Plan 06 W6.2), so it must not commit here.
+        """
         session_row = await self._session_student(session_id)
         if session_row is None:
             return None
@@ -258,6 +267,7 @@ class CheckinRepository:
                     session_id=session_id,
                     gate=CheckinGate.AVAILABLE,
                     item=_item_view(item, open_event["trigger_reason"]),
+                    event_id=open_event["id"],
                     checkins_used=context.checkins_used,
                 )
         gate, retry = checkin_gate(context)
@@ -292,32 +302,85 @@ class CheckinRepository:
                 gate=CheckinGate.NONE,
                 checkins_used=context.checkins_used,
             )
-        async with self.transaction():
-            await self.session.execute(
-                text(
-                    """
-                    INSERT INTO learning.checkin_events
-                        (id, student_id, session_id, checkin_item_id, objective_id,
-                         trigger_reason, scheduled_at, delivered_at)
-                    VALUES (:id, :student_id, :session_id, :item_id, :objective_id,
-                            :trigger, :now, :now)
-                    """
-                ),
-                {
-                    "id": uuid4(),
-                    "student_id": session_row["student_id"],
-                    "session_id": session_id,
-                    "item_id": item["id"],
-                    "objective_id": objective_id,
-                    "trigger": trigger.value,
-                    "now": context.now,
-                },
+        event_id = uuid4()
+        if commit:
+            async with self.transaction():
+                await self._insert_delivery(
+                    session_row, session_id, event_id, item, objective_id, trigger, context, kind
+                )
+        else:
+            await self._insert_delivery(
+                session_row, session_id, event_id, item, objective_id, trigger, context, kind
             )
         return CheckinDeliverResponse(
             session_id=session_id,
             gate=CheckinGate.AVAILABLE,
             item=_item_view(item, trigger.value),
+            event_id=event_id,
             checkins_used=context.checkins_used + 1,
+        )
+
+    async def _insert_delivery(
+        self,
+        session_row: dict[str, Any],
+        session_id: UUID,
+        event_id: UUID,
+        item: dict[str, Any],
+        objective_id: UUID,
+        trigger: CheckinTrigger,
+        context: CheckinContext,
+        kind: CheckinKind,
+    ) -> None:
+        """Insert one delivered check-in plus its audit event (no commit)."""
+        await self.session.execute(
+            text(
+                """
+                INSERT INTO learning.checkin_events
+                    (id, student_id, session_id, checkin_item_id, objective_id,
+                     trigger_reason, scheduled_at, delivered_at)
+                VALUES (:id, :student_id, :session_id, :item_id, :objective_id,
+                        :trigger, :now, :now)
+                """
+            ),
+            {
+                "id": event_id,
+                "student_id": session_row["student_id"],
+                "session_id": session_id,
+                "item_id": item["id"],
+                "objective_id": objective_id,
+                "trigger": trigger.value,
+                "now": context.now,
+            },
+        )
+        await learning_trace(self.session, session_id).record(
+            "learning_checkin_delivered",
+            "checkin_repository",
+            "v1",
+            "Delivered the next deterministic check-in.",
+            trigger.value,
+            outputs={"kind": kind.value, "checkins_used": context.checkins_used + 1},
+            entity_refs={
+                "checkin_event_id": str(event_id),
+                "checkin_item_id": str(item["id"]),
+                "objective_id": str(objective_id),
+            },
+        )
+
+    async def open_checkin(self, session_id: UUID) -> CheckinDeliverResponse | None:
+        """Return the currently open check-in without creating one (replay path)."""
+        open_event = await self._open_event(session_id)
+        if open_event is None:
+            return None
+        item = await self._item(open_event["checkin_item_id"])
+        if item is None:
+            return None
+        context = await self._context(session_id)
+        return CheckinDeliverResponse(
+            session_id=session_id,
+            gate=CheckinGate.AVAILABLE,
+            item=_item_view(item, open_event["trigger_reason"]),
+            event_id=open_event["id"],
+            checkins_used=context.checkins_used,
         )
 
     async def _trigger_objective(self, session_id: UUID, trigger: CheckinTrigger) -> UUID | None:
@@ -383,6 +446,7 @@ class CheckinRepository:
                   JOIN learning.checkin_items i ON i.id = e.checkin_item_id
                   JOIN learning.objectives o ON o.id = e.objective_id
                  WHERE e.id = :event_id AND e.session_id = :session_id
+                   AND e.dismissed = false
                 """
             ),
             {"event_id": event_id, "session_id": session_id},
@@ -402,7 +466,7 @@ class CheckinRepository:
                 text(
                     """
                     UPDATE learning.checkin_events
-                       SET responded_at = :now, response = :response::jsonb,
+                       SET responded_at = :now, response = CAST(:response AS jsonb),
                            score = :score, latency_ms = :latency, request_id = :rid
                      WHERE id = :event_id
                     """
@@ -437,6 +501,19 @@ class CheckinRepository:
                 await self._maybe_open_intervention(
                     session_id, event["objective_id"], event["objective_code"], score, now
                 )
+            await learning_trace(self.session, session_id).record(
+                "learning_checkin_answered",
+                "checkin_repository",
+                "v1",
+                "Scored a check-in response and updated the mastery projection.",
+                "checkin_answered",
+                outputs={"kind": kind.value, "scored": scored, "score": round(score, 3)},
+                entity_refs={
+                    "checkin_event_id": str(event_id),
+                    "checkin_item_id": str(event["checkin_item_id"]),
+                    "objective_id": str(event["objective_id"]),
+                },
+            )
         mastery = await self._mastery(session_id)
         due_at = await self._refresh_retention(
             event["student_id"], session_id, event["objective_id"], score, now
@@ -486,8 +563,9 @@ class CheckinRepository:
                 """
                 INSERT INTO learning.learning_events
                     (id, student_id, session_id, actor, verb, object, result, context, request_id)
-                VALUES (gen_random_uuid(), :student_id, :session_id, :actor::jsonb, :verb::jsonb,
-                        :object::jsonb, :result::jsonb, :context::jsonb, :request_id)
+                VALUES (gen_random_uuid(), :student_id, :session_id, CAST(:actor AS jsonb),
+                        CAST(:verb AS jsonb), CAST(:object AS jsonb), CAST(:result AS jsonb),
+                        CAST(:context AS jsonb), :request_id)
                 ON CONFLICT (session_id, request_id) DO NOTHING
                 """
             ),
@@ -624,6 +702,21 @@ class CheckinRepository:
                         "objective_id": objective_id,
                     },
                 )
+            await learning_trace(self.session, session_id).record(
+                "learning_retention_card_due",
+                "checkin_repository",
+                "v1",
+                "Rescheduled the SM-2-lite retention card after a review.",
+                "card_rescheduled",
+                outputs={
+                    "due_at": updated["due_at"].isoformat(),
+                    "interval_days": updated["interval_days"],
+                    "reps": updated["reps"],
+                    "lapses": updated["lapses"],
+                    "lapsed": updated["lapsed"],
+                },
+                entity_refs={"objective_id": str(objective_id)},
+            )
         return updated["due_at"]
 
     # --- dismiss -------------------------------------------------------------
@@ -636,24 +729,34 @@ class CheckinRepository:
                 """
                 SELECT id FROM learning.checkin_events
                  WHERE id = :event_id AND session_id = :session_id
-                   AND responded_at IS NULL
+                   AND responded_at IS NULL AND dismissed = false
                 """
             ),
             {"event_id": event_id, "session_id": session_id},
         )
         if row.scalar_one_or_none() is None:
             return None
-        now = _now()
         async with self.transaction():
+            # A dismissed check-in keeps responded_at NULL: the schema's
+            # CHECK (dismissed = false OR responded_at IS NULL) encodes
+            # "answered" and "dismissed" as mutually exclusive outcomes.
             await self.session.execute(
                 text(
                     """
                     UPDATE learning.checkin_events
-                       SET dismissed = true, responded_at = :now, request_id = :rid
+                       SET dismissed = true, request_id = :rid
                      WHERE id = :event_id
                     """
                 ),
-                {"now": now, "rid": body.request_id, "event_id": event_id},
+                {"rid": body.request_id, "event_id": event_id},
+            )
+            await learning_trace(self.session, session_id).record(
+                "learning_checkin_dismissed",
+                "checkin_repository",
+                "v1",
+                "Student dismissed the check-in; cooldown doubled.",
+                "checkin_dismissed",
+                entity_refs={"checkin_event_id": str(event_id)},
             )
         cooldown = dismiss_cooldown_seconds()
         return CheckinDismissResponse(
@@ -758,7 +861,7 @@ class CheckinRepository:
                     INSERT INTO learning.interventions
                         (id, student_id, session_id, objective_id, level, trigger_rule, content)
                     SELECT gen_random_uuid(), s.student_id, s.id, :objective_id, :level,
-                           :rule, :content::jsonb
+                           :rule, CAST(:content AS jsonb)
                       FROM core.sessions s WHERE s.id = :session_id
                     """
                 ),
@@ -769,6 +872,15 @@ class CheckinRepository:
                     "content": _json({"summary": summary, "objective": objective_code}),
                     "session_id": session_id,
                 },
+            )
+            await learning_trace(self.session, session_id).record(
+                "learning_intervention_opened",
+                "checkin_repository",
+                "v1",
+                "Opened a rung of the advice escalation ladder.",
+                rule,
+                outputs={"level": level.value, "objective_code": objective_code},
+                entity_refs={"objective_id": str(objective_id)},
             )
 
     async def _intervention_context(self, session_id: UUID, score: float) -> InterventionContext:

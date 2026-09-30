@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     # offered (>=10 min by default). Set to 0 to exercise the retry/cap loop in
     # tests without waiting (the e2e suite launches the API this way).
     learning_quiz_cooldown_seconds: int = 600
+    # Plan 06 W6.5: staged rollout seam for the learning journey. Sessions
+    # default to learning disabled; e2e/learning scenarios opt in per session
+    # (POST /v1/sessions {"learning_enabled": true}) or by setting this env
+    # var (LEARNING_ENABLED_DEFAULT=true). Never a weakened assertion.
+    learning_enabled_default: bool = False
     # Direct web-search provider for the research path (W1.3). The Azure
     # Responses API web_search tool is used when the resource supports it;
     # otherwise a configured search API (tavily | brave | bing) is used.

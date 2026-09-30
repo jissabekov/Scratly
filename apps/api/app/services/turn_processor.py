@@ -8,6 +8,8 @@ from typing import Any
 from uuid import UUID
 
 from app.contracts import (
+    CheckinDeliverResponse,
+    CheckinGate,
     PrimaryIntent,
     ProfileReviewOutput,
     QuestionTopic,
@@ -193,7 +195,9 @@ def _transition_line(rotation: int, question: str) -> str:
     return _TRANSITION_LINES[rotation % len(_TRANSITION_LINES)].format(question=question)
 
 
-async def process_student_turn(repo, extractor, writer, context_builder, session_id, request):
+async def process_student_turn(
+    repo, extractor, writer, context_builder, session_id, request, checkin_repo=None
+):
     """Sole normal turn path; state and its trace commit or roll back together."""
     existing = await repo.completed_turn(session_id, request.idempotency_key)
     if existing:
@@ -228,6 +232,35 @@ async def process_student_turn(repo, extractor, writer, context_builder, session
         public_profile = await tx.public_profile()
 
         if counters.get("matching_completed"):
+            # Plan 06 W6.2 — parallel learning track. When learning is enabled
+            # and the deterministic gate has a check-in available, the terminal
+            # turn surfaces it instead of post-match feedback. The delivery runs
+            # in this same transaction and never touches assessment state.
+            learning = await _maybe_deliver_checkin(tx, checkin_repo, session_id)
+            if learning is not None:
+                reply = _progress_checkin_reply(learning)
+                assistant = await tx.persist_terminal_reply(
+                    turn,
+                    reply,
+                    message_kind="progress_checkin",
+                    student_message_id=message.id,
+                    learning=learning,
+                )
+                await trace.record(
+                    "turn_completed",
+                    "turn_processor",
+                    "v2",
+                    "Persisted a learning progress check-in on the terminal fast path.",
+                    "progress_checkin_committed",
+                    outputs={
+                        "stage": "complete",
+                        "message_kind": "progress_checkin",
+                        "checkins_used": learning.checkins_used,
+                        "total_duration_ms": int((perf_counter() - turn_started_at) * 1000),
+                    },
+                )
+                return assistant
+
             projects = await tx.list_generated_projects()
             reply = _post_match_reply(request.text, projects)
             await trace.record(
@@ -1461,6 +1494,32 @@ async def _run_project_matching(tx, llm, trace, context_builder) -> str | None:
         outputs={"accepted_count": len(accepted), "rejected_count": len(rejected)},
     )
     return None
+
+
+async def _maybe_deliver_checkin(tx, checkin_repo, session_id) -> CheckinDeliverResponse | None:
+    """Deliver a learning check-in on the terminal path when one is available.
+
+    Returns ``None`` unless learning is enabled for the session *and* the
+    deterministic gate says a check-in is available right now. Delivery runs in
+    the turn's own transaction (``commit=False``), so the turn and the check-in
+    commit or roll back together (Plan 06 W6.2).
+    """
+    if checkin_repo is None:
+        return None
+    if not await tx.learning_enabled():
+        return None
+    delivered = await checkin_repo.deliver(session_id, commit=False)
+    if delivered is None or delivered.gate != CheckinGate.AVAILABLE or delivered.item is None:
+        return None
+    return delivered
+
+
+def _progress_checkin_reply(delivered: CheckinDeliverResponse) -> str:
+    """Deterministic chat framing for a delivered learning check-in."""
+    item = delivered.item
+    if item is None:
+        return "Let's do a quick progress check-in."
+    return f"Quick progress check-in on {item.objective_label}: {item.prompt}"
 
 
 def _post_match_reply(student_text: str, projects: list[dict[str, Any]]) -> str:

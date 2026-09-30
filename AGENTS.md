@@ -10,6 +10,7 @@ Explainable student discovery & project matching: FastAPI + PostgreSQL backend (
 - DB only: `docker compose up -d --wait postgres` · full stack: `docker compose --profile full up -d --build --wait`
 - Learning content seed (Plan 03/04; run before learning/quiz e2e — validates `content/modules/**` incl. `quiz.json` and upserts the `learning` schema; idempotent): `.venv/Scripts/python scripts/seed_learning_content.py` (add `--dry-run` to validate only). Migrations are applied lexically on first Postgres volume only; apply a new one to an existing volume with `docker compose exec -T postgres psql -U scratly -d scratly < migrations/<file>.sql`.
 - Quiz e2e needs the API launched with `LEARNING_QUIZ_COOLDOWN_SECONDS=0` (default 600s blocks the immediate alternate-form retry the remediation loop promises): `cd apps/api && set -a && source .env && set +a && export LEARNING_QUIZ_COOLDOWN_SECONDS=0 && ../../.venv/Scripts/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`.
+- Learning journey is opt-in per session (staged rollout, Plan 06 W6.5): `core.sessions.learning_enabled` defaults `false`; e2e and eval learning scenarios pass `POST /v1/sessions {"learning_enabled": true}`, or set env `LEARNING_ENABLED_DEFAULT=true` to change the default. Assessment sessions are unaffected.
 - Live eval suite (needs API on :8000 + Postgres + Azure): set `PYTHONIOENCODING=utf-8`, then `.venv/Scripts/python scripts/eval_conversation_suite.py --out-dir eval/traces/<new-dir>`; analyze with `.venv/Scripts/python eval/analyze_post_fix.py <dir>`
 
 ## Hard rules (from docs/architecture.md — do not violate)
@@ -33,7 +34,7 @@ Explainable student discovery & project matching: FastAPI + PostgreSQL backend (
 ## Skills (use these instead of re-deriving procedures)
 
 - `/verify` — full verification gate (compile check + unit tests + optional web build); run before claiming any change is done.
-- `/eval-suite` — run and interpret the 21-scenario live conversation eval (assertions A1–A18, baseline comparison).
+- `/eval-suite` — run and interpret the 28-scenario live conversation eval (assertions A1–A23 incl. learning, baseline comparison).
 - `/state-report` — generate a current-state report (commit timeline, eval results, pending work).
 - `/research` — parallel web + GitHub-ecosystem research via subagents, synthesized into actionable recommendations.
 - `/frontend-ui` — build/modify web UI (lesson player, quizzes, chat) per `apps/web/AGENTS.md` conventions.

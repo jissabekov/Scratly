@@ -25,6 +25,7 @@ export type CheckInWidgetProps = {
 export function CheckInWidget({ sessionId, onSettled, className }: CheckInWidgetProps) {
   const reduced = useReducedMotion();
   const [item, setItem] = useState<CheckinItemView | null>(null);
+  const [eventId, setEventId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [freeText, setFreeText] = useState('');
   const [result, setResult] = useState<CheckinResult | null>(null);
@@ -43,6 +44,8 @@ export function CheckInWidget({ sessionId, onSettled, className }: CheckInWidget
         if (cancelled) return;
         if (delivered.gate === 'available' && delivered.item) {
           setItem(delivered.item);
+          // The event id — not the item id — is the check-in's write key.
+          setEventId(delivered.event_id ?? delivered.item.id);
           openedAtRef.current = Date.now();
         } else {
           setNote(gateNote(delivered.gate, delivered.retry_after_seconds));
@@ -67,7 +70,7 @@ export function CheckInWidget({ sessionId, onSettled, className }: CheckInWidget
       try {
         const answered = await respondCheckinAction({
           sessionId,
-          checkinId: item.id,
+          checkinId: eventId ?? item.id,
           requestId: newIdempotencyKey(),
           response,
           freeText,
@@ -79,7 +82,7 @@ export function CheckInWidget({ sessionId, onSettled, className }: CheckInWidget
         setError(err instanceof Error ? err.message : String(err));
       }
     });
-  }, [item, pending, selected, freeText, sessionId, onSettled]);
+  }, [item, eventId, pending, selected, freeText, sessionId, onSettled]);
 
   const dismiss = useCallback(() => {
     if (!item || pending) return;
@@ -87,7 +90,7 @@ export function CheckInWidget({ sessionId, onSettled, className }: CheckInWidget
       try {
         await dismissCheckinAction({
           sessionId,
-          checkinId: item.id,
+          checkinId: eventId ?? item.id,
           requestId: newIdempotencyKey(),
           reason: 'student_declined',
         });
@@ -98,7 +101,7 @@ export function CheckInWidget({ sessionId, onSettled, className }: CheckInWidget
         onSettled?.('dismissed');
       }
     });
-  }, [item, pending, sessionId, onSettled]);
+  }, [item, eventId, pending, sessionId, onSettled]);
 
   const choose = useCallback((key: string) => setSelected([key]), []);
 

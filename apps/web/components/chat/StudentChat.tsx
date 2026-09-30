@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../../lib/api';
 import {
@@ -22,6 +22,7 @@ import { Composer } from './Composer';
 import { MessageBubble } from './MessageBubble';
 import { ProjectCards } from './ProjectCards';
 import { StageChip } from './StageChip';
+import { CheckInWidget } from '../learn/CheckInWidget';
 
 const WELCOME_TEXT =
   "Hey — I'm Scratly. Tell me a bit about yourself and what you've been into lately, and I'll help find a course project that actually fits.";
@@ -43,6 +44,7 @@ export function StudentChat() {
   const [busy, setBusy] = useState(false);
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState('');
+  const [learningEnabled, setLearningEnabled] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
   const idempotencyRef = useRef<string | null>(null);
 
@@ -72,6 +74,7 @@ export function StudentChat() {
   const hydrateFromMessages = useCallback(
     (data: SessionMessages) => {
       setStage(data.stage);
+      setLearningEnabled(data.learning_enabled);
       const items: ThreadMessage[] = data.items.map((m) => ({
         key: m.id,
         id: m.id,
@@ -94,10 +97,18 @@ export function StudentChat() {
     setBusy(true);
     setError('');
     try {
-      const created = await api<SessionCreated>('/v1/sessions', { method: 'POST' });
+      const created = await api<SessionCreated>('/v1/sessions', {
+        method: 'POST',
+        // Staged rollout (Plan 06 W6.5): the learning journey is opt-in. The
+        // documented web toggle mirrors the API's LEARNING_ENABLED_DEFAULT.
+        body: JSON.stringify({
+          learning_enabled: process.env.NEXT_PUBLIC_LEARNING_ENABLED === 'true',
+        }),
+      });
       storeSessionId(created.session_id);
       setSessionId(created.session_id);
       setStage(created.stage);
+      setLearningEnabled(created.learning_enabled);
       setMessages([welcomeMessage()]);
       setProjects([]);
       setDraft('');
@@ -185,6 +196,7 @@ export function StudentChat() {
               message_kind: result.message_kind,
               status: 'sent',
               elicitation: result.elicitation,
+              learning: result.learning,
             },
           ];
         });
@@ -211,6 +223,12 @@ export function StudentChat() {
   }
 
   const completed = stage === 'complete';
+  // Plan 06 W6.2: the terminal path stays terminal for assessment, but an
+  // active learning journey keeps the thread conversational (progress check-ins).
+  const showCompletionPanel = completed && !learningEnabled;
+  const lastCheckinKey = [...messages]
+    .reverse()
+    .find((m) => m.message_kind === 'progress_checkin' && m.learning?.item)?.key;
 
   return (
     <div className="chat-shell">
@@ -241,18 +259,22 @@ export function StudentChat() {
         ) : (
           <>
             {messages.map((message) => (
-              <MessageBubble
-                key={message.key}
-                message={message}
-                onElicitation={
-                  !busy && message.message_kind === 'elicitation'
-                    ? (label) => void sendText(label)
-                    : undefined
-                }
-                onRetry={
-                  message.status === 'failed' ? () => retryFailed() : undefined
-                }
-              />
+              <Fragment key={message.key}>
+                <MessageBubble
+                  message={message}
+                  onElicitation={
+                    !busy && message.message_kind === 'elicitation'
+                      ? (label) => void sendText(label)
+                      : undefined
+                  }
+                  onRetry={
+                    message.status === 'failed' ? () => retryFailed() : undefined
+                  }
+                />
+                {message.key === lastCheckinKey && sessionId ? (
+                  <CheckInWidget sessionId={sessionId} className="chat-checkin" />
+                ) : null}
+              </Fragment>
             ))}
             {busy ? (
               <div className="chat-row assistant enter">
@@ -263,7 +285,7 @@ export function StudentChat() {
               </div>
             ) : null}
             <ProjectCards projects={projects} />
-            {completed ? (
+            {showCompletionPanel ? (
               <div className="chat-complete enter">
                 <p>That’s a wrap — your preferences are matched.</p>
                 <button type="button" onClick={() => void startNewSession()}>
@@ -283,9 +305,11 @@ export function StudentChat() {
         onSend={(text) => void sendText(text)}
         disabled={busy || booting || !sessionId}
         placeholder={
-          completed
+          showCompletionPanel
             ? 'Add a final note or question…'
-            : 'Share an interest, preference, or answer…'
+            : completed
+              ? 'Answer the check-in or ask a question…'
+              : 'Share an interest, preference, or answer…'
         }
       />
     </div>

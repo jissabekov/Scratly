@@ -27,6 +27,7 @@ async def learning_hub(session_id: UUID, repo: LearningRepository = Depends(get_
     hub = await repo.hub(session_id)
     if hub is None:
         raise HTTPException(status_code=404, detail="Session not found")
+    await repo.record_hub_viewed(session_id, hub)
     return hub
 
 

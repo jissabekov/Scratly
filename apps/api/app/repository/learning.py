@@ -39,6 +39,7 @@ from app.services.learning_progress import (
     progress_pct,
     xapi_statement,
 )
+from app.services.learning_trace import learning_trace
 
 XAPI_VERB = "completed"
 
@@ -228,6 +229,18 @@ class LearningRepository:
             mastery_pct=overall_mastery_pct(views),
             streak_days=compute_streak_days(days, datetime.now(timezone.utc).date()),
         )
+
+    async def record_hub_viewed(self, session_id: UUID, hub: LearningHubResponse) -> None:
+        """Append the engagement event for an actual hub read (Plan 06 W6.3)."""
+        async with self.transaction():
+            await learning_trace(self.session, session_id).record(
+                "learning_hub_viewed",
+                "learning_repository",
+                "v1",
+                "Student opened the learning hub.",
+                "hub_requested",
+                outputs={"module_count": len(hub.modules), "mastery_pct": hub.mastery_pct},
+            )
 
     async def module_detail(self, session_id: UUID, module_id: UUID) -> ModuleDetailResponse | None:
         hub = await self.hub(session_id)
@@ -495,6 +508,24 @@ class LearningRepository:
                         result={"completion": True},
                         context={"slug": context["module_slug"]},
                     )
+                await learning_trace(self.session, session_id).record(
+                    "learning_slide_completed",
+                    "learning_repository",
+                    "v1",
+                    "Student completed a slide; module progress recomputed.",
+                    "slide_completed",
+                    inputs={"time_on_slide_ms": time_on_slide_ms},
+                    outputs={
+                        "slides_completed": counts["module_completed"],
+                        "slides_total": counts["module_total"],
+                        "module_completed": counts["module_completed"] >= counts["module_total"],
+                    },
+                    entity_refs={
+                        "slide_id": str(slide_id),
+                        "lesson_id": str(lesson_id),
+                        "module_id": str(module_id),
+                    },
+                )
 
             await self.session.execute(
                 text(

@@ -14,16 +14,16 @@ _FORBIDDEN_KEYS = frozenset(
 )
 
 
-def _assert_no_raw_text(value: Any, path: str = "payload") -> None:
+def assert_no_raw_text(value: Any, path: str = "payload") -> None:
     """Reject fields that could duplicate student text in the audit schema."""
     if isinstance(value, dict):
         for key, child in value.items():
             if key.lower() in _FORBIDDEN_KEYS:
                 raise TracePrivacyError(f"raw student text is forbidden at {path}.{key}")
-            _assert_no_raw_text(child, f"{path}.{key}")
+            assert_no_raw_text(child, f"{path}.{key}")
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _assert_no_raw_text(child, f"{path}[{index}]")
+            assert_no_raw_text(child, f"{path}[{index}]")
 
 
 @dataclass
@@ -49,8 +49,8 @@ class DecisionTraceRecorder:
         duration_ms: int | None = None,
     ) -> None:
         safe_inputs, safe_outputs = inputs or {}, outputs or {}
-        _assert_no_raw_text(safe_inputs, "inputs")
-        _assert_no_raw_text(safe_outputs, "outputs")
+        assert_no_raw_text(safe_inputs, "inputs")
+        assert_no_raw_text(safe_outputs, "outputs")
         self.sequence += 1
         await self.tx.record_decision_event(
             session_id=self.session_id,

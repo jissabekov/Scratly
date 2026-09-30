@@ -71,7 +71,9 @@ def _max_run(values: list[Any]) -> int:
 
 
 def _planned_turns(scenario: dict[str, Any]) -> int:
-    return len(scenario.get("turns") or []) or int(scenario["simulator"]["max_turns"])
+    """Chat turns a scenario plans: scripted list length, else the simulator cap."""
+    simulator = scenario.get("simulator") or {}
+    return len(scenario.get("turns") or []) or int(simulator.get("max_turns") or 0)
 
 
 # ---------------------------------------------------------------------------
@@ -846,7 +848,344 @@ ADMIN_VIEWS = (
     "why-next-question",
     "contradictions",
     "project-fit",
+    # Plan 06 W6.3 — teacher-console views over the learning track.
+    "learning-progress",
+    "quiz-history",
+    "interventions",
 )
+
+
+# Plan 06 W6.1/W6.3 — the append-only ``learning_*`` decision-event kinds the
+# learning repositories emit (turn_id = NULL, one correlation_id per write). They
+# are read back through ``GET /v1/admin/sessions/{id}/decision-trace``.
+LEARNING_EVENT_TYPES = frozenset(
+    {
+        "learning_hub_viewed",
+        "learning_slide_completed",
+        "learning_quiz_drawn",
+        "learning_quiz_scored",
+        "learning_module_unlocked",
+        "learning_checkin_delivered",
+        "learning_checkin_answered",
+        "learning_checkin_dismissed",
+        "learning_intervention_opened",
+        "learning_retention_card_due",
+    }
+)
+
+# Plan 06 hard rule 8 / W6.3 — keys the audit privacy guard forbids in LLM
+# payloads (mirrors app/services/decision_trace.py ``_FORBIDDEN_KEYS``).
+FORBIDDEN_PAYLOAD_KEYS = frozenset(
+    {"content", "message", "raw_text", "student_text", "transcript", "exact_source_quote"}
+)
+
+# Plan 04 §4.3 — BKT parameters, mirrored from
+# app/services/learning_quiz_engine.py so A22 can replay mastery from the
+# append-only xAPI events without importing the application package.
+BKT_PRIOR = 0.25
+BKT_LEARN = 0.15
+BKT_SLIP = 0.10
+BKT_GUESS = {"mcq": 0.25, "select_all": 0.15}
+
+# Plan 05 §5.1 — check-in budget cap, mirrored from
+# app/contracts/learning_checkin.MAX_CHECKINS_PER_SESSION.
+MAX_CHECKINS_PER_SESSION = 3
+
+MASTERY_REPLAY_TOLERANCE = 1e-3
+
+
+# ---------------------------------------------------------------------------
+# Learning scenarios (Plan 06 W6.4) — additive, merged into the suite in main().
+#
+# Each carries ``"mode": "learning"`` so ``run_scenario`` captures the learning
+# dump contract instead of the assessment-only shape. ``learning.module_slug``
+# names a seeded module (resolved to its uuid from the hub at run time); the
+# ordered ``learning.steps`` drive the REST endpoints in
+# ``routes/learning.py`` / ``learning_quiz.py`` / ``learning_checkins.py``.
+# ---------------------------------------------------------------------------
+
+
+LEARNING_SCENARIOS: list[dict[str, Any]] = [
+    {
+        "id": "learn_module_quiz_unlock",
+        "title": "Learning happy path — module slides → quiz pass → unlock",
+        "aspects": [
+            "learning",
+            "module_progress",
+            "quiz_pass",
+            "module_unlock",
+            "mastery",
+        ],
+        "mode": "learning",
+        "turns": [
+            "I picked a project and I'm ready to start the learning modules.",
+            "I finished the first module's slides and want to try the quiz.",
+        ],
+        "learning": {
+            "module_slug": "how-apps-work",
+            "steps": [
+                {"op": "hub"},
+                {"op": "module"},
+                {"op": "complete_slides"},
+                {"op": "quiz_draw"},
+                {"op": "quiz_check", "mode": "correct"},
+                {"op": "quiz_submit", "mode": "correct"},
+                {"op": "quiz_replay", "mode": "correct"},
+                {"op": "summary"},
+                {"op": "xapi_events"},
+            ],
+        },
+    },
+    {
+        "id": "learn_quiz_remediation_loop",
+        "title": "Learning remediation — quiz fail → re-teach → form-2 → pass",
+        "aspects": [
+            "learning",
+            "quiz_fail",
+            "remediation",
+            "alternate_form",
+            "intervention_ladder",
+        ],
+        "mode": "learning",
+        "turns": [
+            "The first module quiz did not go well — I want another try.",
+        ],
+        "learning": {
+            "module_slug": "how-apps-work",
+            "steps": [
+                {"op": "hub"},
+                {"op": "complete_slides"},
+                {"op": "quiz_draw"},
+                {"op": "quiz_submit", "mode": "wrong"},
+                {"op": "module"},
+                {"op": "quiz_draw"},
+                {"op": "quiz_submit", "mode": "correct"},
+                {"op": "summary"},
+                {"op": "xapi_events"},
+            ],
+        },
+    },
+    {
+        "id": "learn_checkin_budget",
+        "title": "Learning check-in cadence — deliver, respond, dismiss, exhaust budget",
+        "aspects": [
+            "learning",
+            "checkin_cadence",
+            "checkin_budget",
+            "dismissal",
+            "cooldown",
+        ],
+        "mode": "learning",
+        "turns": [
+            "I have been working through the module and wanted to check in.",
+        ],
+        "learning": {
+            "module_slug": "how-apps-work",
+            "steps": [
+                {"op": "hub"},
+                {"op": "complete_slides"},
+                {"op": "checkin_deliver"},
+                {"op": "checkin_respond", "mode": "correct"},
+                {"op": "checkin_deliver"},
+                {"op": "checkin_dismiss"},
+                {"op": "checkin_deliver"},
+                {"op": "checkin_respond", "mode": "correct"},
+                {"op": "checkin_deliver"},
+                {"op": "summary"},
+                {"op": "xapi_events"},
+            ],
+        },
+    },
+    {
+        "id": "learn_retention_due",
+        "title": "Learning retention — a card comes due and drives a review check-in",
+        "aspects": [
+            "learning",
+            "retention_card",
+            "spaced_repetition",
+            "review_checkin",
+        ],
+        "mode": "learning",
+        "turns": [
+            "I passed the module a while ago and got a reminder to review it.",
+        ],
+        "learning": {
+            "module_slug": "how-apps-work",
+            "steps": [
+                {"op": "hub"},
+                {"op": "complete_slides"},
+                {"op": "quiz_draw"},
+                {"op": "quiz_submit", "mode": "correct"},
+                {"op": "checkin_deliver"},
+                {"op": "checkin_respond", "mode": "correct"},
+                {"op": "summary"},
+                {"op": "xapi_events"},
+            ],
+        },
+    },
+    {
+        "id": "learn_advice_handoff",
+        "title": "Learning advice — repeated quiz failure escalates to a handoff",
+        "aspects": [
+            "learning",
+            "intervention_ladder",
+            "handoff",
+            "escalation",
+        ],
+        "mode": "learning",
+        "turns": [
+            "I keep failing this module quiz and I'm getting frustrated.",
+        ],
+        "learning": {
+            "module_slug": "how-apps-work",
+            "steps": [
+                {"op": "hub"},
+                {"op": "complete_slides"},
+                {"op": "quiz_draw"},
+                {"op": "quiz_submit", "mode": "wrong"},
+                {"op": "quiz_draw"},
+                {"op": "quiz_submit", "mode": "wrong"},
+                {"op": "quiz_draw"},
+                {"op": "quiz_submit", "mode": "wrong"},
+                {"op": "summary"},
+                {"op": "xapi_events"},
+            ],
+        },
+    },
+    {
+        "id": "learn_inactivity_reengagement",
+        "title": "Adaptive learning — inactivity re-engagement check-in after a quiet spell",
+        "aspects": [
+            "learning",
+            "inactivity",
+            "reengagement",
+            "adaptive",
+            "natural_flow",
+        ],
+        "mode": "learning",
+        "simulator": {
+            "opening": "hey, I got a nudge that I went quiet on my project — where do I pick up?",
+            "min_turns": 4,
+            "max_turns": 10,
+            "project_keywords": [],
+            "facts": {
+                "conversation_contract": [
+                    "I mostly want to know what to do next, not redo the whole quiz."
+                ],
+                "topics": [
+                    "I was halfway through the first learning module before I stopped.",
+                    "I did not open it for a few days and lost the thread.",
+                ],
+                "work_mode": [
+                    "I do better with a short nudge than a long plan.",
+                ],
+                "motivation": [
+                    "Getting back into a small step matters more than finishing fast.",
+                ],
+                "execution": [
+                    "If I miss a few days I need an easy way back in.",
+                ],
+                "capability": [
+                    "I can follow a checklist but I forget where I left off.",
+                ],
+                "assets": [
+                    "Just my phone, usually on the bus.",
+                ],
+                "constraints": [
+                    "Short sessions only, a few minutes at a time.",
+                ],
+                "profile": [
+                    "Yeah, that's me — needs a gentle restart.",
+                ],
+            },
+            "project_feedback": "A quick restart check-in sounds right.",
+        },
+        "learning": {
+            "module_slug": "how-apps-work",
+            "steps": [
+                {"op": "hub"},
+                {"op": "complete_slides"},
+                {"op": "checkin_deliver"},
+                {"op": "checkin_respond", "mode": "correct"},
+                {"op": "summary"},
+                {"op": "xapi_events"},
+            ],
+        },
+    },
+    {
+        "id": "learn_chat_checkin_replay",
+        "title": "Adaptive learning — terminal chat check-in and its idempotent replay",
+        "aspects": [
+            "learning",
+            "chat_routing",
+            "progress_checkin",
+            "idempotency",
+            "terminal_fast_path",
+        ],
+        "mode": "learning",
+        # Drives the full assessment journey to `complete` (the terminal fast
+        # path only routes progress_checkin once matching has completed), then
+        # completes a learning slide so the deterministic gate has a
+        # section_complete trigger, then sends one terminal turn and replays its
+        # idempotency_key (A20 must see the SAME event_id).
+        "simulator": {
+            "opening": "hey. my counselor said this might help but idk what project i want",
+            "min_turns": 14,
+            "max_turns": 24,
+            "project_keywords": ["photo", "story", "basketball", "community"],
+            "facts": {
+                "conversation_contract": [
+                    "Okay, but can we keep it normal and not make this a personality test?"
+                ],
+                "topics": [
+                    "I keep taking photos at neighborhood basketball games. Mostly the little moments, not action shots.",
+                    "Last month I made a photo carousel about the girls' team because nobody was covering them.",
+                    "I like noticing a story other people walked past. I don't want to become a sports influencer though.",
+                ],
+                "work_mode": [
+                    "I shoot alone, then two friends help me choose photos. Writing captions together is actually fun.",
+                    "I'm usually the one who finds the angle and edits; my friend is better at interviewing people.",
+                ],
+                "motivation": [
+                    "It matters when players repost it because they felt seen. A polished final post matters too.",
+                    "If I had to choose, making somebody feel represented beats getting lots of views.",
+                ],
+                "execution": [
+                    "I redid one carousel three nights in a row after the order felt confusing, then asked my cousin to look.",
+                    "A blank 'make media' brief would annoy me. Give me an audience and deadline and I can figure out the rest.",
+                ],
+                "capability": [
+                    "I can use Lightroom Mobile and Canva. Audio editing and a real camera are new to me."
+                ],
+                "assets": [
+                    "Phone camera, the rec center manager knows me, and two players said they'd talk to me."
+                ],
+                "constraints": [
+                    "I'm in Baltimore, bus distance only. Four weeks, phone tools, basically no budget.",
+                    "Small interviews are okay. I don't want my face on camera or my full name posted.",
+                ],
+                "profile": [
+                    "Mostly right. Make privacy a real constraint, and don't describe me as wanting attention."
+                ],
+            },
+            "project_feedback": "The photo-and-audio mini profile fits best if it can be three short stories, not a huge website. What would option two look like without showing my face?",
+        },
+        "learning": {
+            "module_slug": "how-apps-work",
+            "steps": [
+                {"op": "hub"},
+                {"op": "complete_slides"},
+                {"op": "chat_checkin", "text": "I'm back — any quick check-in for me?"},
+                {"op": "chat_checkin_replay", "text": "I'm back — any quick check-in for me?"},
+                {"op": "summary"},
+                {"op": "xapi_events"},
+            ],
+        },
+    },
+]
+
+
+ALL_SCENARIOS: list[dict[str, Any]] = [*SCENARIOS, *LEARNING_SCENARIOS]
 
 
 def _req(method: str, url: str, body: dict | None = None, timeout: int = 180) -> Any:
@@ -965,9 +1304,12 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
     else:
         profile_state = profile if isinstance(profile, dict) else {}
 
+    # Plan 06 W6.4 — learning metrics ({} for assessment-only dumps).
+    learning_analysis = analyze_learning_dump(dump)
+
     event_types = Counter(e.get("event_type") for e in events)
     stages = [t.get("response", {}).get("stage") for t in turns if t.get("response")]
-    stage_path = []
+    stage_path: list[Any] = []
     for s in stages:
         if not stage_path or stage_path[-1] != s:
             stage_path.append(s)
@@ -998,7 +1340,7 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
 
     # Coverage-ish: count non-unknown from coverage if present on profile view
     coverage = (views.get("profile") or {}).get("coverage") or []
-    cov_status = Counter()
+    cov_status: Counter[str] = Counter()
     for row in coverage if isinstance(coverage, list) else []:
         cov_status[row.get("status") or "unknown"] += 1
 
@@ -1264,7 +1606,707 @@ def analyze_dump(dump: dict[str, Any]) -> dict[str, Any]:
         )
         if isinstance(profile_state, dict)
         else [],
+        # Plan 06 W6.4 — learning metrics. ``None`` for assessment-only dumps so
+        # every existing metric key is preserved and the new ones are additive.
+        "learning_metrics": learning_analysis,
+        "module_completion_rate": (learning_analysis or {}).get("module_completion_rate"),
+        "first_attempt_pass_rate": (learning_analysis or {}).get("first_attempt_pass_rate"),
+        "checkin_response_rate": (learning_analysis or {}).get("checkin_response_rate"),
+        "checkin_dismissal_rate": (learning_analysis or {}).get("checkin_dismissal_rate"),
+        "intervention_count": (learning_analysis or {}).get("intervention_count"),
     }
+
+
+# ---------------------------------------------------------------------------
+# Learning dump analysis + assertions A19-A23 (Plan 06 W6.4)
+# ---------------------------------------------------------------------------
+
+
+def _bkt_update(p_mastery: float, correct: bool, kind: str = "mcq") -> float:
+    """Mirror ``app.services.learning_quiz_engine.bkt_update`` for event replay."""
+    guess = BKT_GUESS.get(kind, BKT_GUESS["mcq"])
+    p = min(max(p_mastery, 0.0), 1.0)
+    if correct:
+        posterior = (p * (1 - BKT_SLIP)) / (p * (1 - BKT_SLIP) + (1 - p) * guess)
+    else:
+        posterior = (p * BKT_SLIP) / (p * BKT_SLIP + (1 - p) * (1 - guess))
+    return posterior + (1 - posterior) * BKT_LEARN
+
+
+def _xapi_objective_code(statement: dict[str, Any]) -> str | None:
+    """Objective code carried by an xAPI learning statement, if any."""
+    context = statement.get("context") or {}
+    code = context.get("objective_code")
+    if code:
+        return str(code)
+    object_id = str((statement.get("object") or {}).get("id") or "")
+    prefix = "urn:scratly:objective:"
+    if object_id.startswith(prefix):
+        return object_id[len(prefix) :]
+    return None
+
+
+def replay_mastery_from_events(events: list[dict[str, Any]]) -> dict[str, float]:
+    """Rebuild BKT mastery from the append-only xAPI ``learning_events``.
+
+    Folds quiz ``answered`` observations and scored check-in ``checked_in``
+    observations in order (the two paths that mutate ``learning.mastery_states``),
+    mirroring ``learning_quiz_engine.replay_mastery`` plus the Plan-05 check-in
+    update. A module ``passed`` event is remembered so A22 can honour the
+    documented clean-pass settlement (``learning_quiz.submit`` forces every
+    critical objective to mastery on a strict pass).
+    """
+    state: dict[str, float] = {}
+    for statement in events:
+        verb = str((statement.get("verb") or {}).get("id") or "").rsplit("/", 1)[-1]
+        if verb not in {"answered", "checked_in"}:
+            continue
+        code = _xapi_objective_code(statement)
+        if not code:
+            continue
+        context = statement.get("context") or {}
+        kind = str(context.get("kind") or "mcq")
+        success = bool((statement.get("result") or {}).get("success"))
+        state[code] = _bkt_update(state.get(code, BKT_PRIOR), success, kind)
+    return state
+
+
+def _has_module_pass_event(events: list[dict[str, Any]]) -> bool:
+    """True when a strict/provisional module pass was recorded in the stream."""
+    for statement in events:
+        verb = str((statement.get("verb") or {}).get("id") or "").rsplit("/", 1)[-1]
+        if verb == "passed" and bool((statement.get("result") or {}).get("success")):
+            return True
+    return False
+
+
+def _learning_events(dump: dict[str, Any]) -> list[dict[str, Any]]:
+    """The ``learning_*`` decision events recorded for the session."""
+    events = (dump.get("decision_trace") or {}).get("events") or []
+    return [e for e in events if e.get("event_type") in LEARNING_EVENT_TYPES]
+
+
+def _collect_forbidden_hits(payload: Any, path: str) -> list[str]:
+    """Recursively collect forbidden-key paths inside a payload dict/list."""
+    hits: list[str] = []
+    if isinstance(payload, dict):
+        for key, child in payload.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            if str(key).lower() in FORBIDDEN_PAYLOAD_KEYS:
+                hits.append(child_path)
+            hits.extend(_collect_forbidden_hits(child, child_path))
+    elif isinstance(payload, list):
+        for index, child in enumerate(payload):
+            hits.extend(_collect_forbidden_hits(child, f"{path}[{index}]"))
+    return hits
+
+
+def _student_utterances(dump: dict[str, Any]) -> list[str]:
+    """Normalized student texts whose raw presence in a payload is a PII leak."""
+    utterances: list[str] = []
+    for turn in dump.get("turns") or []:
+        text = (turn.get("request") or {}).get("text") or ""
+        normalized = _normalized_utterance(text)
+        if len(normalized) >= 12:
+            utterances.append(normalized)
+    for extra in (dump.get("learning") or {}).get("student_utterances") or []:
+        normalized = _normalized_utterance(str(extra))
+        if len(normalized) >= 12:
+            utterances.append(normalized)
+    return utterances
+
+
+def _payload_contains_utterance(payload: Any, utterances: list[str]) -> str | None:
+    """Return the first student utterance echoed in a payload, if any."""
+    if not utterances:
+        return None
+    blob = _normalized_utterance(json.dumps(payload, default=str))
+    return next((utterance for utterance in utterances if utterance in blob), None)
+
+
+def _learning_pii_leaks(dump: dict[str, Any]) -> list[dict[str, Any]]:
+    """Scan learning decision events for forbidden keys or raw student text."""
+    leaks: list[dict[str, Any]] = []
+    utterances = _student_utterances(dump)
+    for event in _learning_events(dump):
+        event_type = event.get("event_type")
+        for field in ("inputs", "outputs"):
+            payload = event.get(field)
+            if not payload:
+                continue
+            for path in _collect_forbidden_hits(payload, field):
+                leaks.append({"event_type": event_type, "kind": "forbidden_key", "path": path})
+            echoed = _payload_contains_utterance(payload, utterances)
+            if echoed:
+                leaks.append(
+                    {
+                        "event_type": event_type,
+                        "kind": "raw_student_text",
+                        "path": field,
+                        "utterance": echoed,
+                    }
+                )
+    return leaks
+
+
+def _quiz_attempt_to_module(dump: dict[str, Any]) -> dict[str, str]:
+    """Map ``attempt_id`` → ``module_id`` using the captured quiz draws."""
+    mapping: dict[str, str] = {}
+    for draw in (dump.get("learning") or {}).get("quiz_draws") or []:
+        attempt = draw.get("attempt") or {}
+        attempt_id = attempt.get("attempt_id")
+        module_id = draw.get("module_id")
+        if attempt_id and module_id:
+            mapping[str(attempt_id)] = str(module_id)
+    return mapping
+
+
+def analyze_learning_dump(dump: dict[str, Any]) -> dict[str, Any]:
+    """Derive the learning metrics A19-A23 consume from a learning dump.
+
+    Pure: reads only the dump, never the network. Returns ``{}`` when the dump
+    carries no ``learning`` key so assessment dumps are untouched.
+    """
+    learning = dump.get("learning")
+    if not learning:
+        return {}
+    hub = learning.get("hub") or {}
+    summary = learning.get("summary") or {}
+    quiz_results = learning.get("quiz_results") or []
+    quiz_draws = learning.get("quiz_draws") or []
+    checkins = learning.get("checkins") or []
+    checkin_results = learning.get("checkin_results") or []
+    xapi_events = learning.get("xapi_events") or []
+
+    modules = hub.get("modules") or []
+    module_states = {str(m.get("id")): m.get("state") for m in modules if m.get("id")}
+    modules_passed = sorted(mid for mid, state in module_states.items() if state == "passed")
+
+    attempt_to_module = _quiz_attempt_to_module(dump)
+    passed_modules: set[str] = set()
+    unlocked_without_pass: list[str] = []
+    for result in quiz_results:
+        module_id = result.get("unlocked_module_id")
+        if module_id and not result.get("passed"):
+            unlocked_without_pass.append(str(module_id))
+        if result.get("passed"):
+            if module_id:
+                passed_modules.add(str(module_id))
+            owner = attempt_to_module.get(str(result.get("attempt_id")))
+            if owner:
+                passed_modules.add(owner)
+    for module_id in modules_passed:
+        if module_id not in passed_modules:
+            unlocked_without_pass.append(module_id)
+    unlocked_without_pass = sorted(set(unlocked_without_pass))
+
+    ordered_results = sorted(
+        quiz_results, key=lambda r: (r.get("attempt_no") or 0, str(r.get("attempt_id")))
+    )
+    first_attempt_pass = bool(ordered_results[0].get("passed")) if ordered_results else None
+
+    replay_conflicts = [
+        pair
+        for pair in (learning.get("replayed") or [])
+        if str(pair.get("first_attempt_id")) != str(pair.get("second_attempt_id"))
+    ]
+
+    # Plan 06 W6.2 — terminal chat check-ins. A replayed idempotency_key must
+    # surface the SAME event_id, never a second delivery.
+    chat_checkins = learning.get("chat_checkins") or []
+    chat_events_by_key: dict[str, list[str]] = defaultdict(list)
+    for entry in chat_checkins:
+        if entry.get("event_id") and entry.get("idempotency_key"):
+            chat_events_by_key[str(entry["idempotency_key"])].append(str(entry["event_id"]))
+    chat_checkin_replay_mismatches = [
+        {"idempotency_key": key, "event_ids": event_ids}
+        for key, event_ids in chat_events_by_key.items()
+        if len(set(event_ids)) > 1
+    ]
+
+    delivered = [c for c in checkins if c.get("item") and c.get("gate") == "available"]
+    responded = [r for r in checkin_results if "score" in r or r.get("result") is not None]
+    dismissed = [r for r in checkin_results if r.get("dismissed")]
+    delivered_count = len(delivered) or len(checkins)
+    checkin_response_rate = round(len(responded) / max(delivered_count, 1), 3)
+    checkin_dismissal_rate = round(len(dismissed) / max(delivered_count, 1), 3)
+    checkins_during_open_quiz = sum(
+        1
+        for c in checkins
+        if c.get("open_quiz_attempt_id") and c.get("gate") == "available" and c.get("item")
+    )
+
+    checkins_used = summary.get("checkins_used")
+    if checkins_used is None and checkins:
+        checkins_used = max((c.get("checkins_used") or 0) for c in checkins)
+    max_checkins = summary.get("max_checkins")
+    if max_checkins is None:
+        max_checkins = next(
+            (c.get("max_checkins") for c in checkins if c.get("max_checkins") is not None),
+            MAX_CHECKINS_PER_SESSION,
+        )
+
+    mastery_from_summary = {
+        str(row.get("objective_code")): float(row.get("p_mastery") or 0.0)
+        for row in summary.get("mastery") or []
+        if row.get("objective_code")
+    }
+    mastery_replayed = replay_mastery_from_events(xapi_events)
+    pass_seen = _has_module_pass_event(xapi_events)
+    mastery_replay_mismatches: list[dict[str, Any]] = []
+    for code, summary_p in sorted(mastery_from_summary.items()):
+        if code not in mastery_replayed:
+            mastery_replay_mismatches.append(
+                {"objective_code": code, "summary": summary_p, "replayed": None}
+            )
+            continue
+        replayed_p = mastery_replayed[code]
+        if abs(summary_p - replayed_p) <= MASTERY_REPLAY_TOLERANCE:
+            continue
+        # Documented clean-pass settlement: learning_quiz.submit forces every
+        # critical objective to mastery (1.0) on a strict pass, which the xAPI
+        # stream cannot reproduce (critical flags live in content, not events).
+        if pass_seen and summary_p >= 1.0:
+            continue
+        mastery_replay_mismatches.append(
+            {"objective_code": code, "summary": summary_p, "replayed": replayed_p}
+        )
+
+    intervention_count = len(summary.get("open_interventions") or [])
+    if not summary:
+        intervention_count = sum(
+            1
+            for e in _learning_events(dump)
+            if e.get("event_type") == "learning_intervention_opened"
+        )
+    retention_due_count = len(summary.get("due_retention") or [])
+    if not summary:
+        retention_due_count = sum(
+            1
+            for e in _learning_events(dump)
+            if e.get("event_type") == "learning_retention_card_due"
+        )
+
+    module_completion_rate = round(len(modules_passed) / max(len(modules), 1), 3)
+    first_attempt_pass_rate = (
+        None if first_attempt_pass is None else (1.0 if first_attempt_pass else 0.0)
+    )
+
+    return {
+        "module_states": module_states,
+        "modules_passed": modules_passed,
+        "modules_unlocked_without_pass": unlocked_without_pass,
+        "quiz_attempts": len(quiz_results),
+        "quiz_draw_count": len(quiz_draws),
+        "first_attempt_pass": first_attempt_pass,
+        "first_attempt_pass_rate": first_attempt_pass_rate,
+        "quiz_replay_conflicts": replay_conflicts,
+        "chat_checkins": chat_checkins,
+        "chat_checkin_replay_mismatches": chat_checkin_replay_mismatches,
+        "checkins_used": checkins_used,
+        "max_checkins": max_checkins,
+        "checkin_response_rate": checkin_response_rate,
+        "checkin_dismissal_rate": checkin_dismissal_rate,
+        "checkins_during_open_quiz": checkins_during_open_quiz,
+        "intervention_count": intervention_count,
+        "retention_due_count": retention_due_count,
+        "module_completion_rate": module_completion_rate,
+        "mastery_from_summary": mastery_from_summary,
+        "mastery_replayed": mastery_replayed,
+        "mastery_replay_mismatches": mastery_replay_mismatches,
+        "learning_events": _learning_events(dump),
+        "xapi_event_count": len(xapi_events),
+        "pii_leaks": _learning_pii_leaks(dump),
+    }
+
+
+def _format_mastery(value: float | None) -> str:
+    """Stable 4-decimal rendering of a mastery probability for A22 messages."""
+    return "None" if value is None else f"{round(value, 4)}"
+
+
+def learning_assertions(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[str]:
+    """A19-A23 over every learning dump. Returns actionable violation messages."""
+    violations: list[str] = []
+    for dump in dumps:
+        if not dump.get("learning"):
+            continue
+        sid = dump.get("scenario_id")
+        analysis = analyze_learning_dump(dump)
+        hub = (dump.get("learning") or {}).get("hub") or {}
+
+        # A19 — no module passed/unlocked without a backing passed quiz attempt.
+        passed_modules = {
+            str(result.get("unlocked_module_id"))
+            for result in (dump.get("learning") or {}).get("quiz_results") or []
+            if result.get("passed") and result.get("unlocked_module_id")
+        }
+        attempt_to_module = _quiz_attempt_to_module(dump)
+        for result in (dump.get("learning") or {}).get("quiz_results") or []:
+            if result.get("passed"):
+                owner = attempt_to_module.get(str(result.get("attempt_id")))
+                if owner:
+                    passed_modules.add(owner)
+        for result in (dump.get("learning") or {}).get("quiz_results") or []:
+            if result.get("unlocked_module_id") and not result.get("passed"):
+                violations.append(
+                    f"A19: {sid} module {result.get('unlocked_module_id')} unlocked "
+                    "without a passed quiz attempt"
+                )
+        for module in hub.get("modules") or []:
+            if module.get("state") == "passed" and str(module.get("id")) not in passed_modules:
+                violations.append(
+                    f"A19: {sid} module {module.get('slug')} passed without a passed quiz attempt"
+                )
+
+        # A20 — quiz submissions idempotent under a replayed request_id.
+        for pair in analysis["quiz_replay_conflicts"]:
+            violations.append(
+                f"A20: {sid} quiz replay request_id {pair.get('request_id')} produced "
+                f"attempt ids {pair.get('first_attempt_id')} != {pair.get('second_attempt_id')}"
+            )
+        # A20 (cont.) — a replayed terminal idempotency_key must not deliver a
+        # second chat check-in (same event_id, not a new one).
+        for mismatch in analysis.get("chat_checkin_replay_mismatches") or []:
+            violations.append(
+                f"A20: {sid} terminal replay idempotency_key {mismatch['idempotency_key']} "
+                f"delivered different check-ins {mismatch['event_ids']}"
+            )
+
+        # A21 — check-in budget respected, none delivered while a quiz is open.
+        checkins_used = analysis.get("checkins_used")
+        max_checkins = analysis.get("max_checkins")
+        if checkins_used is not None and max_checkins is not None and checkins_used > max_checkins:
+            violations.append(
+                f"A21: {sid} checkins_used {checkins_used} exceeds max_checkins {max_checkins}"
+            )
+        if analysis.get("checkins_during_open_quiz"):
+            violations.append(
+                f"A21: {sid} delivered {analysis['checkins_during_open_quiz']} check-in(s) "
+                "while a quiz attempt was open"
+            )
+
+        # A22 — mastery projections replay exactly from learning_events.
+        summary_mastery = analysis.get("mastery_from_summary") or {}
+        if summary_mastery and not (dump.get("learning") or {}).get("xapi_events"):
+            violations.append(f"A22: {sid} missing learning_events for mastery replay")
+        for mismatch in analysis.get("mastery_replay_mismatches") or []:
+            violations.append(
+                f"A22: {sid} mastery replay mismatch for {mismatch['objective_code']}: "
+                f"summary={_format_mastery(mismatch['summary'])} "
+                f"replayed={_format_mastery(mismatch['replayed'])}"
+            )
+
+        # A23 — no PII in LLM payloads for learning turns.
+        for leak in analysis.get("pii_leaks") or []:
+            if leak.get("kind") == "forbidden_key":
+                violations.append(
+                    f"A23: {sid} learning event {leak.get('event_type')} leaks forbidden "
+                    f"key {leak.get('path')}"
+                )
+            else:
+                violations.append(
+                    f"A23: {sid} learning event {leak.get('event_type')} contains raw "
+                    "student utterance"
+                )
+    return violations
+
+
+def _psql_json(sql: str) -> Any:
+    """Run one read-only query via docker-compose psql and parse the JSON text."""
+    try:
+        import subprocess
+
+        proc = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "exec",
+                "-T",
+                "postgres",
+                "psql",
+                "-U",
+                "scratly",
+                "-d",
+                "scratly",
+                "-t",
+                "-A",
+                "-c",
+                sql,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=str(ROOT),
+        )
+        if proc.returncode != 0 or not proc.stdout.strip():
+            return None
+        return json.loads(proc.stdout.strip())
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _quiz_answers(item_ids: list[str]) -> dict[str, list[str]]:
+    """Fetch answer keys for drawn items so a scripted submit can pass deterministically."""
+    if not item_ids:
+        return {}
+    ids = ",".join(f"'{item_id}'::uuid" for item_id in item_ids)
+    payload = _psql_json(
+        "SELECT COALESCE(json_agg(json_build_object('id', id::text, 'answer', answer)), "
+        "'[]')::text FROM learning.quiz_items "
+        f"WHERE id = ANY(ARRAY[{ids}])"
+    )
+    if not isinstance(payload, list):
+        return {}
+    return {row["id"]: list(row.get("answer") or []) for row in payload}
+
+
+def _learning_events_from_db(session_id: str) -> list[dict[str, Any]]:
+    """Read the append-only xAPI learning events so A22 can replay mastery."""
+    payload = _psql_json(
+        "SELECT COALESCE(json_agg(json_build_object("
+        "'verb', verb, 'object', object, 'result', result, 'context', context, "
+        "'occurred_at', occurred_at) ORDER BY occurred_at), '[]')::text "
+        f"FROM learning.learning_events WHERE session_id = '{session_id}'"
+    )
+    return payload if isinstance(payload, list) else []
+
+
+def _open_checkin_event_id(session_id: str) -> str | None:
+    """Fallback resolver for the open check-in event id (Plan 06 W6.5).
+
+    ``GET .../learning/checkins`` now returns ``event_id`` directly, so this
+    psql lookup is only used when a deliver response omits it.
+    """
+    payload = _psql_json(
+        "SELECT to_json(("
+        "SELECT id::text FROM learning.checkin_events "
+        f"WHERE session_id = '{session_id}' AND delivered_at IS NOT NULL "
+        "AND responded_at IS NULL AND dismissed = false "
+        "ORDER BY delivered_at DESC LIMIT 1))::text"
+    )
+    return str(payload) if payload else None
+
+
+def _learning_module_id(hub: dict[str, Any], slug: str) -> str | None:
+    """Resolve a seeded module slug to its uuid using the captured hub."""
+    for module in hub.get("modules") or []:
+        if module.get("slug") == slug:
+            return str(module.get("id"))
+    return None
+
+
+def _wrong_response(item_id: str, answers: dict[str, list[str]]) -> list[str]:
+    """A response key that is not part of the item's correct answer set."""
+    correct = answers.get(item_id) or []
+    for candidate in ("__wrong__", "z", "x", "0"):
+        if candidate not in correct:
+            return [candidate]
+    return []
+
+
+def _run_learning_plan(scenario: dict[str, Any], *, base: str, session_id: str) -> dict[str, Any]:
+    """Drive the learning REST endpoints and capture the Plan 06 dump contract.
+
+    Populates ``hub``, ``module``, ``quiz_draws``, ``quiz_checks``,
+    ``quiz_results``, ``checkins``, ``checkin_results``, ``summary``,
+    ``replayed`` and ``chat_checkins`` for a scenario whose dict carries
+    ``"mode": "learning"``. The xAPI ``learning_events`` (A22's replay source)
+    are read back from Postgres.
+    """
+    plan = scenario.get("learning") or {}
+    slug = plan.get("module_slug") or ""
+    prefix = f"eval-{scenario['id']}"
+    capture: dict[str, Any] = {
+        "hub": None,
+        "module": None,
+        "quiz_draws": [],
+        "quiz_checks": [],
+        "quiz_results": [],
+        "checkins": [],
+        "checkin_results": [],
+        "summary": None,
+        "replayed": [],
+        "chat_checkins": [],
+        "xapi_events": [],
+    }
+    module_id: str | None = None
+    slide_ids: list[str] = []
+    answers: dict[str, list[str]] = {}
+    attempt_id: str | None = None
+    quiz_open: bool = False
+    last_checkin_event_id: str | None = None
+    last_terminal_key: str | None = None
+    item_ids: list[str] = []
+    last_request_id: str | None = None
+    last_result: dict[str, Any] | None = None
+
+    def resolve_module() -> str | None:
+        nonlocal module_id
+        if module_id is None and capture["hub"]:
+            module_id = _learning_module_id(capture["hub"], slug)
+        return module_id
+
+    def ensure_slides() -> None:
+        nonlocal slide_ids
+        if slide_ids or not resolve_module():
+            return
+        mid = module_id
+        capture["module"] = _req("GET", f"{base}/v1/sessions/{session_id}/learning/modules/{mid}")
+        slide_ids = [str(s["id"]) for s in capture["module"].get("slides") or []]
+
+    for step in plan.get("steps") or []:
+        op = step.get("op")
+        if op == "hub":
+            capture["hub"] = _req("GET", f"{base}/v1/sessions/{session_id}/learning")
+            resolve_module()
+        elif op == "module":
+            mid = resolve_module()
+            if mid:
+                capture["module"] = _req(
+                    "GET", f"{base}/v1/sessions/{session_id}/learning/modules/{mid}"
+                )
+                slide_ids = [str(s["id"]) for s in capture["module"].get("slides") or []]
+        elif op == "complete_slides":
+            ensure_slides()
+            for slide_id in slide_ids:
+                _req(
+                    "POST",
+                    f"{base}/v1/sessions/{session_id}/learning/slides/{slide_id}/complete",
+                    {
+                        "request_id": f"{prefix}-slide-{slide_id}-{uuid.uuid4().hex[:8]}",
+                        "time_on_slide_ms": 20000,
+                    },
+                )
+        elif op == "quiz_draw":
+            mid = resolve_module()
+            if mid:
+                draw = _req("GET", f"{base}/v1/sessions/{session_id}/learning/modules/{mid}/quiz")
+                capture["quiz_draws"].append(draw)
+                attempt = draw.get("attempt") or {}
+                attempt_id = str(attempt.get("attempt_id")) if attempt.get("attempt_id") else None
+                quiz_open = attempt_id is not None
+                item_ids = [str(item["id"]) for item in attempt.get("items") or []]
+                answers = _quiz_answers(item_ids)
+        elif op == "quiz_check":
+            if attempt_id:
+                for item_id in item_ids:
+                    response = (
+                        answers.get(item_id, [])
+                        if step.get("mode") == "correct"
+                        else _wrong_response(item_id, answers)
+                    )
+                    check = _req(
+                        "POST",
+                        f"{base}/v1/sessions/{session_id}/learning/quiz-attempts/"
+                        f"{attempt_id}/responses",
+                        {"item_id": item_id, "response": response, "latency_ms": 4000},
+                    )
+                    capture["quiz_checks"].append(check)
+        elif op in {"quiz_submit", "quiz_replay"}:
+            if attempt_id:
+                if op == "quiz_replay" and last_request_id:
+                    request_id = last_request_id
+                else:
+                    request_id = f"{prefix}-submit-{uuid.uuid4().hex[:8]}"
+                responses = []
+                for item_id in item_ids:
+                    if step.get("mode") == "correct":
+                        selected = answers.get(item_id, [])
+                    else:
+                        selected = _wrong_response(item_id, answers)
+                    responses.append({"item_id": item_id, "response": selected})
+                result = _req(
+                    "POST",
+                    f"{base}/v1/sessions/{session_id}/learning/quiz-attempts",
+                    {"attempt_id": attempt_id, "request_id": request_id, "responses": responses},
+                )
+                if op == "quiz_replay" and last_result is not None:
+                    capture["replayed"].append(
+                        {
+                            "request_id": request_id,
+                            "first_attempt_id": last_result.get("attempt_id"),
+                            "second_attempt_id": result.get("attempt_id"),
+                        }
+                    )
+                else:
+                    capture["quiz_results"].append(result)
+                    last_result = result
+                last_request_id = request_id
+                quiz_open = False
+        elif op == "checkin_deliver":
+            delivered = _req("GET", f"{base}/v1/sessions/{session_id}/learning/checkins")
+            if delivered.get("event_id"):
+                last_checkin_event_id = str(delivered["event_id"])
+            if quiz_open and delivered.get("gate") == "available" and delivered.get("item"):
+                delivered["open_quiz_attempt_id"] = attempt_id
+            capture["checkins"].append(delivered)
+        elif op == "checkin_respond":
+            event_id = last_checkin_event_id or _open_checkin_event_id(session_id)
+            if event_id:
+                response = (
+                    ["1", "2", "3", "4", "5"] if step.get("mode") == "correct" else ["__wrong__"]
+                )
+                capture["checkin_results"].append(
+                    _req(
+                        "POST",
+                        f"{base}/v1/sessions/{session_id}/learning/checkins/{event_id}",
+                        {
+                            "request_id": f"{prefix}-checkin-{uuid.uuid4().hex[:8]}",
+                            "response": response,
+                        },
+                    )
+                )
+                last_checkin_event_id = None
+        elif op == "checkin_dismiss":
+            event_id = last_checkin_event_id or _open_checkin_event_id(session_id)
+            if event_id:
+                capture["checkin_results"].append(
+                    _req(
+                        "PATCH",
+                        f"{base}/v1/sessions/{session_id}/learning/checkins/{event_id}",
+                        {
+                            "request_id": f"{prefix}-dismiss-{uuid.uuid4().hex[:8]}",
+                            "reason": "not now",
+                        },
+                    )
+                )
+                last_checkin_event_id = None
+        elif op in {"chat_checkin", "chat_checkin_replay"}:
+            # Plan 06 W6.2 — a terminal turn on a learning-enabled session with
+            # learning activity surfaces a check-in (message_kind
+            # "progress_checkin") plus a ``learning`` payload. Replaying the same
+            # idempotency_key must return the SAME event_id, not a second one.
+            if op == "chat_checkin_replay" and last_terminal_key:
+                idempotency_key = last_terminal_key
+            else:
+                idempotency_key = f"{prefix}-terminal-{uuid.uuid4().hex[:8]}"
+            response = _req(
+                "POST",
+                f"{base}/v1/sessions/{session_id}/turns",
+                {
+                    "idempotency_key": idempotency_key,
+                    "text": step.get("text") or "Any quick check-in for me?",
+                },
+                timeout=240,
+            )
+            payload = response.get("learning") or {}
+            capture["chat_checkins"].append(
+                {
+                    "turn_index": None,
+                    "message_kind": response.get("message_kind"),
+                    "event_id": payload.get("event_id"),
+                    "gate": payload.get("gate"),
+                    "item_id": (payload.get("item") or {}).get("id"),
+                    "idempotency_key": idempotency_key,
+                }
+            )
+            last_terminal_key = idempotency_key
+        elif op == "summary":
+            capture["summary"] = _req("GET", f"{base}/v1/sessions/{session_id}/learning/summary")
+        elif op == "xapi_events":
+            capture["xapi_events"] = _learning_events_from_db(session_id)
+    return capture
 
 
 def run_scenario(
@@ -1290,7 +2332,10 @@ def run_scenario(
     t0 = time.perf_counter()
 
     health = _req("GET", f"{base}/health")
-    session = _req("POST", f"{base}/v1/sessions", None)
+    # Plan 06 W6.5 — learning scenarios opt in to the per-session seam; assessment
+    # scenarios keep creating sessions with no body (learning_enabled defaults false).
+    session_body = {"learning_enabled": True} if scenario.get("mode") == "learning" else None
+    session = _req("POST", f"{base}/v1/sessions", session_body)
     session_id = str(session["session_id"])
     print(f"session={session_id}")
 
@@ -1298,6 +2343,7 @@ def run_scenario(
     simulated_used: Counter[str] = Counter()
     scripted_turns = list(scenario.get("turns") or [])
     next_simulated_text = simulator.get("opening") if simulator else None
+    answered_target: str | None = None
     for index in range(1, planned_turns + 1):
         if simulator:
             text = next_simulated_text
@@ -1374,17 +2420,48 @@ def run_scenario(
     except Exception as err:  # noqa: BLE001
         errors.append(f"admin dump: {err}")
 
+    # Plan 06 W6.4 — learning scenarios drive the learning REST endpoints and
+    # gain a ``learning`` key; assessment dumps keep their exact shape.
+    learning_capture: dict[str, Any] | None = None
+    if scenario.get("mode") == "learning":
+        try:
+            learning_capture = _run_learning_plan(scenario, base=base, session_id=session_id)
+            # Plan 06 W6.2 — any terminal chat turn that surfaced a check-in.
+            learning_capture["chat_checkins"] = [
+                {
+                    "turn_index": turn.get("index"),
+                    "message_kind": (turn.get("response") or {}).get("message_kind"),
+                    "event_id": ((turn.get("response") or {}).get("learning") or {}).get(
+                        "event_id"
+                    ),
+                    "gate": ((turn.get("response") or {}).get("learning") or {}).get("gate"),
+                    "item_id": (
+                        ((turn.get("response") or {}).get("learning") or {}).get("item") or {}
+                    ).get("id"),
+                    "idempotency_key": (turn.get("request") or {}).get("idempotency_key"),
+                }
+                for turn in turns_out
+                if (turn.get("response") or {}).get("learning")
+            ] + learning_capture.get("chat_checkins", [])
+        except Exception as err:  # noqa: BLE001
+            errors.append(f"learning dump: {err}")
+
     db_counts = _enrich_db_counts(session_id)
     live_llm = any(
         e.get("reason_code") == "structured_writer_succeeded"
         for e in (decision_trace.get("events") or [])
     ) or any(e.get("llm_run_id") for e in (decision_trace.get("events") or []))
 
+    scenario_mode = (
+        "learning"
+        if scenario.get("mode") == "learning"
+        else ("adaptive_simulation" if simulator else "scripted_probe")
+    )
     dump: dict[str, Any] = {
         "scenario_id": scenario["id"],
         "title": scenario["title"],
         "aspects": scenario["aspects"],
-        "scenario_mode": "adaptive_simulation" if simulator else "scripted_probe",
+        "scenario_mode": scenario_mode,
         "scenario_expectations": {
             "min_turns": simulator.get("min_turns"),
             "must_present_final_options": True,
@@ -1408,6 +2485,8 @@ def run_scenario(
         "errors": errors,
         "completed": not errors,
     }
+    if learning_capture is not None:
+        dump["learning"] = learning_capture
     dump["metrics"] = analyze_dump(dump)
     out_path.write_text(json.dumps(dump, indent=2, default=str), encoding="utf-8")
     print(
@@ -1415,6 +2494,39 @@ def run_scenario(
         f"{len(decision_trace.get('events') or [])} errors={len(errors)}"
     )
     return dump
+
+
+def _mean(values: list[float]) -> float | None:
+    """Arithmetic mean rounded to three places, or None for an empty list."""
+    return round(sum(values) / len(values), 3) if values else None
+
+
+def _learning_rollup(metrics: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate the Plan 06 W6.4 learning metrics across learning scenarios."""
+    learning = [m for m in metrics if m.get("learning_metrics")]
+    if not learning:
+        return {}
+
+    def values(key: str) -> list[float]:
+        return [
+            float(m["learning_metrics"][key])
+            for m in learning
+            if m["learning_metrics"].get(key) is not None
+        ]
+
+    return {
+        "scenario_count": len(learning),
+        "module_completion_rate": _mean(values("module_completion_rate")),
+        "first_attempt_pass_rate": _mean(values("first_attempt_pass_rate")),
+        "checkin_response_rate": _mean(values("checkin_response_rate")),
+        "checkin_dismissal_rate": _mean(values("checkin_dismissal_rate")),
+        "intervention_count": sum(
+            int(m["learning_metrics"].get("intervention_count") or 0) for m in learning
+        ),
+        "quiz_attempts_total": sum(
+            int(m["learning_metrics"].get("quiz_attempts") or 0) for m in learning
+        ),
+    }
 
 
 def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, Any]:
@@ -1575,6 +2687,8 @@ def build_suite_report(dumps: list[dict[str, Any]], out_dir: Path) -> dict[str, 
                 and (m.get("end_to_end_checks") or {}).get("options_presented")
             ),
         },
+        # Plan 06 W6.4 — learning roll-ups (empty when no learning scenario ran).
+        "learning": _learning_rollup(metrics),
     }
 
     report = {
@@ -1662,7 +2776,6 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
         if n_turns >= 8 and max_run > 2:
             violations.append(f"A2: {sid} repeated one target {max_run} consecutive times")
 
-    thin = by_id.get("thin_elicitation_loop") or {}
     thin_dump = next(
         (d for d in dumps if d.get("scenario_id") == "thin_elicitation_loop"),
         None,
@@ -1789,6 +2902,9 @@ def assert_suite(report: dict[str, Any], dumps: list[dict[str, Any]]) -> list[st
                 f"A18: {m.get('scenario_id')} failed end-to-end checks: {','.join(failed)}"
             )
 
+    # A19-A23 — learning track assertions (Plan 06 W6.4).
+    violations.extend(learning_assertions(report, dumps))
+
     return violations
 
 
@@ -1826,49 +2942,50 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.list:
-        for s in SCENARIOS:
+        for s in ALL_SCENARIOS:
             print(
                 f"{s['id']:32s}  turns≤{_planned_turns(s):2d}  "
                 f"aspects={','.join(s['aspects'][:4])}..."
             )
         print(
-            f"\n{len(SCENARIOS)} scenarios, "
-            f"{sum(_planned_turns(s) for s in SCENARIOS)} maximum turns"
+            f"\n{len(ALL_SCENARIOS)} scenarios "
+            f"({len(SCENARIOS)} assessment + {len(LEARNING_SCENARIOS)} learning), "
+            f"{sum(_planned_turns(s) for s in ALL_SCENARIOS)} maximum turns"
         )
         return 0
 
-    selected = SCENARIOS
+    selected = ALL_SCENARIOS
     if args.only:
         wanted = {x.strip() for x in args.only.split(",") if x.strip()}
-        selected = [s for s in SCENARIOS if s["id"] in wanted]
+        selected = [s for s in ALL_SCENARIOS if s["id"] in wanted]
         missing = wanted - {s["id"] for s in selected}
         if missing:
             print(f"Unknown scenario ids: {sorted(missing)}", file=sys.stderr)
             return 2
 
     if args.analyze_only:
-        dumps = []
+        existing_dumps = []
         for s in selected:
             path = out_dir / f"{s['id']}.json"
             if path.exists():
-                dumps.append(json.loads(path.read_text(encoding="utf-8")))
-        if not dumps:
+                existing_dumps.append(json.loads(path.read_text(encoding="utf-8")))
+        if not existing_dumps:
             print("No dumps found", file=sys.stderr)
             return 1
         # refresh metrics
-        for d in dumps:
+        for d in existing_dumps:
             d["metrics"] = analyze_dump(d)
             (out_dir / f"{d['scenario_id']}.json").write_text(
                 json.dumps(d, indent=2, default=str), encoding="utf-8"
             )
-        report = build_suite_report(dumps, out_dir)
+        report = build_suite_report(existing_dumps, out_dir)
         if args.baseline_report:
             baseline = json.loads(Path(args.baseline_report).read_text(encoding="utf-8"))
             comparison = compare_reports(report, baseline)
             (out_dir / "reassessment.json").write_text(
                 json.dumps(comparison, indent=2), encoding="utf-8"
             )
-        violations = assert_suite(report, dumps)
+        violations = assert_suite(report, existing_dumps)
         return 0 if not violations else 1
 
     # Preflight

@@ -14,11 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.contracts import (
+    CheckinDeliverResponse,
     ElicitationSpec,
     ProposedEvidence,
     TurnResponse,
     ValidatedEvidence,
 )
+from app.repository.learning_checkin import CheckinRepository
 from app.services.contradiction_engine import (
     ENGINE_VERSION,
     cardinality_for,
@@ -74,6 +76,7 @@ class TurnOutcome:
     stage: str
     message_kind: str | None = None
     elicitation: ElicitationSpec | None = None
+    learning: CheckinDeliverResponse | None = None
     student_message_id: UUID | None = None
     assistant_message_id: UUID | None = None
 
@@ -84,6 +87,7 @@ class TurnOutcome:
             stage=self.stage,
             message_kind=self.message_kind,
             elicitation=self.elicitation,
+            learning=self.learning,
             student_message_id=self.student_message_id,
             assistant_message_id=self.assistant_message_id or self.id,
         )
@@ -94,7 +98,21 @@ class AssessmentRepository:
         self.session = session
         self._tx: TurnTransaction | None = None
 
-    async def create_session(self, external_ref: str | None = None) -> dict[str, Any]:
+    async def create_session(
+        self, external_ref: str | None = None, learning_enabled: bool | None = None
+    ) -> dict[str, Any]:
+        """Create a student + session.
+
+        ``learning_enabled`` is the staged-rollout seam (Plan 06 W6.5): ``None``
+        falls back to the configured default (``false``), so the learning
+        journey is opt-in per session and the assessment scenarios stay
+        byte-identical.
+        """
+        enabled = (
+            get_settings().learning_enabled_default
+            if learning_enabled is None
+            else learning_enabled
+        )
         student_id = uuid4()
         session_id = uuid4()
         await self.session.execute(
@@ -109,11 +127,11 @@ class AssessmentRepository:
         await self.session.execute(
             text(
                 """
-                INSERT INTO core.sessions (id, student_id, stage)
-                VALUES (:id, :student_id, 'discovery')
+                INSERT INTO core.sessions (id, student_id, stage, learning_enabled)
+                VALUES (:id, :student_id, 'discovery', :learning_enabled)
                 """
             ),
-            {"id": session_id, "student_id": student_id},
+            {"id": session_id, "student_id": student_id, "learning_enabled": enabled},
         )
         # Seed coverage rows for all dimensions.
         await self.session.execute(
@@ -127,13 +145,19 @@ class AssessmentRepository:
             {"session_id": session_id},
         )
         await self.session.commit()
-        return {"session_id": session_id, "student_id": student_id, "stage": "discovery"}
+        return {
+            "session_id": session_id,
+            "student_id": student_id,
+            "stage": "discovery",
+            "learning_enabled": enabled,
+        }
 
     async def get_session(self, session_id: UUID) -> dict[str, Any] | None:
         result = await self.session.execute(
             text(
                 """
-                SELECT id, student_id, stage::text AS stage, created_at, updated_at, completed_at
+                SELECT id, student_id, stage::text AS stage, created_at, updated_at,
+                       completed_at, learning_enabled
                   FROM core.sessions
                  WHERE id = :session_id
                 """
@@ -197,6 +221,10 @@ class AssessmentRepository:
             if elicit_key == "constraints:geo":
                 elicit_key = "constraints"
             elicitation = build_elicitation_spec(elicit_key)
+        learning = None
+        if kind == "progress_checkin":
+            # Replay must reconstruct the surfaced check-in, not deliver a new one.
+            learning = await CheckinRepository(self.session).open_checkin(session_id)
         return TurnOutcome(
             id=row["message_id"],
             turn_id=row["turn_id"],
@@ -204,6 +232,7 @@ class AssessmentRepository:
             stage=row["stage"],
             message_kind=kind,
             elicitation=elicitation,
+            learning=learning,
             student_message_id=row["student_message_id"],
             assistant_message_id=row["message_id"],
         )
@@ -282,6 +311,14 @@ class TurnTransaction:
         self.session = session
         self._session_id: UUID | None = None
         self._settings = get_settings()
+
+    async def learning_enabled(self) -> bool:
+        """Whether the learning journey is enabled for the bound session (W6.5)."""
+        result = await self.session.execute(
+            text("SELECT learning_enabled FROM core.sessions WHERE id = :session_id"),
+            {"session_id": self._session_id},
+        )
+        return bool(result.scalar_one_or_none())
 
     async def create_turn_and_student_message(
         self, session_id: UUID, idempotency_key: str, text_content: str
@@ -1838,6 +1875,92 @@ class TurnTransaction:
             stage=stage,
             message_kind=kind,
             elicitation=elicitation,
+            student_message_id=student_message_id,
+            assistant_message_id=assistant_id,
+        )
+
+    async def persist_terminal_reply(
+        self,
+        turn: TurnRow,
+        content: str,
+        *,
+        message_kind: str,
+        stage: str = "complete",
+        student_message_id: UUID | None = None,
+        learning: CheckinDeliverResponse | None = None,
+    ) -> TurnOutcome:
+        """Persist a terminal assistant message without an assessment question.
+
+        Used by the learning routing on the chat terminal fast path (Plan 06
+        W6.2): the reply is a learning check-in, so no ``assessment.questions``
+        row is written — learning turns never write assessment state.
+        """
+        assert self._session_id is not None
+        seq_result = await self.session.execute(
+            text(
+                """
+                SELECT COALESCE(MAX(sequence), 0) + 1 AS next_seq
+                  FROM conversation.messages
+                 WHERE session_id = :session_id
+                """
+            ),
+            {"session_id": self._session_id},
+        )
+        sequence = int(seq_result.scalar_one())
+        assistant_id = uuid4()
+        await self.session.execute(
+            text(
+                """
+                INSERT INTO conversation.messages
+                    (id, session_id, turn_id, sequence, role, content, message_kind)
+                VALUES
+                    (:id, :session_id, :turn_id, :sequence, 'assistant', :content,
+                     CAST(:message_kind AS conversation.assistant_message_kind))
+                """
+            ),
+            {
+                "id": assistant_id,
+                "session_id": self._session_id,
+                "turn_id": turn.id,
+                "sequence": sequence,
+                "content": content,
+                "message_kind": message_kind,
+            },
+        )
+        await self.session.execute(
+            text(
+                """
+                UPDATE conversation.turns
+                   SET assistant_message_id = :assistant_id,
+                       status = 'completed',
+                       completed_at = now()
+                 WHERE id = :turn_id
+                """
+            ),
+            {"assistant_id": assistant_id, "turn_id": turn.id},
+        )
+        await self.session.execute(
+            text(
+                """
+                UPDATE core.sessions
+                   SET stage = CAST(:stage AS conversation.stage),
+                       updated_at = now(),
+                       completed_at = CASE
+                         WHEN :stage = 'complete' THEN now()
+                         ELSE completed_at
+                       END
+                 WHERE id = :session_id
+                """
+            ),
+            {"stage": stage, "session_id": self._session_id},
+        )
+        return TurnOutcome(
+            id=assistant_id,
+            turn_id=turn.id,
+            content=content,
+            stage=stage,
+            message_kind=message_kind,
+            learning=learning,
             student_message_id=student_message_id,
             assistant_message_id=assistant_id,
         )

@@ -15,6 +15,7 @@ export type MessageKind =
   | 'project_offer'
   | 'matching_unavailable'
   | 'post_match_feedback'
+  | 'progress_checkin'
   | null;
 
 export type ChatRole = 'student' | 'assistant' | 'system';
@@ -36,6 +37,7 @@ export type SessionCreated = {
   session_id: string;
   student_id: string;
   stage: Stage;
+  learning_enabled: boolean;
 };
 
 export type SessionResume = {
@@ -45,6 +47,7 @@ export type SessionResume = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  learning_enabled: boolean;
 };
 
 export type MessageItem = {
@@ -61,6 +64,7 @@ export type SessionMessages = {
   session_id: string;
   stage: Stage;
   completed_at: string | null;
+  learning_enabled: boolean;
   items: MessageItem[];
 };
 
@@ -70,6 +74,7 @@ export type TurnResponse = {
   stage: Stage;
   message_kind: MessageKind;
   elicitation: ElicitationSpec | null;
+  learning: CheckinDeliver | null;
   student_message_id: string | null;
   assistant_message_id: string | null;
 };
@@ -272,6 +277,7 @@ export type ThreadMessage = {
   message_kind?: MessageKind;
   status?: 'pending' | 'failed' | 'sent';
   elicitation?: ElicitationSpec | null;
+  learning?: CheckinDeliver | null;
 };
 
 // --- Plan 05 (Phase 5): progress check-ins and the coach summary -------------
@@ -309,6 +315,7 @@ export type CheckinDeliver = {
   gate: CheckinGate;
   item: CheckinItemView | null;
   retry_after_seconds: number | null;
+  event_id: string | null;
   checkins_used: number;
   max_checkins: number;
 };

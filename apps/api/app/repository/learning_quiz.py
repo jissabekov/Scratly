@@ -56,6 +56,7 @@ from app.services.learning_quiz_engine import (
     remediation_slide_refs,
     score_attempt,
 )
+from app.services.learning_trace import learning_trace
 
 
 class QuizConflictError(Exception):
@@ -346,6 +347,18 @@ class QuizRepository:
                 "form_id": form_id,
                 "item_ids": item_ids,
             }
+            await learning_trace(self.session, session_id).record(
+                "learning_quiz_drawn",
+                "quiz_repository",
+                "v1",
+                "Opened a fresh quiz attempt for the module gate.",
+                "attempt_opened",
+                outputs={"attempt_no": attempt_no, "form_id": form_id, "item_count": len(rows)},
+                entity_refs={
+                    "module_id": str(module_id),
+                    "attempt_id": str(attempt["id"]),
+                },
+            )
         return response(QuizGateState.AVAILABLE, self._attempt_view(attempt, rows))
 
     async def _min_critical_mastery(self, session_id: UUID, module_id: UUID) -> float:
@@ -593,6 +606,41 @@ class QuizRepository:
                 next_action=next_action,
                 request_id=body.request_id,
             )
+            trace = learning_trace(self.session, session_id)
+            await trace.record(
+                "learning_quiz_scored",
+                "quiz_repository",
+                "v1",
+                "Scored a submitted quiz attempt against the pass rule.",
+                "attempt_scored",
+                outputs={
+                    "attempt_no": attempt["attempt_no"],
+                    "form_id": attempt["form_id"],
+                    "score": result.score,
+                    "item_count": result.item_count,
+                    "passed": result.passed,
+                    "provisional": provisional,
+                    "next_action": next_action,
+                    "critical_missed": list(result.critical_missed),
+                },
+                entity_refs={
+                    "module_id": str(module_id),
+                    "attempt_id": str(attempt["id"]),
+                },
+            )
+            if next_action == "unlock_next":
+                await trace.record(
+                    "learning_module_unlocked",
+                    "quiz_repository",
+                    "v1",
+                    "Module gate satisfied; the next module is unlocked.",
+                    "quiz_passed" if result.passed else "provisional_pass",
+                    outputs={"score": result.score, "passed": result.passed},
+                    entity_refs={
+                        "module_id": str(module_id),
+                        "attempt_id": str(attempt["id"]),
+                    },
+                )
 
         refreshed = await self._attempt(session_id, body.attempt_id)
         assert refreshed is not None
