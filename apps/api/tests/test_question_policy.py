@@ -381,8 +381,7 @@ def test_question_response_assembles_and_rejects_overlong_asks():
         question="What kept you going after it got frustrating?",
     )
     assert assembled.compose() == (
-        "Maps with your cousin. Different direction — "
-        "What kept you going after it got frustrating?"
+        "Maps with your cousin. Different direction — What kept you going after it got frustrating?"
     )
     ask_only = QuestionResponse(question="What kept you going?")
     assert ask_only.compose() == "What kept you going?"
@@ -470,6 +469,4 @@ def test_question_writer_prompt_v4_is_loaded_and_v3_remains():
 @pytest.mark.asyncio
 async def test_local_fallback_writer_still_raises_for_the_question_shape():
     with pytest.raises(RuntimeError, match="azure_openai_not_configured"):
-        await LocalFallbackLLM().structured(
-            "writer", "question_writer", "v4", QuestionResponse, {}
-        )
+        await LocalFallbackLLM().structured("writer", "question_writer", "v4", QuestionResponse, {})

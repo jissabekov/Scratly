@@ -787,7 +787,8 @@ async def process_student_turn(
                     {
                         item.dimension_key
                         for item in validated
-                        if item.dimension_key and _explicit_preference(validated, item.dimension_key)
+                        if item.dimension_key
+                        and _explicit_preference(validated, item.dimension_key)
                     }
                 )
             )
