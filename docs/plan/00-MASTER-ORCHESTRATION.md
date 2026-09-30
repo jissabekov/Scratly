@@ -21,7 +21,7 @@
 | **3** | [03-modules-learning.md](03-modules-learning.md) — learning schema, content model, slide player, module path, automatic tracking | Phase 2 | **DONE — W3.1–W3.5 landed (migration `017_learning_content.sql`, week-2 module authored end-to-end, hub + player + xAPI tracking); gates green (compileall · pytest 125 · ruff+mypy · web build · 9/9 Playwright incl. axe). See plan 03 §3.6** |
 | **4** | [04-quiz-gating.md](04-quiz-gating.md) — 5-item quizzes, 4/5 + critical-objective pass rule, remediation, BKT mastery | Phase 3 | **DONE — W4.1–W4.6 landed (migrations `018`+`019`, 3-form bank for the real module, alternate-form remediation, attempt caps + handoff, BKT mastery + replay); gates green (compileall · pytest 151 · ruff+mypy · web build · 11/11 Playwright incl. axe); math verified via mathcheck. See plan 04 §4.7** |
 | **5** | [05-progress-coaching.md](05-progress-coaching.md) — check-in scheduler, advice/intervention ladder, retention cards, dashboard | Phase 4 | **IN PROGRESS — W5.1/W5.2/W5.3/W5.4 landed (migration `020`, seeded `checkins.json`, deterministic engines + API + widget/dashboard); W5.5 phrasing boundary implemented; W5.6 e2e authored. See plan 05 §5.7** |
-| **6** | [06-integration-eval.md](06-integration-eval.md) — chat routing, contracts, migrations 013–017, learning eval scenarios, staged rollout | Phases 2–5 | pending |
+| **6** | [06-integration-eval.md](06-integration-eval.md) — chat routing, contracts, migrations, learning eval scenarios, staged rollout | Phases 2–5 | **READY — execution prompt in §6.7** (migration numbers corrected: next free is `022`; `learning_enabled` and the `learning_*` / `progress_checkin` enum values do not exist yet) |
 
 **Rule:** no phase starts until the previous phase's acceptance criteria are met and verified. Content (module text/slides/quiz items) is provided by the user later — build the schema, player, and gating with placeholder seed content first.
 
@@ -63,6 +63,7 @@ PYTHONIOENCODING=utf-8 .venv/Scripts/python scripts/eval_conversation_suite.py -
 **Instructing agents (copy-paste prompts):**
 - "Work Phase 1 W1.1 per docs/plan/01-fix-current-system.md; run /verify; prove with /eval-suite --only …"
 - "Execute Phase 2 per docs/plan/02…; follow apps/web/AGENTS.md and the /frontend-ui skill; run /web-e2e before claiming done."
+- "Execute Phase 6 per docs/plan/06-integration-eval.md **§6.7** (the full execution prompt); it supersedes §6.2's stale migration numbers."
 - "Research first with /research <topic> before implementing <feature>."
 
 ## 5. Risk register
