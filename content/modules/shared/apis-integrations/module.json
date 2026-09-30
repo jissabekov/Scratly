@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "apis-integrations",
   "seq": 7,
   "title": "Your Product Does Not Live Alone",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Build Uber and you need a rider app, a driver app, and a booking screen, plus maps, GPS coordinates, address search, route calculation, payments, identity verification, SMS, push notifications, and fraud detection.\n\nYou could theoretically build all of it. You probably should not. Modern products are assembled from systems that own different capabilities and different information.\n\nYour product is a system that coordinates other systems, not one giant piece of software that owns everything."
+              "text": "Build Uber and the obvious pieces are a rider app, a driver app, and a booking screen. The product also needs maps, GPS, address search, route calculation, payments, identity checks, text messages, push notifications, and fraud detection.\n\nUber does not have to invent the world map, the card networks, or the phone company's text system. Those capabilities already belong to other companies. Uber asks them, waits for an answer, and combines the answers into one trip. Each outside system keeps its own data and its own rules.\n\nYour product works the same way. It is a system that coordinates other systems, not one giant program that owns every capability and every fact."
             }
           ]
         },
@@ -70,7 +70,7 @@
             },
             {
               "type": "text",
-              "text": "Architecture is deciding where your product ends and another system begins. You own the booking state and the student profile. The mapping provider owns address interpretation. The payment provider owns charging the card.\n\nCrossing that boundary means asking, waiting, and planning for failure."
+              "text": "The user action lands in your product first. From there it asks outward: a mapping system for a coordinate, a payment system to charge a card, an AI service to read text, a messaging service to notify someone. The database in the picture is the only store you control.\n\nA boundary is the line where your responsibility stops. On your side you decide the booking rules and you keep the rows. On their side they decide how the map, the charge, or the model works, and they can change that without showing you the code.\n\nCrossing the line means you send a request and you wait. A slow answer, a refusal, or an outage is a normal case, because you cannot open their repository and fix it."
             }
           ]
         },
@@ -82,7 +82,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A Community Opportunity Finder owns its students, organizations, opportunities, and saved opportunities. When a student asks for opportunities within 20 miles, the database holds the address \"123 Main Street, Norman, OK\" but cannot turn it into coordinates.\n\nThe product sends the address to a mapping system and gets back latitude 35.22, longitude -97.44. Your application owns the profile, the opportunity, and whether the student saved it. The mapping provider owns address interpretation, coordinates, and map data.\n\nThat division of responsibility is the system boundary."
+              "text": "A Community Opportunity Finder owns its students, organizations, opportunities, and which opportunities a student saved. Those rows live in its database. A student then asks for opportunities within 20 miles. The database holds the address \"123 Main Street, Norman, OK\", but a street string is not a point on a map. The database has no rules for turning that string into latitude and longitude.\n\nThe product sends the address to a mapping system and gets back latitude 35.22 and longitude -97.44. It can save those numbers and search with them. It still does not own address interpretation, the map data, or the route engine. Those stay with the mapping provider.\n\nYour application owns the profile, the opportunity, and the saved relationship. The mapping provider owns the geographic capability. That division of responsibility is the system boundary."
             }
           ]
         },
@@ -121,7 +121,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "An API is not a mysterious component. It is a defined agreement for communicating with another system: send me street, city, and state, and if the request is valid I will return latitude and longitude.\n\nThat promise is the API contract. It answers five questions: what am I asking, what input do you need, how do you know I am allowed, what comes back on success, and what failure looks like.\n\nThat is far more useful than telling an agent to \"add the Maps API.\""
+              "text": "An API is the agreement at that boundary, not a mysterious extra box in the diagram. You tell the mapping system you will send a street, a city, and a state. It promises that a valid request comes back as a latitude and a longitude, such as 35.22 and -97.44.\n\nThe agreement has to answer five questions before the call is worth writing. What am I asking you to do? What input do you need from me? How do you know I am allowed to ask? What will you send back when it works? What will you tell me when it does not?\n\n\"Add the Maps API\" skips all five. The agent then invents the request, the credential, and a path that only works on a good day. Naming the contract is how you keep the integration reviewable."
             }
           ]
         },
@@ -146,7 +146,7 @@
             },
             {
               "type": "text",
-              "text": "How the provider implements the service internally is theirs to change. The contract at the boundary is what your product depends on.\n\nIf you cannot answer the five questions, you are not ready to integrate."
+              "text": "Those five answers are the only part of the other system your product should depend on. How they compute a coordinate, which database they query, or which language they use can change without notice. Your call should keep working because you depended on the promise, not on their private implementation.\n\nSkip a question and the integration is unfinished. You might know the happy-path body and still have no idea what arrives when the key is rejected or the address is nonsense. The agent will invent an error shape, and the screen will not match production.\n\nIf you cannot answer the five questions, you are not ready to integrate."
             }
           ]
         },
@@ -179,7 +179,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A request looks like POST https://api.example.com/analyze with a JSON body {\"text\": \"I want to volunteer with animals.\"} and a response {\"category\": \"animal_welfare\", \"confidence\": 0.93}. The endpoint names a capability; GET asks for information, POST does or creates, PUT updates, DELETE removes; and the status says whether it worked.\n\nOnly send what the service actually needs. If the AI only needs the essay text, sending the student's name, address, and full record anyway is a privacy risk, not a feature. That discipline is called data minimization.\n\nThe database stores it. The API transports it."
+              "text": "The student presses Find Opportunities and sees one button. The frontend sends that action to your backend. The backend asks a mapping API where the address is, queries the database it owns, and only then sends one response back to the screen. One click can be several agreements between systems.\n\nLook at one of those hops. POST https://api.example.com/analyze with the body {\"text\": \"I want to volunteer with animals.\"} asks another system to do something. The reply {\"category\": \"animal_welfare\", \"confidence\": 0.93} is the answer, and a status says whether it worked. GET asks for information, POST does or creates, PUT updates, and DELETE removes. You do not need the full specification. You need to see that this code sends information outside your system and expects something back.\n\nThe same facts can have two jobs. A student row in the database keeps the id, the name, and the interests. A payload might carry only {\"student_id\": 142, \"interests\": [\"sports\", \"education\"]}. The database stores the information. The API transports it. If the service only needs the essay, leave the name, the address, and the full record at home. A field that crosses the boundary is a field another system can keep."
             },
             {
               "type": "callout",
@@ -209,6 +209,18 @@
               "objective": "contract"
             }
           ]
+        },
+        {
+          "seq": 6,
+          "kind": "text",
+          "title": "When their response changes",
+          "objective": "contract",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Today a weather API returns a field named temperature, and your code reads that name. Next year the provider sends temperature_fahrenheit instead. The service is up, your key is valid, and the feature still breaks, because you depended on a shape they were free to change.\n\nProviders publish versions, such as /v1/weather and /v2/weather, so a new shape can exist beside the old one. Your product still has to record which external systems it calls, which version it uses, and how it notices a response it no longer understands.\n\nWhen you depend on another system, a change on their side can become an outage on yours."
+            }
+          ]
         }
       ]
     },
@@ -224,7 +236,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A user clicks Analyze My Essay and your backend calls an AI API. Normally it answers in 3 seconds. Today it takes 45, or is unavailable, or your usage limit is exceeded, or your API key expired.\n\nThe product needs a plan for each: how long to wait (timeout), whether to try again (retry), whether the product can continue without it (fallback), what the user sees (error state), and how you will know it failed (logging).\n\nAn external integration is a dependency you do not control. Your code may be perfect; the product can still fail."
+              "text": "A user clicks Analyze My Essay and your backend calls an AI API. On a demo day it answers in about 3 seconds. On a bad day it takes 45 seconds, or it is down, or you hit a usage limit, or the API key expired. Your code did not change. The product still fails, because that API is a dependency you do not control.\n\nThe plan has five parts. A timeout is how long you will wait before you stop blocking the student. A retry is a second attempt, and it is safe only when repeating the request cannot do the action twice. A fallback is what the product can still do without the answer. An error state is what the student sees. A log is how you later know which dependency failed.\n\nA lost response is not proof the operation failed. If a $50 card charge dies before the reply arrives, the charge may already have succeeded. Sending it again can take $100. Asking an AI to analyze a paragraph can usually be repeated. Charging a card cannot, unless the operation is idempotent: the same request, sent twice, still performs the action once."
             },
             {
               "type": "callout",
@@ -275,7 +287,7 @@
             },
             {
               "type": "text",
-              "text": "Request and response fits when you need an answer now. A webhook inverts the direction: the other system pushes when something happens, so you are not polling forever.\n\nScheduled sync and batch import fit slower, bulk exchanges. Match the pattern to how fresh the information must be."
+              "text": "Request and response means you ask and you wait. A weather call is the usual shape: you cannot finish the screen until the service says 82 degrees and rain. The student is often waiting, so this pattern fits a lookup you need now, such as a map pin, a search, or an AI answer.\n\nA webhook flips the direction. Instead of asking \"did the payment finish?\" every few seconds and hearing no, no, no, then yes, you give the payment service an address. It sends one event, Payment completed, and your backend updates the database. You are not polling, and you hear about the moment it happened.\n\nScheduled sync and a file import fit when the other organization will not notify you. You might pull new opportunities every night at 2 AM, knowing the list can be hours old, or import the students.csv they email every Friday. Weather may need to be minutes fresh. A directory can be a day old. Census data can be a year old. You pick the pattern by how fresh the information must be, and by whether a live API even exists."
             }
           ]
         },
@@ -311,6 +323,54 @@
               "tone": "info",
               "title": "Punchline",
               "text": "Do not tell your agent to connect this API. Tell it what system you are connecting to, why, what crosses the boundary, who owns the truth, what gets saved, and what happens when the connection fails."
+            }
+          ]
+        },
+        {
+          "seq": 6,
+          "kind": "text",
+          "title": "Call once, then reuse",
+          "objective": "patterns",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Suppose 10,000 organizations already have addresses in your database. Sending all 10,000 to a mapping API on every student search repeats work you already did. When an organization is created, or its address changes, send that one address, store the latitude and longitude that come back, and let later searches query the numbers you saved.\n\nYou choose among three habits. Call, use the answer, and discard it when you will not need it again. Call, save the result, and reuse it when the fact is stable and the call is expensive. Call, keep a temporary copy, and refresh it when the fact goes stale. Ask whether the information will change, what a call costs, how often you need it, and how fresh it must be.\n\nA provider may allow 1,000 requests a day, charge a fraction of a cent each, or cap you at 100 requests a minute. Ten calls for one user is nothing. Ten calls for each of 100,000 users is a million calls. The moment you choose to call is also a rate limit and a bill."
+            }
+          ]
+        },
+        {
+          "seq": 7,
+          "kind": "text",
+          "title": "A copy is not the official record",
+          "objective": "boundaries",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Your screen may say a student's enrollment status is ACTIVE. If that fact comes from the school's official system, the school system is the source of truth. Your database may hold a copy that says ACTIVE, last synchronized on July 17, because a local copy is faster to query. The copy is not the official record.\n\nSynchronization is how the copy gets updated. Until the next sync, the two systems can disagree. You decide what the product does then: ask the school system again, show the local copy with its timestamp, or block the action.\n\nAn outside system can give you a fact without becoming the permanent source of truth for everything you display. Name who officially owns each fact before you save a copy of it."
+            }
+          ]
+        },
+        {
+          "seq": 8,
+          "kind": "text",
+          "title": "The secret stays on your backend",
+          "objective": "contract",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "An API key answers a narrow question: this request came from application X. It is a secret. If the browser sends that key straight to the mapping service, a student can open the page tools and copy it. The browser should talk only to your backend. Your backend attaches the key and calls the outside service.\n\nA key is not a person, and it is not a permission. User login answers who is asking. Authorization answers what that person or application is allowed to do. OAuth covers a third case. The student grants your product limited access to another system, such as a calendar, without handing you their password for that system.\n\nKeep the three questions apart. Which application is calling, which person is asking, and what they are allowed to do."
+            }
+          ]
+        },
+        {
+          "seq": 9,
+          "kind": "text",
+          "title": "Every call adds waiting",
+          "objective": "patterns",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Each outside call adds waiting the student can feel. If service A takes 2 seconds, service B takes 3, the AI takes 5, and service C takes 2, and your backend starts each one only after the previous one finishes, the button takes 12 seconds. The code can be correct and the product still feels broken.\n\nYou shorten that wait by skipping calls you do not need, reusing a saved result, or starting independent calls together. You also ask whether the student must wait at all. Creating an account can save the row, show success, and send the welcome email in the background. The student does not need to watch an email server work.\n\nArchitecture decides how long the user waits, not only whether the answer is correct."
             }
           ]
         }

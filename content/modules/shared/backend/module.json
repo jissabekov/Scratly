@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "backend",
   "seq": 5,
   "title": "Backend: Where the Product Becomes Real",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "You press the heart on a song and it fills in. The button did not decide anything, and the database did not decide anything either. Between what you wanted and what got stored, something ran the product. That something is the backend.\n\nA database can store likes. A payment service can charge cards. An AI model can classify music. None of those parts decides when each thing happens, in what order, with which information, and under which rules.\n\nThe backend is the product's operating system: it coordinates those pieces so intent becomes a controlled change."
+              "text": "You press the heart on a song and it fills in. The button did not like the song, and the database did not decide to like it. The frontend said this user wants to like song 55102. The backend receives that request, works out which user it belongs to, checks that the song exists, checks whether the like is already there, creates the relationship, updates anything else that depends on it, and returns the new state. Only then does the heart fill. The move is not liked, then liked.\n\nA database can store that user 9182 likes 842 songs. A model can classify the music. A payment service can charge a card. None of them decides when each thing happens, in what order, with which information, for which user, or what is kept if a step fails.\n\nThat coordinating logic is the backend. The frontend is what the user can see and ask for. The database is what the system remembers. The backend is the product's operating system: it decides what actually happens, so intent becomes a controlled change."
             }
           ]
         },
@@ -71,7 +71,7 @@
             },
             {
               "type": "text",
-              "text": "The frontend captures intent. The backend turns that intent into controlled changes in the system: which rules apply, which data is read, which other services are called, and what becomes permanent.\n\nWithout that coordination layer, you have screens and storage with no shared product behavior."
+              "text": "Every product action is a stack of decisions, and one request walks them. What does this person want? What does the product allow? What data exists right now? What computation has to run? Which other system must be called? What becomes permanent? What goes back to the screen?\n\nOn the like, those are not seven departments. The want is the heart tap. A rule might say you cannot like a missing song, or like it a second time. The data is whether the relationship already exists. The permanent change is the new like. The result is the filled heart. Skip one of those and the screen can still look finished while the product did something else.\n\nThe frontend captures intent. The backend turns that intent into controlled changes in the system. Without that layer you have screens and storage, and no shared behavior between them."
             }
           ]
         },
@@ -124,7 +124,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "\"I need a button called Approve\" is frontend thinking. The better question is: what happens to the system when something becomes approved?\n\nProducts are systems that move between states. A scholarship application may move from Draft to Submitted to Under Review, then to Approved, Needs More Information, or Rejected. Jumping from Idea straight to Completed is usually not a legal move.\n\nThe backend controls which moves are legal, who may cause them, and what else must happen when they occur."
+              "text": "I need a button called Approve describes the screen. The backend question is what happens to the system when something becomes approved. A scholarship application is not a label. It moves from Draft to Submitted to Under Review, and from there to Approved, Needs More Information, or Rejected.\n\nUnder Review to Approved is not a function named approve_application. The reviewer must have permission. The application cannot already be rejected. The time and the reviewer id have to be written down. The applicant may need a notification. Funding capacity may need a check. After the move, the application should no longer be editable. If those are missing, the status word changed and the product did not.\n\nThe backend controls which moves are legal, who may cause them, and what else must happen when they occur. A food order, a match, and a student project each have their own list. The code comes after the moves are named."
             }
           ]
         },
@@ -150,7 +150,7 @@
             },
             {
               "type": "text",
-              "text": "A transition has preconditions and consequences: who may cause it, what must already be true, what gets recorded, and what else must happen, such as a notification.\n\nDefining those legal moves is backend architecture. Decide them before you ask an agent to code a button."
+              "text": "The arrows are the only moves you will allow. Draft can become Submitted. Submitted can become Under Review. Under Review can become Approved, Needs More Information, or Rejected. There is no arrow from Idea to Completed, and a rejected application does not become Paid because someone wished it. If an agent invents that arrow, the product has a path you never designed.\n\nEach arrow has a before and an after. Before: who may pull it, and what must already be true. After: what gets recorded, and what else must happen, such as a notification or a capacity check. An email might go from Draft to Sent only after the student confirms.\n\nNaming the legal moves is the architecture. The button is only how a person asks for a move the backend may still refuse."
             }
           ]
         },
@@ -183,7 +183,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "The frontend runs on a device the user controls; the backend runs on infrastructure the product controls. Everything crossing that line is a request, not truth. A game that sends coins_to_add = 1,000,000 or a store that sends price = $1.00 is only asking. The backend decides what is true.\n\nEvery important fact needs one authoritative home, a source of truth. If a student's county is copied into the profile, the project, and the recommendation, a move to a new county leaves three disagreeing copies.\n\nThe backend should know which system owns each fact; everywhere else references or derives it."
+              "text": "The frontend runs on a device the user controls. The backend runs on machines the product controls. Everything that crosses that line is a request, not a fact. A game that sends coins_to_add = 1000000 is asking to be rich. A store that sends price = $1.00, when the catalog says $800, is asking for a discount. A school form that sends role = administrator is asking for a role. The backend looks up who the user is, what the thing costs, and what that account may do.\n\nThe lookup needs one home for the fact, a source of truth. A follower count on screen can be calculated from follow relationships, or copied into a cache for speed. The relationships are the authority. The cache and an AI sentence are not. If a student's county is stored on the profile, copied onto the project, and copied again onto the recommendation, a move to a new county leaves three answers.\n\nThe backend should know which system owns each fact, who may change it, and whether everyone else should point at it or calculate from it. The frontend tells the backend what the user wants. The backend determines what is actually true."
             },
             {
               "type": "callout",
@@ -245,7 +245,7 @@
             },
             {
               "type": "text",
-              "text": "One request moves through the same conceptual stages every time: identify, validate, authorize, apply rules, read state, change state, trigger side effects, return a result.\n\nThe frontend only displays that result. The product decisions live in this pipeline."
+              "text": "Reserve seat 14C arrives as intent. Nothing has changed yet. Identify asks who is asking, and the answer comes from the login session, not from a user_id the browser typed. Validate asks whether flight 817 and seat 14C exist and whether the request is well formed. Authorize asks whether this person may book. A request can be valid and still forbidden: the seat is real, and this account is not allowed to take it.\n\nThen come the product rules and the state as it is right now, not as the page looked when it loaded. Is 14C still available? Does this fare allow a seat choice? Does an exit row require extra eligibility? Only after those checks does the backend change the seat, start consequences such as a confirmation, and return a result.\n\nThe frontend displays that result. It did not reserve the seat. A later stage is guessing if an earlier one was skipped."
             }
           ]
         },
@@ -259,12 +259,12 @@
               "type": "worked_example",
               "title": "Reserve seat 14C on Flight 817",
               "steps": [
-                "The backend receives the request to reserve seat 14C. It is intent; nothing has happened yet.",
-                "It identifies the user from the trusted login session, not a user_id typed by the browser.",
-                "It validates that flight 817 and seat 14C actually exist, then authorizes whether this user may book.",
-                "It reads current state and applies rules: is 14C available, exit-row eligibility, fare restrictions.",
-                "It performs the operation: 14C changes from AVAILABLE to RESERVED FOR USER 9182 as one protected change.",
-                "It triggers side effects such as confirmation work and replies confirmed; the frontend displays the result."
+                "The backend receives a request to reserve seat 14C on flight 817. That is intent. The seat is still whatever it was. Nothing has been reserved.",
+                "It identifies the person from the login session, as user 9182. It does not trust a user_id the browser put in the request.",
+                "It validates that flight 817 and seat 14C exist. Authorize is a separate question: a real seat can still be refused if this account may not book it.",
+                "It reads the seat as it is right now, not as the page looked a minute ago, then applies rules such as availability, exit-row eligibility, and fare restrictions.",
+                "It performs one protected change: 14C moves from AVAILABLE to reserved for user 9182. A second request must not win the same seat in the gap between the check and the write.",
+                "It starts side effects such as a confirmation, then replies that the seat is reserved. The frontend displays that result. It did not reserve the seat."
               ]
             }
           ]
@@ -277,7 +277,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Two people see seat 14C as available and both press Reserve. A badly designed backend lets both check, both pass, and both reserve. Now two people own one seat. Some operations must be treated as one protected change: atomic means it happens completely or does not happen, never halfway, like a $100 transfer that cannot subtract without adding.\n\nThe same thinking covers repeats and extras. A slow network can deliver the same Pay request twice, so the backend must recognize it as one operation rather than two charges. That property is called idempotency.\n\nAnd a failed confirmation email should not undo a saved order: the core action and its side effects are different things. Separate them so later work can retry without inventing a second purchase."
+              "text": "Two people both see seat 14C as available and both press Reserve. A careless backend lets the first request check, then the second request check, and both still see available. Both then write a reservation. Two people own one seat. The screen looked right, the database existed, and the code ran. The system is still wrong, because the check and the reserve were two separate moments.\n\nThose two moments have to be one protected change. Atomic means the important change happens completely or does not happen, never halfway. Transferring $100 has the same shape. Remove the money from account A, crash before adding it to account B, and the transfer is stuck in the middle. The backend cannot treat those writes as unrelated.\n\nA repeated request is the other failure. The user presses Pay, the network stalls, and they press again. Or the backend finished and the reply never arrived, so the frontend retries. Two identical requests should still be one charge, one order, or one booking. That property is called idempotency: doing the same request again does not create a second copy of something that should happen once."
             },
             {
               "type": "callout",
@@ -319,6 +319,54 @@
               "tone": "info",
               "title": "Punchline",
               "text": "Define the states, the rules, and the source of truth first. Without them, the agent is not implementing your product. It is inventing one."
+            }
+          ]
+        },
+        {
+          "seq": 6,
+          "kind": "text",
+          "title": "The submit is not the Slack message",
+          "objective": "reliability",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Submitting a project is the core change: Draft becomes Submitted. Emailing the teacher, sending a push, writing a summary, updating analytics, and posting to Slack are side effects. They happen because of the change. They are not the change.\n\nIf the Slack post fails, the project should stay submitted. If the summary fails, it should not bounce back to Draft. The student asked to submit, and the product agreed. A notification can be tried again later. Undoing the submit because a message failed invents a state the student did not ask for.\n\nKeep the core write and the extras on different footing, so a retry of the extra cannot create a second submission."
+            }
+          ]
+        },
+        {
+          "seq": 7,
+          "kind": "text",
+          "title": "Some work should not hold the request",
+          "objective": "reliability",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Generate my annual report might mean reading thousands of rows, drawing charts, calling a model, building a PDF, and uploading it. That can take 45 seconds. One design makes the request wait the whole time, and the student stares at a spinner until the connection gives up.\n\nThe other design creates job 817, returns immediately that the report is being generated, and lets a worker finish the file. The screen needs a status it can check, and the student is told when the file is ready. Checking a password, adding to a cart, or loading a profile should still finish inside the request. The person is waiting for that answer.\n\nA 2 GB video, a 100-page report, 10,000 documents, or 50,000 emails should not. The backend architecture changes with the answer to a plain question: does this person need the result before the request ends?"
+            }
+          ]
+        },
+        {
+          "seq": 8,
+          "kind": "text",
+          "title": "This server should not be the memory",
+          "objective": "reliability",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A request such as GET /profile should make sense by itself. The backend reads the current profile and answers. It should not need this particular process to remember that the same person visited five minutes ago. The next request may land on a different machine.\n\nFacts that matter therefore live where every machine can read them: a database, a cache, a session store, object storage, or a queue. A prototype that keeps the user list in a variable works until the process restarts, or until a second copy of the server starts and the two memories disagree.\n\nTemporary memory is for the calculation happening on this request. Persistent state belongs to the product. If a fact must survive a restart or a second server, it does not live only inside one backend process."
+            }
+          ]
+        },
+        {
+          "seq": 9,
+          "kind": "text",
+          "title": "The model sits inside the rules",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A model is one capability the backend can call. It is not the backend. A weak design sends the whole profile to a model and asks which project this student should do. The model then becomes the place the product's rules live.\n\nA stronger design reads the profile, loads projects that actually exist, and drops the ones that are inactive, too far away, age restricted, or already full. Those cuts are ordinary rules. The model then sees the remaining candidates and reasons about fit. The backend checks that every id it got back is still one of those candidates, saves the recommendation, and only then does the screen show it.\n\nThe backend surrounds the call: trusted data, rules, the model, a check on the output, then storage. The model does not sit above the rules."
             }
           ]
         }

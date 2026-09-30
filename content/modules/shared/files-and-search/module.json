@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "files-and-search",
   "seq": 8,
   "title": "Files, Documents, Images, and Search: How Applications Find Information",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A nonprofit application tracks hundreds of community organizations. Name, city, category and active status fit a table perfectly. But each organization also has a 40-page annual report, photos, flyers and meeting recordings.\n\nYou cannot create a column called annual_report_paragraph_1. The question has changed from how do I organize facts to how do I organize knowledge.\n\nHaving access to a file is not the same thing as understanding its contents."
+              "text": "A nonprofit tracker stores each organization's name, city, category, and whether it is active. Those facts fit a table, and a database can filter them. The same organization also has a 40-page annual report, photos, flyers, and meeting recordings. There is no honest column called annual_report_paragraph_1.\n\nA database can technically store a large file inside a row. That does not mean it should. The database is built to query named facts, keep relationships, and check permissions. File storage is built to hold the bytes. A search system is built to find a passage inside those files. Good architecture gives each part the job it is good at. The question has changed from how to organize facts to how to organize knowledge that does not arrive as fields.\n\nA computer that stores the PDF has the file. It does not automatically understand the paragraphs, tables, and photos the way a person does. Having access to a file is not the same thing as understanding its contents."
             }
           ]
         },
@@ -67,7 +67,7 @@
             },
             {
               "type": "text",
-              "text": "Structured information has named fields the system can filter. Semi-structured information, such as JSON logs, has fields that can vary from record to record.\n\nUnstructured information arrives as a file. Names and dates may live inside a PDF, but until something extracts them, the application cannot address them as fields."
+              "text": "Structured information already has a shape the system understands. A student row with student_id 7281, name Maya, county Tulsa, and graduation_year 2027 can answer who is in Tulsa County, because each value has a name. Databases are powerful here: the question maps onto fields that already exist.\n\nSemi-structured information is organized, but the shape can change from one record to the next. A JSON payload might list Tulsa Youth Sports, an array of programs, and a contact email nested inside. API responses and logs often look like this. You can read the fields that showed up. You cannot assume every record has the same columns a single table would require.\n\nUnstructured information arrives as one file, such as a community impact report PDF. Paragraphs, tables, photos, names, and statistics may all be inside it. Until something extracts them, the application cannot filter a county out of that file the way it filters a column. The system knows the student row, half-knows the JSON, and receives the report as a file."
             }
           ]
         },
@@ -131,7 +131,7 @@
             },
             {
               "type": "text",
-              "text": "These systems are not competing. The database holds facts and permissions. Object storage holds the bytes. A search index holds structures prepared so finding information is fast.\n\nA real product may use all three at once."
+              "text": "The three systems are specialists. The database holds facts it can query: ids, names, categories, and who is allowed to see a record. Object storage holds the bytes of the PDF, the photo, or the recording. A search index holds structures prepared ahead of time so a question can find a passage without opening every file.\n\nOn a laptop demo, a file can sit in a folder on that one disk. A product people share cannot treat each upload as another ordinary column, and it cannot assume the folder is still there after the machine restarts. Object storage gives the file an id or a location and holds the object. Services such as Amazon S3 or Azure Blob Storage do this job. You do not need their APIs to use the split.\n\nThe database helps the application know what the object is. Object storage holds the object itself. A real product often needs all three: the row, the file, and the index that makes the file findable."
             }
           ]
         },
@@ -145,11 +145,11 @@
               "type": "worked_example",
               "title": "Maya uploads a report",
               "steps": [
-                "Maya uploads tulsa-youth-sports-annual-report-2026.pdf through the application.",
-                "The actual PDF goes into object storage at /files/organizations/381/reports/2026-report.pdf.",
-                "The database creates a document record: document_id 9127, organization_id 381, filename, document_type annual_report, uploaded_at.",
-                "The record also stores the storage_location pointing at the real file outside the database.",
-                "IDs, ownership, type and permissions live in the database; the bytes live in storage. The record is a relationship that crosses systems."
+                "Maya uploads tulsa-youth-sports-annual-report-2026.pdf. One click has to update two systems that do different jobs.",
+                "The PDF bytes go to object storage at a location such as /files/organizations/381/reports/2026-report.pdf. That address points at the object. It is not a column full of paragraphs.",
+                "The database creates a document row: document_id 9127, organization_id 381, the filename, document_type annual_report, and the upload time. Those fields say what the file is and who it belongs to.",
+                "The same row stores storage_location, aimed at the object outside the database. The organization points at the document row. The document row points at the file. One link leaves the database.",
+                "Permissions stay on the row, so the app can refuse someone who does not belong to organization 381. The bytes stay in storage. The record is the relationship that crosses the two systems."
               ]
             }
           ]
@@ -215,7 +215,7 @@
             },
             {
               "type": "text",
-              "text": "Different retrieval problems need different tools. Named fields with exact values use a database filter. Exact words inside documents use keyword search. Similarity of meaning uses semantic search.\n\nPipelines often combine them: filter by county and status first, then search by meaning inside that smaller set."
+              "text": "Show active organizations in Tulsa is a database filter. The rows already have county, category, and active, so the engine returns the ones whose fields match. It is precise, and it is fast when those fields are indexed. It cannot invent a field. If the annual report says Saturday programs run basketball leagues, and nobody stored offers_basketball as true, the filter will not find that sentence.\n\nFind documents containing basketball is keyword search over the text. It can hit basketball league or basketball coaching. It misses a document that says youth athletics, or athletic opportunities for adolescents, because the letters differ even when a person would call the ideas the same.\n\nFind programs for a teenager who enjoys sports needs similarity of meaning. A real product often chains the tools: filter to Tulsa and active first, then search by meaning inside that smaller set, then rank the matches. Searching the entire collection for every question is the slow version of the same pipeline."
             }
           ]
         },
@@ -227,7 +227,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A user searches for opportunities for teenagers who enjoy sports. A perfect document says it organizes basketball leagues for students ages 14 to 18. Almost no words overlap, yet the meaning matches.\n\nAn embedding is a mathematical representation of meaning that lets a computer compare pieces of information by similarity. Searching on those representations is called semantic or vector search.\n\nSemantic search does not replace filters for exact facts such as county or active status."
+              "text": "A user searches for opportunities for teenagers who enjoy sports. A fitting page says the group organizes basketball leagues for students ages 14 to 18. Almost none of the words are shared. A person still sees the match. A keyword index does not, because it is comparing letters.\n\nAn embedding turns a piece of text into a mathematical representation of its meaning, so the computer can compare pieces by how close those representations sit. Basketball for teenagers and youth sports program land near each other. A page of tax instructions lands somewhere else. Searching on those representations is semantic search, also called vector search.\n\nThe embedding does not replace a filter for an exact fact. County and active status are still columns with exact values. Semantic search is for the question those columns were never built to answer."
             }
           ]
         },
@@ -275,7 +275,7 @@
             },
             {
               "type": "text",
-              "text": "Find first, generate second. That order is retrieval-augmented generation, or RAG. A bad answer can be born long before the model: weak extraction, poor chunking, bad indexing, or bad retrieval all deliver the wrong passages.\n\nChanging the prompt at the bottom of that pipeline may accomplish nothing if the wrong page never reached the model."
+              "text": "Upload a PDF and ask questions sounds like one feature. It is a pipeline. The original file goes to object storage, a document row is created, extraction reads words out of the PDF, chunking breaks a long report into sections, and indexing prepares those sections. Later a question searches, retrieves a few strong passages, and hands the question plus those passages to the model.\n\nYou do not hand the model every document. Twenty PDFs might fit in one prompt. Two million will not. Extra pages also add cost, delay, and irrelevant text the model may treat as the answer. The useful shape is a large collection, then search, then a small subset, then the model. Find first, generate second. That order is retrieval-augmented generation, or RAG.\n\nChunking is how page 187 can be the thing you retrieve. A 300-page report is a poor single object to search. The system can return the section that says the summer program served 438 students, instead of the whole book. Too large a chunk buries the answer. Too small a chunk cuts the answer off from the sentence that makes it true. A wrong answer is often born before the model: weak extraction, a bad chunk, a missing index, or retrieval that returned the wrong pages. Editing the prompt does nothing if the right page never arrived."
             }
           ]
         },
@@ -311,6 +311,30 @@
               "tone": "info",
               "title": "Punchline",
               "text": "An AI model does not need to know everything. The surrounding system needs to deliver the right information at the right moment."
+            }
+          ]
+        },
+        {
+          "seq": 7,
+          "kind": "text",
+          "title": "The catalog is built before the question",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A library with a million books can answer \"do you have a book by Andy Weir?\" by walking every shelf and opening every book. That works, and it is a bad design. An index is a structure prepared ahead of the question: a catalog for authors, a database index on county or email, a text index for the word basketball, a vector index for nearby meanings.\n\nWithout that preparation, storing the files was cheap and every search is slow. With it, you spend computation and storage up front so the later question can jump. At 20 documents you will not feel the difference. At 20 million, the search that opens everything stops being a product.\n\nThe index is also a copy of a decision you already made. If the report changes and nobody rebuilds the chunks and the index, search keeps returning the old passage. Fast retrieval is work done before the question, and that work has to be redone when the source changes."
+            }
+          ]
+        },
+        {
+          "seq": 8,
+          "kind": "text",
+          "title": "A photo does not contain the word",
+          "objective": "three_forms",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "photo_128783.jpg is the image object. The file does not contain a searchable sentence that says what is in the picture. What the product can filter lives beside it as structured metadata: who uploaded it, when, where, the caption, the tags, the width, and the height.\n\nA vision model can add another layer. It might describe the file as teenagers playing basketball in an indoor gym, and list basketball, people, and gym. That description is text the search index can use. The image stays an image in object storage. The new words are derived information, not pixels.\n\nThe same transformation shows up everywhere a file is opaque. Audio becomes a transcript. A PDF becomes extracted text and tables. A photo becomes a description. Products often turn unstructured information into something structured or searchable, and that preparation is part of the architecture, not a flourish after the upload."
             }
           ]
         }

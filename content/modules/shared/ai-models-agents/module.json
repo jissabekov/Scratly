@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "ai-models-agents",
   "seq": 9,
   "title": "AI Models and Agents: Putting Intelligence Inside a Product",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "One product reads a photo of a handwritten form and returns fields. Another answers questions from a 300-page handbook. A third checks calendars and proposes meeting times. A fourth edits code, runs tests and fixes its own errors. A fifth reschedules your appointment by phone.\n\nAre these five kinds of AI? Not necessarily. The underlying models may be similar — what makes the products different is everything surrounding the model.\n\nThe interesting question is no longer can I put a model in my app. It is what role intelligence should play inside my system."
+              "text": "One product reads a photo of a handwritten form and returns name, date, service, and urgency as fields. Another answers a question about a 300-page handbook by searching it first. A third checks calendars and proposes three meeting times. A fourth edits code, runs tests, and fixes its own errors. A fifth speaks on the phone, looks up open appointments, and changes the booking.\n\nThese do not have to be five kinds of model. The handbook product mostly needs instructions, a search over documents, and an answer. The phone product needs a voice interface, a tool that can read the schedule, and permission to change a booking. Swap those surroundings and you have built a different product on a similar model.\n\nThe interesting question is no longer whether you can put a model in the app. It is what role intelligence should play inside the system, and which of the surrounding pieces that role requires."
             }
           ]
         },
@@ -71,7 +71,7 @@
             },
             {
               "type": "text",
-              "text": "Instructions, data, tools, normal software logic, permissions, memory, and the interface decide what the same model can do in your product.\n\nChange those surroundings and you change the product without changing the model brand."
+              "text": "The ring around the model is the product. Instructions say what role it plays. Data is what it is allowed to see. Tools are operations it may request. Software logic is the ordinary code that still decides ages, prices, and duplicates. Permissions say what it may change. Memory is what the product stores and can fetch later. The interface is how a person reaches it: a form, a chat, a phone call.\n\nThe form-reading product can stop at instructions plus a structured result. It does not need a tool that edits the world. The rescheduling product fails without a tool and a permission, because reading a sentence out loud does not move an appointment.\n\nChange the ring and you change the product, even if the model name on the invoice stays the same."
             }
           ]
         },
@@ -96,7 +96,7 @@
             },
             {
               "type": "text",
-              "text": "Most AI features are one or two of these jobs wearing a product's clothes. AI is good at ambiguity. Code is good at certainty.\n\nDo not replace a clear rule such as \"under 18 requires parental consent\" with a model just because AI exists."
+              "text": "Perceive turns messy human input into something software can use: a photo, a scan, speech, a screenshot. Interpret finds meaning that keyword match misses. \"This student loves fixing motorcycles and building things\" can become mechanical systems and hands-on engineering, even though the phrase mechanical engineering never appears.\n\nGenerate is not only an essay. A volunteer note that says Saturdays, Norman, no car, and dogs can come back as fields: availability, city, transportation, interests. Once those fields exist, ordinary code can filter them. If another part of the product must use the answer, ask what data structure should come back, not for a paragraph.\n\nDecide is for an ambiguous choice, such as sending \"my login broke and my school email changed\" to account support and \"I was charged twice\" to billing. Act is requesting a tool so something in the world changes. A rule with no ambiguity stays in code: if the account is under 18, parental consent is required. AI is good at ambiguity. Code is good at certainty."
             }
           ]
         },
@@ -149,7 +149,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "By itself, a model cannot update your database, send an email, issue a refund or create a calendar event. It produces text, data or a decision.\n\nTo make anything happen in the world it needs tools — defined operations that the surrounding software can execute on its behalf.\n\nTool use is a contract: developers define the operations; the model decides when to request one; application code performs the real operation. Words from the model do not move money."
+              "text": "By itself, a model cannot update your database, send an email, issue a refund, or create a calendar event. It produces text, structured data, or a request. The world changes only when surrounding software runs an operation someone defined.\n\nThat operation is a tool, and tool use is a contract. Developers name the operation and the shape of its input and output. The model decides when to request it. Application code performs it. The model might decide it needs an order status and request get_order_status with order_id 4821. The application reads the real system and returns shipped, expected July 21. The model then continues the answer using that result.\n\nThe model never opened the order table. Words from the model do not move money. The application did."
             }
           ]
         },
@@ -163,11 +163,11 @@
               "type": "worked_example",
               "title": "One tool call, step by step",
               "steps": [
-                "The model decides it needs the customer's current order status.",
-                "It requests the tool: get_order_status(order_id = 4821).",
-                "The application executes the tool against the real system and returns shipped, expected delivery July 21.",
-                "The model continues its answer using that result.",
-                "The model never touched the order database directly; it only requested an action the software performed."
+                "The model is answering a customer and decides it does not know the order. It cannot look inside the database by writing a sentence.",
+                "It requests a tool the developers defined: get_order_status, with order_id 4821. The request is a choice, not the lookup.",
+                "Application code runs that tool against the real order system and gets back a result: shipped, expected delivery July 21.",
+                "That result is handed back into the model's context. The model writes the rest of the answer using the shipped date it was given.",
+                "The order row changed only if some other tool was allowed to change it. This call only read. The model never touched the database."
               ]
             }
           ]
@@ -215,7 +215,7 @@
             },
             {
               "type": "text",
-              "text": "The developer did not program the exact path. That flexibility is what makes an agent an agent — and what makes it harder to control and evaluate.\n\nAn agent architecture is mostly about deciding who controls the next step: your code or the model."
+              "text": "Give an agent the goal of finding out why event registrations dropped this week. It might check the registration database, compare this week with earlier weeks, see that site traffic is normal, read the error log, find payment failures, and then explain. Nobody wrote that sequence in advance. Each step was chosen after the previous result came back.\n\nThe loop is: understand the situation, choose an action, call a tool, inspect the result, and either continue or answer. A workflow would have named those steps. An agent names a goal and a set of tools, then the model picks the path. That flexibility is what makes it an agent, and it is why you cannot judge it by replaying one scripted route.\n\nA production agent is more than a model plus tools. It also needs instructions, context, state, permissions, a check on results, a reason to stop, a log, and a way to tell a good run from a bad one. The architecture question under the loop is who controls the next step: your code, or the model."
             }
           ]
         }
@@ -247,7 +247,7 @@
             },
             {
               "type": "text",
-              "text": "Start as low on the ladder as possible. Complexity should be earned. One input and one structured extraction is often a single model call, not a multi-agent system.\n\nClimb only when the problem truly needs search, a fixed workflow, or model-chosen next steps."
+              "text": "Level 0 is ordinary software. A date of birth becomes an age, and under 18 requires parental consent. That path is predictable. Leave it alone. Level 1 is one model call: a project idea goes in, and problem, target users, location, and required resources come out. There is no loop and no autonomy. A large share of AI features are this shape.\n\nLevel 2 is grounded. The model was not given the handbook in its training for your question, and you do not paste 10,000 documents into the prompt. The application searches, retrieves a few sections, and puts those sections into the context. Search first, then the model answers. It did not learn the files. You placed the relevant ones in front of it. Level 3 is a workflow with a fixed order: extract, then code checks the required fields, then the database checks duplicates, then the model categorizes, then code stores the result. The model takes part. Software still controls the process, which is easier to test than a path that invents itself.\n\nLevel 4 is the agent: the model chooses the next action after each result. Level 5 lets one model delegate to others. Three agents do not make the product three times smarter. They can make it more expensive, slower, and harder to debug or repeat. Start as low on the ladder as possible. Complexity should be earned."
             }
           ]
         },
@@ -259,7 +259,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "In a workflow, the steps are predetermined: code validates fields, calls the model, checks duplicates and stores results; the AI participates but software controls the process.\n\nIn an agent, the exact path is not programmed — the model inspects, chooses and acts until it decides the task is done.\n\nAn agent architecture is mostly about deciding who controls the next step: your code or the model."
+              "text": "In a workflow the steps are written down before anyone runs it. An application arrives. A model extracts fields. Code checks that the required ones are present. The database looks for a duplicate. A model assigns a category. Code stores the row. If step four fails, you know which step failed. The model participated. It did not choose the sequence.\n\nIn an agent the sequence is the thing you did not write. The model inspects what it has, picks a tool, reads the result, and continues until it decides the task is done. That is the right shape when the next move depends on what the last tool returned, as in an investigation. It is the wrong shape when you already know the moves.\n\nAn agent architecture is mostly this choice. Who controls the next step: your code, or the model? Pick the workflow when you want a path you can test. Pick the agent when the path cannot be listed in advance."
             }
           ]
         },
@@ -292,7 +292,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Everything the model receives becomes its context: instructions, the user request, current state, retrieved information, tool definitions, tool results and examples.\n\nContext engineering asks not which prompt to write but what information the model should have at the moment it makes this decision. Too little context and it guesses; the wrong context and it concludes wrongly; too much and cost rises while the important facts get buried.\n\nAI saying something wrong and AI doing something wrong are different risk levels."
+              "text": "Everything in front of the model at decision time is its context: the instructions, the user's request, what has happened so far, retrieved records, the tool definitions, the tool results, and any examples of a good answer. From that pile it produces text, fields, a category, a recommendation, a tool request, or a plan. Context engineering asks what this decision needs to see, not which clever sentence to prepend.\n\nToo little, and the model guesses. The wrong documents, and it concludes from the wrong facts. A huge pile of irrelevant pages raises cost and delay, and the one sentence that mattered is harder to find. A good system assembles the context for this task on purpose.\n\nSaying a wrong thing and doing a wrong thing are different risks. \"Your meeting is at 3\" is a bad sentence. An agent with calendar access that cancels everyone's 3 o'clock meeting is a bad action. Search, read, and draft can often run on their own. Send, delete, publish, and move money should wait for a person. Untrusted text raises a second problem: a page the agent was sent to summarize can contain hidden lines that look like instructions. To ordinary software that is just text. To a model, text can look like an order. Instructions you trust and data you merely retrieved should not be the same kind of input."
             }
           ]
         },
@@ -325,13 +325,25 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A venue-finding agent could search forever unless the architecture limits it: a maximum of 10 tool calls, 2 minutes, fifty cents of model cost, 3 retries, or a rule to stop after 5 qualified venues.\n\nLimits like these are part of the product. An agent without stopping rules is not more autonomous — it is unfinished software.\n\nThe more autonomy you give an AI, the more verification and control you must build around it."
+              "text": "Ask an agent to find the best possible venue and it can search, search again, open another site, compare, ask another model, and search again. Nothing in the goal says when \"best\" has been reached. Without a stop, the loop is unfinished software that spends money.\n\nThe architecture supplies the stop. Cap it at 10 tool calls, 2 minutes, or fifty cents of model cost. Allow 3 retries, not endless ones. Stop when 5 qualified venues are already in hand. If a required fact is missing, ask the user instead of guessing a search. Those limits are product behavior, the same way a form has a maximum length.\n\nThe more autonomy you give an AI, the more verification and control you must build around it. An agent without stopping rules is not more autonomous. It is unfinished."
             },
             {
               "type": "callout",
               "tone": "info",
               "title": "Punchline",
               "text": "The more autonomy you give an AI, the more verification and control you must build around it."
+            }
+          ]
+        },
+        {
+          "seq": 7,
+          "kind": "text",
+          "title": "Remembered where, exactly?",
+          "objective": "guardrails",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "People say the agent remembers. Ask where. Working memory is whatever is still in the current context. The user says their name is Daniel, and a later reply in that same conversation can use the name because the earlier line is still in front of the model. Close the context and that trick is gone.\n\nPersistent memory is a write to the product's own storage. User 7281, name Daniel, preferred language Spanish, lives in a table. Tomorrow the product can read that row with no model involved. Retrieved knowledge is a third place: a PDF, a database, or a search index. The system finds a relevant piece and copies it into this context. That is search, not a memory the model keeps.\n\nImportant facts belong in the store that matches them. \"Please remember this contract forever\" leaves the contract inside a conversation. Save the file, store the metadata, index the text, and retrieve it when a later question needs it. The model is not your database."
             }
           ]
         }

@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "frontend",
   "seq": 4,
   "title": "Frontend: Designing What the User Can See, Do, and Break",
@@ -71,7 +71,7 @@
             },
             {
               "type": "text",
-              "text": "The frontend is not the whole application. It is the control surface: what the user can see, what they can do, what the screen currently remembers, and how the product reports progress or failure.\n\nThe server still authenticates, saves, and updates shared counts. Other devices learn the new state only after that shared truth changes."
+              "text": "The tap does not end at the icon. The frontend turns the heart red immediately so the app feels responsive, then sends the action. The server checks who the person is and, if the like is allowed, saves it. Counts and recommendations change from that saved fact, not from the color of a pixel.\n\nAnother phone does not learn the new count because this phone's icon changed. It learns when it receives the shared result. Airplane mode can still paint the heart, because painting does not require the server. Saving does.\n\nThe frontend is the control surface: what the user can see, what they can do, what the screen currently remembers, and how the product reports progress or failure. It is not the whole application."
             }
           ]
         },
@@ -118,7 +118,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A frontend is a control surface built from four things: information the user can see, actions the user can take, state the screen currently remembers, and feedback about what is happening.\n\nA game lobby shows players and a countdown, allows inviting a friend and marking ready, remembers the selected character, and communicates \"waiting for one more player.\" That is architecture, not decoration.\n\nIf you can name those four parts for a screen, you can brief an agent without asking it to invent the product."
+              "text": "A control surface has four parts, and a screen is unfinished until you can point at each one. Information is what the user can see, such as the players in a lobby and the countdown. Actions are what they can do, such as invite a friend or mark ready. State is what this screen currently remembers, such as the selected character, which may not be saved yet. Feedback is how the product reports progress or trouble, such as waiting for one more player, or the invite failed.\n\nColor and layout come after those four. The countdown is not decoration. It is information the player uses to decide whether to mark ready. If an agent only receives a picture of the lobby, it has to invent which of those facts are real.\n\nName the four parts and the agent has a product to build. Skip them and it will invent the product while it draws the screen."
             }
           ]
         }
@@ -136,7 +136,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Asked to picture a music search screen, most people draw only the successful version: a search box, song results, play buttons. The real screen has many possible states, and each one needs a designed answer for what the user sees and can do.\n\nLoading, empty, error, offline, and partial success are not edge cases. They are the product people live in when the network is slow or the search finds nothing.\n\nDesigning only the successful screen means designing only a fraction of the product."
+              "text": "Asked to picture a music search, most people draw the successful version: a box, song rows, and play buttons. That drawing is one state. Before any search, the screen is untouched. While the request travels, it is loading. Afterward it can be success, empty, error, offline, or partial, and each of those is a different thing the user sees and a different thing they can do next.\n\nLeave them undesigned and the product invents them badly. A search that finds nothing becomes a blank panel, which looks broken. A failed request becomes a spinner that never ends, which looks like success is still on the way. Empty means the search worked and nothing matched, so the next move is to change the query. Error means the search could not finish, so the next move is to retry.\n\nLoading, empty, error, offline, and partial success are the product people use when the network is slow or the catalog has no match. Designing only the successful screen means designing only a fraction of the product."
             }
           ]
         },
@@ -241,7 +241,7 @@
             },
             {
               "type": "text",
-              "text": "Screen state dies on refresh. A browser draft stays on the first machine. Filters in the address bar are bookmarkable and shareable. Only server-saved data follows the account to a different laptop.\n\nPick the level that matches how long the information must survive."
+              "text": "Screen state is the open menu or the unsaved description. It lives in the page, and a refresh throws it away. That is why a long event description disappears. Browser-saved state, such as a draft or a theme, survives that refresh on this device. It is useless on a different laptop, because it never left the first browser.\n\nURL state puts a fact in the address, such as the current filters. Someone can bookmark it or send the link. It is a poor place for a private registration. Server-saved state is attached to the account: a profile, a registration, a submission. Log in on another machine and it is still there, because the server kept it.\n\nThe further down that list, the longer the information survives and the more the product has to protect it. Pick the level by the question you actually care about: after a refresh, after switching devices, or only while this page is open?"
             }
           ]
         },

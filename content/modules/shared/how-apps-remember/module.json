@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "how-apps-remember",
   "seq": 2,
   "title": "How Applications Remember",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Open a social post. It looks like one thing: a video, a name, a caption, a like count, some comments. But what information does the application actually need to draw that screen?\n\nBehind that screen sit an account, a post record, a video file, like and follow relationships, comments, view history, privacy rules, recommendation signals, and often a temporary cached copy on the phone.\n\nWhat looks like one post is assembled from several different kinds of storage. The screen combines those pieces into one experience."
+              "text": "Open a social post and it looks like one object: a video, a name, a caption, a like count, and comments. The video file does not contain the like count. The count comes from like relationships. The name comes from an account record. The caption comes from a post record. Each comment is its own record. Privacy rules decide whether this viewer may see the post at all.\n\nThe application is also keeping view events, recommendation signals, and often a temporary copy on the phone so the next open is faster. A file, a relationship, and a cached copy are not three ways of writing the same fact. They have different jobs, and they can be wrong independently: the phone can show an old count while the server already has a new one.\n\nWhat looks like one post is assembled when you open it. The screen combines those pieces into one experience."
             }
           ]
         },
@@ -169,7 +169,7 @@
             },
             {
               "type": "text",
-              "text": "A cache is a temporary copy kept for speed: the next videos before a swipe, album art, or common search results. If the cache disappears, the product should retrieve or rebuild the official information from its real home.\n\nChoosing the wrong lifetime is why drafts vanish on refresh and why submissions must not live only in the open tab."
+              "text": "A cache is a temporary copy kept so a read is fast: the next videos queued before a swipe, album art, a like count already painted on the phone, or a common search result. The official likes still live in the relationships on the server. The copy on the phone can be missing, or it can be old.\n\nIf that copy disappears, the product should retrieve or rebuild from the real home. If the cache were the only copy, clearing the phone would delete the likes. A lifetime that is shorter than the fact's job is also why a draft vanishes on refresh, and why a submitted application must not live only in the open tab.\n\nSpeed is the reason to keep the copy. The official record is the reason you must be able to build the copy again."
             }
           ]
         },
@@ -222,7 +222,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Do not ask only where to store information. Ask how the product will need to find it again.\n\nGive every important thing a stable ID. Two students can share a name and usernames can change, but student_id never changes its meaning. Exact lookup, filters, sorting, relationships, text search, semantic search, and time-based queries all depend on what you chose to store.\n\nIf time matters to the product, the system must record time."
+              "text": "Do not start by asking which folder a fact goes in. Ask how the product will find it again, because that question decides what you store. Open project 847 is an exact lookup, so the project needs a stable id. Two students can both be named Maya, and a username can change. student_id does not change its meaning, so a relationship points at the id instead of the name.\n\nA filter such as state equals Oklahoma, and the deadline has not passed, works only if those fields exist and mean one thing. Newest first works only if you stored a time. Show the people I follow works only if you stored the relationship, not a pasted copy of each profile. Text search and search by meaning need the words, or a representation of the meaning, prepared before the question arrives.\n\nIf the product cares what changed since the last login, something must have recorded when the change happened. Storage that cannot answer the product's questions is the wrong storage, even when every fact is technically saved somewhere."
             }
           ]
         },

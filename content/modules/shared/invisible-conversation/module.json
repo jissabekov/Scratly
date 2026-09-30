@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "invisible-conversation",
   "seq": 3,
   "title": "The Invisible Conversation Behind Every Tap",
@@ -72,7 +72,7 @@
             },
             {
               "type": "text",
-              "text": "The ticket server asks: is the ticket still available, is the user signed in, has this request already been processed, and what response should each student receive?\n\nThe screen is only the visible edge of that conversation. The product designer must define what leaves the device, what the server verifies, and what comes back."
+              "text": "Each browser sends a request and waits. It does not get to mark the ticket sold. The server asks the questions neither phone can answer: is the ticket still available, is this person signed in, has this exact request already been processed, and what should this student be told? Then it writes the result once.\n\nStudent A's request can win. The server marks the ticket unavailable and returns success. Student B, a moment later, gets a conflict: the ticket is gone. Both screens were honest about what they had seen. Only the server had seen both buyers.\n\nThe screen is the visible edge of that conversation. The product designer defines what leaves the device, what the server verifies, and what each student gets back."
             }
           ]
         },
@@ -148,7 +148,7 @@
             },
             {
               "type": "text",
-              "text": "An endpoint is not just where the server lives. It names a capability: reserve, cancel, upload, login. Vague paths such as /saveData hide which data, for which user, under which rules.\n\nClear paths make the product's conversations readable: which event, which ticket, which action."
+              "text": "The message needs an address, not only a body. https://api.stagepass.app/events/441/tickets/9082/reserve is one. https names the rules for the trip, including that the contents should not travel as openly readable traffic. api.stagepass.app is a domain, a human name for a destination. The browser looks up which network address that name points at, then sends the message there.\n\nThe path gets more specific as it continues: the events collection, event 441, its tickets, ticket 9082, and the reserve action. An endpoint is that address for one capability. Reserve, cancel, upload, and login are different capabilities. A path called /saveData hides which data, for which user, and under which rules.\n\nA readable path is the conversation. POST /tournaments/88/matches/14/report-result reports one match. GET /users/42/notifications reads. If you cannot name the capability from the path, the architecture is still vague."
             }
           ]
         },
@@ -208,7 +208,7 @@
             },
             {
               "type": "text",
-              "text": "Hiding the Delete button is interface behavior, not security. The server must still reject unauthorized requests, even ones sent manually without any button.\n\nKnowing who someone is does not decide what they may do. The server checks both on every important request."
+              "text": "Authentication answers who this is. Authorization answers what this person may do. A student can be signed in as Maya and still be forbidden to delete the school's event. The server checks both on every important request, including one that never came from a button on the screen.\n\nHiding Delete is interface behavior. Someone can send that request by hand. If the server trusts the screen, the hidden button is not a lock.\n\nThe browser can also name a price. A ticket does not cost one dollar because the payload says so. The server reads the price it stored. A request is a claim. The checks turn the claim into a decision."
             }
           ]
         }
@@ -226,7 +226,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A user presses Save and the interface immediately shows \"Saved\". But the network request failed. Was it saved? No. The button changed, and that does not prove the action succeeded. Confident screens can lie.\n\nOptimistic updates show the expected result before confirmation. That feels fast, but the product must reverse the screen if the server rejects the request or never answers.\n\nDesign for loading, success, empty results, validation errors, auth failures, conflicts, timeouts, and offline — not only for the happy path."
+              "text": "A user presses Save and the interface immediately shows Saved. The request failed. The word on the screen changed, and the server has no new row. The screen and the server are not the same system, so a confident screen can lie.\n\nAn optimistic update shows the result you hope for before the answer arrives, which makes the product feel fast. If the server rejects the request, or never answers, the screen has to take that promise back and show what actually happened.\n\nEach ending is a different fact. Loading means the request left and nothing has come back. Success means the server confirmed it. Empty means the request worked and there was nothing to show. A validation error means the message itself was unacceptable. Unauthorized means the person is not signed in. Forbidden means the server knows who they are and still refuses. A conflict means the action clashes with the current truth, such as a ticket someone else just took. A timeout or an offline device means no usable answer arrived. The happy path is only one of those screens."
             }
           ]
         },
@@ -255,7 +255,7 @@
             },
             {
               "type": "text",
-              "text": "Retrying Buy should not sell the ticket twice. A unique request ID lets the server recognize the same attempt and return the existing result.\n\nDisabling the button helps the user, but the server must guard too, because buttons cannot stop a resent request."
+              "text": "The student presses Buy and nothing seems to happen, so they press Buy again. The first request was only slow. The server now has two purchase messages for the same ticket. Charging twice would punish the wait.\n\nThe payload can carry a request id such as purchase-attempt-7719. When that id arrives again, the server recognizes the attempt, skips a second sale, and returns the result it already produced. Retrying the same action should not perform it twice. The same rule covers reservations, submitted assignments, invitations, and refunds.\n\nDisabling the button while the request runs helps a person who is still looking at the page. It does not stop a refresh, a second device, or a message the network sends again. The server has to recognize the duplicate too."
             }
           ]
         },
@@ -288,7 +288,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Opening an album is one request and one answer, often a page at a time rather than the whole library. Equipping an item is a command that changes shared state on the server.\n\nA video upload moves a large file with progress and a processing status. AI generation is a job you check by polling or receive by streaming. A typing indicator lives on an ongoing connection and is never stored.\n\nMatch the feature to the conversation pattern before you ask an agent to build it."
+              "text": "Opening an album is one request and one answer: title, artist, and the first 20 tracks, not every comment and every listener. When the person scrolls, the app asks for the next 20. That is pagination. Sending the whole library on the first open makes the product slower and more expensive for information nobody has asked to see yet.\n\nEquipping a helmet is a different conversation. The device says equip item 712. The server checks that this player owns it, that it is a helmet, and what was equipped before, then stores the loadout and replies with the confirmed one. If the phone were the authority, a player could equip a paid item by editing the page. A video upload is different again: a large file, visible progress, and a processing status, because the bytes and the finished clip are not the same moment.\n\nGenerating an image starts work that finishes later. The app either asks again until the job is done, which is polling, or receives the result as it is produced, which is streaming. A typing indicator is a live event on an open connection. It is not a row you keep. Match the feature to the conversation before you ask an agent to build one shape for all of them."
             }
           ]
         },

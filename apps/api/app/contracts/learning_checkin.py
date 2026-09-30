@@ -36,6 +36,8 @@ APPLIED_EVIDENCE_WEIGHT = 0.5
 RETENTION_INTERVALS_DAYS = (1, 3, 7, 16)
 RETENTION_LAPSE_STATE = "decaying"
 RESPONSE_RATE_TARGET = 0.60
+# Plan 05 §5.6: the deterministic scheduler/scorer (no LLM) stays under this.
+DETERMINISTIC_PIPELINE_P95_MS = 100
 
 
 class CheckinKind(StrEnum):

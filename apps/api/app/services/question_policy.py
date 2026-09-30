@@ -241,6 +241,42 @@ def _finalize(
     )
 
 
+def _same_contradiction_dimension(candidate_key: str, last_target_key: str) -> bool:
+    """True when a contradiction's dimension is the topic just asked."""
+    if candidate_key == last_target_key:
+        return True
+    return candidate_key == last_target_key.split(":", 1)[0]
+
+
+def _defer_same_dimension_contradiction(
+    pool: list[Target],
+    *,
+    last_target_key: str | None,
+    raised_keys: tuple[str, ...],
+) -> list[Target]:
+    """Drop a contradiction on the dimension just asked, when alternatives exist.
+
+    The student explicitly raising that conflict (support and oppose on the
+    same dimension this turn) keeps the clarify candidate in the pool.
+    """
+    if not last_target_key:
+        return pool
+    raised = set(raised_keys)
+
+    def deferred(candidate: Target) -> bool:
+        if candidate.kind != "contradiction":
+            return False
+        if not _same_contradiction_dimension(candidate.key, last_target_key):
+            return False
+        family = candidate.key.split(":", 1)[0]
+        return candidate.key not in raised and family not in raised
+
+    kept = [candidate for candidate in pool if not deferred(candidate)]
+    if kept and len(kept) < len(pool):
+        return kept
+    return pool
+
+
 def plan_next(
     candidates: list[Target],
     *,
@@ -250,6 +286,7 @@ def plan_next(
     blocked_topics: tuple[str, ...] = (),
     last_target_kind: str | None = None,
     last_turn_accepted: bool = False,
+    student_raised_contradiction_keys: tuple[str, ...] = (),
 ) -> PlannerDecision | None:
     """Choose *what* happens next with hard breadth and saturation controls.
 
@@ -257,7 +294,12 @@ def plan_next(
     excluded immediately; the caller can persist that boundary in its trace.
     During breadth, an exhausted branch can never beat a major unasked area —
     unless the last ask on the current branch still yielded evidence, in which
-    case the budget extends to ABSOLUTE_MAX_TOPIC_DEPTH (one more probe).
+    case the budget extends to ABSOLUTE_MAX_TOPIC_DEPTH (one more probe) and
+    the stay is traced as ``topic_yielding_extended``.
+
+    ``last_target_kind`` is the previous question's intent (callers still pass
+    it). Deferral keys off the dimension, not that intent: a contradiction on
+    the dimension just asked waits one turn unless this message raised it.
     """
     if not candidates:
         return None
@@ -270,14 +312,15 @@ def plan_next(
     if not pool:
         pool = candidates
 
-    # A just-asked contradiction defers one turn (Plan 07): clarify once, let the
-    # conversation breathe, revisit if still open. The clarify-attempt lifecycle
-    # (max 2 → dismissed) is unchanged; this only prevents consecutive cross-
-    # examination while other probes exist.
-    if last_target_kind == "contradiction":
-        non_clarify = [c for c in pool if c.kind != "contradiction"]
-        if non_clarify:
-            pool = non_clarify
+    # A contradiction on the dimension just asked waits one turn (Plan 07),
+    # unless the student put that conflict on the table themselves. Other
+    # contradictions stay in the pool and compete on value. The clarify-attempt
+    # lifecycle (max 2 → dismissed) is unchanged.
+    pool = _defer_same_dimension_contradiction(
+        pool,
+        last_target_key=last_target_key,
+        raised_keys=student_raised_contradiction_keys,
+    )
 
     major_uncovered = [c for c in pool if c.asked_count == 0]
     current = [c for c in pool if c.key == last_target_key]
@@ -333,8 +376,9 @@ def plan_next(
                 )
             )
 
-    # Semantic stay (Plan 07): a topic that is still yielding accepted evidence
-    # earns one extra probe during breadth before the budget forces a switch.
+    # Breadth ceiling. A yielding answer raises it to the absolute max; the
+    # branch below is what actually stays, so a fresh dimension cannot outscore
+    # the extra probe.
     effective_budget = ABSOLUTE_MAX_TOPIC_DEPTH if last_turn_accepted else DEFAULT_MAX_TOPIC_DEPTH
     if not breadth_complete and major_uncovered and current_depth >= effective_budget:
         target = select_next(
@@ -349,6 +393,34 @@ def plan_next(
                 closure=True,
             )
         )
+
+    # Semantic stay: the budget would have switched, but this answer still
+    # yielded evidence, so take one more probe on the same topic. Scoring would
+    # otherwise prefer the unasked dimension and undo the extension.
+    if (
+        not breadth_complete
+        and last_turn_accepted
+        and major_uncovered
+        and current
+        and DEFAULT_MAX_TOPIC_DEPTH <= current_depth < ABSOLUTE_MAX_TOPIC_DEPTH
+    ):
+        staying = [c for c in current if not is_repetition_blocked(c)]
+        if staying:
+            target = select_next(staying) or staying[0]
+            # A conflict the student just raised still clarifies; the extra
+            # probe name is only for staying on the same non-conflict ask.
+            if target.kind == "contradiction":
+                action, reason = PlannerAction.CLARIFY, "resolve_contradiction"
+            else:
+                action, reason = PlannerAction.FOLLOW_UP, "topic_yielding_extended"
+            return decided(
+                PlannerDecision(
+                    target,
+                    action,
+                    DiscoveryPhase.BREADTH,
+                    reason,
+                )
+            )
 
     # A fourth ask is invalid before breadth completes, regardless of score.
     eligible = [

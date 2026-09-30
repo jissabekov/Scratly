@@ -203,6 +203,72 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower().strip())
 
 
+# Bridge is required only for a topic change that carries a planner hint.
+# follow_up stays on the subject and must not announce a pivot (Plan 07 W7.10).
+_BRIDGE_REQUIRED_ACTIONS = frozenset({"switch", "bridge", "clarify", "gate"})
+
+
+def _present(text: str | None) -> str | None:
+    if not isinstance(text, str):
+        return None
+    stripped = text.strip()
+    return stripped or None
+
+
+def validate_turn_pairing(
+    *,
+    student_point: str | None,
+    acknowledgment: str | None,
+    bridge: str | None,
+    acknowledgment_mode: str,
+    action: str | None,
+    bridge_hint: str | None,
+) -> dict[str, Any]:
+    """Pair writer parts to the planner directive (Plan 07 W7.10).
+
+    Acknowledgment is empty exactly when the directive said ``none``, and
+    present for every other mode (including ``auto``). Bridge is present
+    exactly when the action is a pivot and ``bridge_hint`` was supplied.
+    ``student_point`` is warn-only and never rewrites the turn.
+
+    Forbidden parts are dropped so the assembled message cannot violate the
+    directive. Missing required parts are reported and left empty: this does
+    not invent copy, and it does not change the question-text rewrites in
+    ``apply_question_quality_gate``.
+    """
+    mode = acknowledgment_mode or "auto"
+    ack = _present(acknowledgment)
+    bridged = _present(bridge)
+    reasons: list[str] = []
+    warnings: list[str] = []
+    bridge_is_required = action in _BRIDGE_REQUIRED_ACTIONS and bool(bridge_hint)
+
+    if mode == "none":
+        if ack is not None:
+            reasons.append("acknowledgment_forbidden")
+            ack = None
+    elif ack is None:
+        reasons.append("acknowledgment_required")
+
+    if bridge_is_required:
+        if bridged is None:
+            reasons.append("bridge_required")
+    elif bridged is not None:
+        reasons.append("bridge_forbidden")
+        bridged = None
+
+    if _present(student_point) is None:
+        warnings.append("student_point_missing")
+
+    return {
+        "acknowledgment": ack,
+        "bridge": bridged,
+        "passed": not reasons,
+        "reasons": reasons,
+        "warnings": warnings,
+    }
+
+
 @dataclass(frozen=True)
 class QuestionQuality:
     accepted: bool

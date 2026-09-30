@@ -80,13 +80,26 @@ learning.retention_cards(student_id, objective_id, ease, interval_days,
 | W5.3 | API | **DONE** | `repository/learning_checkin.py` + `routes/learning_checkins.py` (`GET/POST/PATCH /v1/sessions/{id}/learning/checkins[/{cid}]`, `GET .../learning/summary`); idempotent by `request_id`; appends xAPI `learning_events` + updates the `mastery_states` projection; **never writes `assessment.evidence`** |
 | W5.4 | Surfaces | **DONE** | `components/learn/CheckInWidget.tsx` (non-modal, dismissible, `aria-live`, keys 1–5, focus mgmt, reduced-motion) wired at lesson section boundaries in `LessonPlayer`; `app/progress/page.tsx` + `components/progress/MasteryGrid.tsx` (mastery grid incl. `decaying`, streak chip, due-retention list, advice list); `npm --prefix apps/web run build` green |
 | W5.5 | LLM phrasing boundary | **DONE (opt-in)** | `prompts/checkin_phrasing/v1/system.txt` + `services/learning_checkin_phrasing.py` with server-side rubric validation and a deterministic fallback; 5 unit tests. **Deliberate deviation:** the default check-in path does not call the LLM (deterministic authored prompt), so scoring stays reproducible and the pipeline adds no latency — consistent with D1 (chat pipeline untouched). |
-| W5.6 | E2E + measurable claims | **PARTIAL** | `apps/web/e2e/checkins.spec.ts` (section-boundary check-in + dismiss + dashboard + axe; no check-in during a quiz; hub → dashboard link). Full Playwright suite: **14/14 green** (`npm --prefix apps/web run test:e2e`, baseline was 11/11). Remaining: measured p95 / response-rate claims with `verify_percentile` / `verify_wilson_ci` on real check-in traffic (needs a seeded traffic run). |
+| W5.6 | E2E + measurable claims | **DONE** | `apps/web/e2e/checkins.spec.ts` (section-boundary check-in + dismiss + dashboard + axe; no check-in during a quiz; hub → dashboard link). Full Playwright suite: **14/14 green** (`npm --prefix apps/web run test:e2e`, baseline was 11/11). Claims measured by `.venv/Scripts/python scripts/measure_checkin_claims.py` (`verify_percentile` numpy-linear, `verify_wilson_ci` z=1.96). Deterministic pipeline p95 **0.0089 ms** (n=2000, target <100). Stored response rate **43/64 = 0.672** (Wilson 95% **0.550–0.774**); point estimate clears >0.60, the lower bound does not. Check-ins delivered during an open quiz: **0**. Live `deliver()` p95 **40.03 ms** (n=40), also under 100 ms; those samples were rolled back and did not change the 43/64 counts. |
 
 **Fix recorded during W5.6:** the section-complete trigger originally matched a
 `experienced` verb and the streak counter matched short verb ids, but the slide
 tracker writes full xAPI URIs with `completed` / `slide:<id>` objects. Both now
 match the real statements, which is what makes the widget appear at a section
 boundary (proven by the e2e test).
+
+### W5.6 measurement (2026-09-30)
+
+Command: `.venv/Scripts/python scripts/measure_checkin_claims.py`
+
+| Claim | Result | How |
+|---|---|---|
+| Deterministic pipeline p95 < 100 ms | **0.0089 ms** (p50 0.0066 ms, n=2000, 156 unique) | `verify_percentile` q=0.95, empirical numpy linear, over seeded `checkin_gate` → trigger → kind → item → score calls. Warmup 50 excluded. No LLM, no DB. |
+| No check-in during a quiz | **0 / 286** seeded engine samples, **0 / 10** live `deliver()` samples with an open attempt, **0** stored events overlapping an open quiz attempt | Gate returns before an item is chosen. |
+| Check-in response rate > 60% | point **0.672** (43 answered / 64 delivered, 9 dismissed, 12 still open) | `verify_wilson_ci`, Wilson score, z=1.96, 95% CI **0.550–0.774**. Point estimate is above 0.60. The lower bound is not. |
+| Live deliver path | p95 **40.03 ms**, p50 **23.56 ms**, n=40 | `CheckinRepository.deliver` after a section-complete event. 3 warmup calls excluded. Assessment evidence + profile snapshots written: **0**. Stored 43/64 unchanged after the run. |
+
+Population: every `learning.checkin_events` row already in local Postgres (sessions with no `external_ref`, written by earlier local API use). This run did not insert answered check-ins. Dismissed and still-open deliveries count as non-responses. Independence is approximate because several events share a session. n=64 is why the interval still reaches below 60%.
 
 ### Corrections applied to this plan (per task §6)
 

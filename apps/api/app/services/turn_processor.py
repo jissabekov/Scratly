@@ -19,6 +19,7 @@ from app.contracts import (
 from app.services.decision_trace import DecisionTraceRecorder
 from app.services.elicitation_policy import (
     build_elicitation_spec,
+    elicitation_attempt_state,
     elicitation_dimension_family,
     elicitation_target,
     should_offer_options,
@@ -29,7 +30,6 @@ from app.services.memory_compactor import MemoryCompactor
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.project_composer import ProjectComposer
 from app.services.question_policy import (
-    PlannerAction,
     ReplySignal,
     Target,
     classify_reply,
@@ -43,7 +43,7 @@ from app.services.question_policy import (
     should_force_review_checkpoint,
     social_intro_target,
 )
-from app.services.question_quality import apply_question_quality_gate
+from app.services.question_quality import apply_question_quality_gate, validate_turn_pairing
 from app.services.student_answerer import (
     StudentAnswerer,
     answer_scope_gate,
@@ -88,6 +88,56 @@ def _exposure_consecutive(exposure: dict[str, Any], dim: str) -> int:
 def _exposure_total(exposure: dict[str, Any], dim: str) -> int:
     entry = exposure.get(dim) or {}
     return int(entry.get("total") or 0)
+
+
+# Message kinds whose text replaced the planned probe with canned copy.
+# Those turns must not accrue exposure for a target that was never asked (W7.7).
+_CANNED_NON_PROBE_KINDS = frozenset(
+    {"project_offer", "post_match_feedback", "matching_unavailable"}
+)
+
+
+def probe_counts_toward_exposure(
+    *,
+    stage: str,
+    message_kind: str,
+    matching_feedback_closed: bool,
+) -> bool:
+    """Whether this outgoing turn actually asked the planned dimension."""
+    if stage == "complete" or matching_feedback_closed:
+        return False
+    return message_kind not in _CANNED_NON_PROBE_KINDS
+
+
+def uncompacted_token_estimate(messages: list[dict[str, Any]], last_boundary_sequence: int) -> int:
+    """Token estimate for messages strictly after the latest memory boundary.
+
+    Counting the whole transcript made compaction fire on every turn once the
+    session passed the threshold (Plan 07 W7.8).
+    """
+    boundary = int(last_boundary_sequence or 0)
+    return sum(
+        len(str(message.get("content") or "")) // 4
+        for message in messages
+        if int(message.get("sequence") or 0) > boundary
+    )
+
+
+def _align_writer_response(response, planner_decision):
+    """Drop writer parts the directive forbids; report missing required parts."""
+    if planner_decision is None:
+        return response, {"passed": True, "reasons": [], "warnings": []}
+    aligned = validate_turn_pairing(
+        student_point=response.student_point,
+        acknowledgment=response.acknowledgment,
+        bridge=response.bridge,
+        acknowledgment_mode=planner_decision.acknowledgment,
+        action=planner_decision.action.value,
+        bridge_hint=planner_decision.bridge_hint,
+    )
+    response.acknowledgment = aligned["acknowledgment"]
+    response.bridge = aligned["bridge"]
+    return response, aligned
 
 
 def _bump_exposure(dim: str, exposure: dict[str, Any]) -> dict[str, Any]:
@@ -732,6 +782,15 @@ async def process_student_turn(
                 if block_topic:
                     await block_topic((last_q or {})["target_key"])
                 blocked_topics = tuple(sorted(set(blocked_topics) | {(last_q or {})["target_key"]}))
+            raised_contradictions = tuple(
+                sorted(
+                    {
+                        item.dimension_key
+                        for item in validated
+                        if item.dimension_key and _explicit_preference(validated, item.dimension_key)
+                    }
+                )
+            )
             planner_decision = plan_next(
                 candidates,
                 last_target_key=(last_q or {}).get("target_key"),
@@ -740,6 +799,7 @@ async def process_student_turn(
                 blocked_topics=blocked_topics,
                 last_target_kind=(last_q or {}).get("intent_key"),
                 last_turn_accepted=accepted_count > 0,
+                student_raised_contradiction_keys=raised_contradictions,
             )
         target = (
             social_target
@@ -851,27 +911,14 @@ async def process_student_turn(
 
         counters = await tx.session_counters()
         if thin.is_thin and not skip_evidence:
-            pending_key = counters.get("elicitation_target_key")
-            current_family = elicitation_dimension_family(target.key)
-            if target.key == "constraints:geo":
-                current_family = "constraints"
-            if target.kind == "profile_validation":
-                current_family = "profile"
-            if pending_key and pending_key == current_family:
-                # Same dimension as the pending elicitation: advance the counter.
-                elicit_key = pending_key
-                if elicit_key == "constraints:geo":
-                    elicit_key = "constraints"
-                attempts = int(counters.get("elicitation_attempts_for_target") or 0) + 1
-            elif pending_key:
-                # Planner switched families (Plan 07 W7.4): a stale pending key
-                # must never fire option chips for a dimension the student is no
-                # longer discussing — restart the counter on the current family.
-                elicit_key = current_family
-                attempts = 1
-            else:
-                elicit_key = current_family
-                attempts = 1
+            # Same family continues the counter; a family switch restarts it so
+            # chips describe the dimension just asked (Plan 07 W7.4).
+            elicit_key, attempts = elicitation_attempt_state(
+                pending_key=counters.get("elicitation_target_key"),
+                target_key=target.key,
+                target_kind=target.kind,
+                prior_attempts=int(counters.get("elicitation_attempts_for_target") or 0),
+            )
             can_recover = target.kind in {
                 "required_hard_variable",
                 "project_critical_unknown",
@@ -1172,14 +1219,8 @@ async def process_student_turn(
                 if target.kind == "elicitation":
                     writer_context["elicitation"] = build_elicitation_spec(target.key).model_dump()
                 response = await writer.write(writer_context)
-                # The directive owns message structure (Plan 07): an ack the
-                # planner did not ask for, or a bridge on a follow-up, is dropped
-                # rather than argued with.
-                if planner_decision:
-                    if planner_decision.acknowledgment == "none":
-                        response.acknowledgment = None
-                    if planner_decision.action == PlannerAction.FOLLOW_UP:
-                        response.bridge = None
+                # The directive owns message structure (Plan 07 W7.10).
+                response, pairing = _align_writer_response(response, planner_decision)
                 question = response.compose() or target.fallback_template
                 write_run_id = getattr(llm, "last_llm_run_id", None) if llm else None
                 await trace.record(
@@ -1193,6 +1234,9 @@ async def process_student_turn(
                         "student_point": response.student_point,
                         "has_acknowledgment": response.acknowledgment is not None,
                         "has_bridge": response.bridge is not None,
+                        "pairing_passed": pairing["passed"],
+                        "pairing_reasons": pairing["reasons"],
+                        "pairing_warnings": pairing["warnings"],
                     },
                     llm_run_id=write_run_id,
                 )
@@ -1314,10 +1358,10 @@ async def process_student_turn(
         # terminal thanks line are not dimension probes and must not accrue
         # exposure — a matching_unavailable turn replaced the planned probe with
         # a canned line, so its target never actually asked anything (W7.7).
-        if (
-            stage != "complete"
-            and message_kind not in {"project_offer", "post_match_feedback", "matching_unavailable"}
-            and not matching_feedback_closed
+        if probe_counts_toward_exposure(
+            stage=stage,
+            message_kind=message_kind,
+            matching_feedback_closed=matching_feedback_closed,
         ):
             probe_dim = (
                 target.key
@@ -1342,11 +1386,9 @@ async def process_student_turn(
                     retry_context = dict(writer_context)
                     retry_context["avoid_repeating"] = candidate_content
                     retry_response = await writer.write(retry_context)
-                    if planner_decision:
-                        if planner_decision.acknowledgment == "none":
-                            retry_response.acknowledgment = None
-                        if planner_decision.action == PlannerAction.FOLLOW_UP:
-                            retry_response.bridge = None
+                    retry_response, _retry_pairing = _align_writer_response(
+                        retry_response, planner_decision
+                    )
                     retry_text = retry_response.compose()
                     if _near_duplicate_reason(retry_text, recent_replies) is None:
                         question = retry_text
@@ -1666,10 +1708,8 @@ async def _maybe_compact_memory(tx, context_builder, llm, trace) -> None:
     ]
     # W7.8: only post-boundary messages are uncompacted — counting the whole
     # transcript made the token branch fire on every turn past ~6k total.
-    last_boundary = stats.get("last_boundary") or 0
-    uncompacted_tokens = sum(
-        len(m.get("content") or "") // 4 for m in raw_dicts if m["sequence"] > last_boundary
-    )
+    last_boundary = int(stats.get("last_boundary_sequence", stats.get("last_boundary")) or 0)
+    uncompacted_tokens = uncompacted_token_estimate(raw_dicts, last_boundary)
     if not compactor.due(stats["responses_since_snapshot"], uncompacted_tokens):
         return
     boundary = stats["max_sequence"]

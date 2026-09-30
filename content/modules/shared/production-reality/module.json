@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "production-reality",
   "seq": 10,
   "title": "Make It Survive Reality",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Ask a team where their project is and you hear GitHub, or on my computer. GitHub may hold the code, but code existing is not code running, and a laptop that turns off cannot serve anyone.\n\nFor a real product, several pieces have to be operating at the same time — whether or not any one computer is awake.\n\nDeploy my app is not an instruction. Deployment answers, for every piece: what is it, where does it run, how do other pieces reach it, what does it need, and what happens if it stops?"
+              "text": "Ask a team where their project is and the first answers are GitHub, Replit, or my laptop. GitHub can hold the source. That is code existing. A process on a laptop is code running, and it stops when the lid closes. A product operating means several pieces keep serving people whether or not any one computer is awake.\n\nFriday Night makes the gap concrete. It is a high-school sports app: clips, live scores, player tags, and an AI game summary. During the week one student runs it, five friends upload videos, and the summary appears. On championship night someone posts the link and ten thousand people open it, hundreds upload, and everyone asks for a summary. Software that works for five friends is not yet a system that works.\n\nDeploy my app is not an instruction. The app is a frontend, a backend, a database, file storage, an AI service, background workers, and outside APIs. Deployment answers, for every piece: what is it, where does it run, how do other pieces reach it, what does it need, and what happens if it stops?"
             }
           ]
         },
@@ -71,7 +71,7 @@
             },
             {
               "type": "text",
-              "text": "The application is several different pieces, possibly on different machines in different companies. The frontend may load from one host while the backend, database, file storage, AI, and workers live elsewhere.\n\nA common failure: the frontend deploys, but still calls http://localhost:8000. Localhost on the visitor's computer is not the team's backend."
+              "text": "The cloud is not one computer that runs the whole app. A phone reaches a frontend host. That host calls a backend. The backend reaches a database, object storage, and an AI API, and it may drop a job onto a queue that a video worker picks up. Those pieces can live on different machines, in different companies. The product works because each connection has a real address.\n\nfridaynight.app is only the front door. It can point at the frontend. The frontend then calls something like api.fridaynight.app. The database, the storage bucket, and the queue should stay off the public internet. Connecting a domain does not finish deployment. It only tells people where the front door is.\n\nA common failure is a frontend that loads and still calls http://localhost:8000. Localhost means this computer. After you deploy, this computer is the visitor's phone, and the team's backend is not on it. The development address has to become the production one, such as api.fridaynight.app."
             }
           ]
         },
@@ -124,7 +124,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Here is the test: if the backend server were deleted this second, what should disappear? Ideally, nothing important. Backend code can be restarted or replaced — compute is disposable.\n\nUser accounts, scores and videos are state, and state must survive. A new backend starts, connects to the same database and the same storage, and the product continues.\n\nSaving uploads to a folder inside the running backend is not a coding bug. It is an architecture bug — the next backend starts empty."
+              "text": "Delete the backend server this second. User accounts, game scores, and videos should still exist. What may disappear is the running process. You can start that code again on a new machine. Compute is disposable. Accounts, scores, and videos are state, and state has to survive the replacement.\n\nThe new process is useful only if it can find the old facts. It connects to the same database and the same file storage, and the product continues. If the videos lived in a folder on the machine you just deleted, the new process starts and the folder is empty.\n\nSaving uploads to a folder inside the running backend is not a coding bug. The line can be correct, and the clip can play during the demo. It is an architecture bug, because the next backend starts empty."
             }
           ]
         },
@@ -138,11 +138,11 @@
               "type": "worked_example",
               "title": "The video and its record",
               "steps": [
-                "A student uploads an 800 MB championship clip.",
-                "The video's bytes go into object storage; the database never holds the file.",
-                "The database keeps the record: video_id, user_id, game_id, filename, upload_time, processing_status, storage_location.",
-                "One logical video may map to several stored objects: original, 1080p, 720p and a thumbnail.",
-                "The record is how every piece of the system finds and describes the file after any backend restart."
+                "A student uploads state_championship_final_play.mp4, an 800 MB clip. The bytes and the description of those bytes do not belong in the same system.",
+                "The bytes go into object storage. The database is not a hard drive, and 50,000 videos should not be stuffed into ordinary rows. Storage contains the file.",
+                "The database keeps the record that knows about the file: video_id, user_id, game_id, filename, upload_time, processing_status, and storage_location.",
+                "One logical video may be several stored objects: the original, a 1080p copy, a 720p copy, and a thumbnail. The record points at each location.",
+                "Replace the backend and the new process reads that record, follows storage_location, and finds the same bytes. The record is how every piece finds the file after a restart."
               ]
             }
           ]
@@ -196,7 +196,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "One endpoint returns a game's score in 50 milliseconds. Another asks an AI for a summary and waits 5 to 20 seconds. A third accepts a 500 MB video that needs compression, thumbnails and analysis — minutes of work.\n\nFast request, slow job and heavy computation should feel different, because forcing all of them through the same request shape makes the architecture fragile.\n\nAsk of every task: does the user need to wait for this?"
+              "text": "GET /game/123 reads one score and can return in about 50 milliseconds. POST /generate-summary sends facts to a model and may wait 5 to 20 seconds. POST /upload-video may accept a 500 MB clip, compress it, build several sizes, pull out the audio, make thumbnails, and run an analysis. That last job can take minutes.\n\nThose are a fast request, a slow job, and heavy computation. If the upload request tries to finish the minutes of work before it answers, the student watches a spinner, the tab closes, the connection dies, and the operation can fail even though the file already arrived.\n\nThe upload should accept the file, record that processing has started, and return. The slow parts happen after that response. Forcing every job through one request shape is what makes the system fragile. Ask of every task: does the user need to wait for this?"
             }
           ]
         },
@@ -222,7 +222,7 @@
             },
             {
               "type": "text",
-              "text": "A queue is a list of work waiting to happen. A worker is a separate program that performs it. The upload request stores the file, sets status = processing, enqueues the job, and responds immediately.\n\nThe worker compresses, creates thumbnails, runs analysis, and marks the record ready. The same pattern sits behind report generation, mass email, and document analysis."
+              "text": "A queue is a list of work waiting to happen. A worker is a separate program that takes the next item and does it. They exist so the request that accepted the upload is not also the program that compresses the video.\n\nThe request stores the file, sets the record to processing, adds a job, and responds. The screen can move from Uploading to Processing. Later the worker compresses the clip, writes a thumbnail, runs the analysis, and sets the record to ready. If the browser is already closed, the worker still finishes, because that work was never tied to the open connection.\n\nThe same split fits any job the user does not have to watch finish: a PDF, 5,000 emails, an imported spreadsheet, or a batch of embeddings. If they do not need to wait, it can be background work."
             }
           ]
         },
@@ -234,7 +234,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "When ten thousand people replay the winning touchdown, the backend should not download a 500 MB file and forward it to every viewer.\n\nFrequently requested large files are served from object storage through a CDN — copies kept closer to the people asking. The backend controls access; the media system handles delivery.\n\nThat split keeps the product's API free for decisions while media travels on a path built for size."
+              "text": "A student in Tulsa uploads the winning play. Someone in Lawton watches it, someone in Oklahoma City watches it, and ten thousand people replay it. If every view goes through the backend, the backend downloads the 500 MB file from storage and sends it out again, once per viewer. That path is slow, it costs more, and it crowds out the requests that actually need the API, such as scores and accounts.\n\nA content delivery network keeps copies of a file that many people request, closer to the people asking. The browser is given a file address and receives the bytes from that media system. The original still lives in object storage. The viewer's phone never has to pull the file through your application server.\n\nThe backend still decides who may watch and which address to hand out. The media system does the delivery. Frequently requested large files should not travel through the backend on every replay."
             }
           ]
         },
@@ -267,7 +267,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Reality has its own test plan. The AI provider goes down — scores and video should still work while summaries show a temporary error; that is graceful degradation. Someone uploads a 40 GB file — size limits and type validation are architecture, not UI polish.\n\nTwenty thousand viewers want the same summary — generate it once, store it, reuse it instead of paying twenty thousand times. A leaked API key in frontend code becomes a stranger's cloud bill — secrets live in the backend environment, never in code users can read.\n\nKill the laptop. Kill the backend. Multiply users, files, AI calls and traffic by one hundred. What breaks first?"
+              "text": "Run the failures before championship night does. If the backend restarts and accounts disappear, state was stored on the disposable machine. If the AI provider stops responding, scores, video, and game pages should keep working, and the summary should say it is temporarily unavailable. One optional dependency should not take down the features that do not call it. That is graceful degradation.\n\nA 40 GB upload is not a coat of polish on the form. The system needs a size limit, a check on the file type, and a bound on how much processing one file can start. Twenty thousand people watching one highlight may leave the database and the backend fine while video delivery is the piece that falls over. Different workloads stress different pieces.\n\nTwenty thousand viewers who each trigger a new summary create twenty thousand identical model calls. Generate that summary once, store it, and reuse it. Ask what runs once, what runs per user, what runs per request, and what runs on every upload. Those questions are how architecture decides the bill. Kill the laptop. Kill the backend. Multiply users, files, AI calls, and traffic by one hundred. What breaks first is the next bottleneck."
             }
           ]
         },
@@ -303,6 +303,54 @@
               "tone": "info",
               "title": "Punchline",
               "text": "Kill the laptop — does the product still run? Kill the backend — does anything important survive? Multiply users, files, AI calls and traffic by one hundred — what breaks first?"
+            }
+          ]
+        },
+        {
+          "seq": 8,
+          "kind": "text",
+          "title": "The key that becomes a bill",
+          "objective": "pieces",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A student builds the summary feature and leaves the AI key in the frontend code. They publish the site. Someone finds the key, a script sends hundreds of thousands of requests, and the cloud bill arrives. The feature worked. The secret was in a place every browser can read.\n\nPublic facts can live in frontend code: the address of the site, the labels on the buttons. A database password, an AI key, an email key, and any private credential cannot. The browser should call your backend. Your backend calls the AI provider, and the key stays in the backend's environment or in a secret store. It does not go in the repository, and it does not ship to the browser.\n\nThe code says what it needs, for example AI_API_KEY. The environment says which value this running copy gets. Treat a variable like that as a slot, not as a mystery string pasted into the page."
+            }
+          ]
+        },
+        {
+          "seq": 9,
+          "kind": "text",
+          "title": "A joke in dev deletes the season",
+          "objective": "state_survival",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "In development, someone clicks Delete all games, laughs, and reloads the fake data. In production that same click can erase the season. Production changes the consequences: real people, real scores, real credentials, and changes you do not make casually. Development is fake data, local services, and frequent edits. A staging copy can sit between them so a new version is tried before real users see it.\n\nThe dangerous mix is development behavior aimed at production data. An agent can write a test that deletes rows. That test must not run against the database the live site uses. Development, preview, and production need separate configuration and separate databases.\n\nThe same code can do both, because the environment picks the target. DATABASE_URL points at the development database on a laptop and at the production database when the product is operating. You should be able to say exactly how the running copy knows which one it is."
+            }
+          ]
+        },
+        {
+          "seq": 10,
+          "kind": "text",
+          "title": "Scaling is the next bottleneck",
+          "objective": "failure_drills",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Scaling is not a bigger server because more people showed up. Ten users work. A thousand users may still work. At 50,000, name the piece that fails. Maybe the backend cannot finish requests fast enough, so you add backend capacity. Then the database has too many connections. Then the AI provider rate-limits you. Then the video queue is twelve hours long, so you add workers. Then the bill is the thing that breaks.\n\nEach fix reveals the next limit. Architecture for 50 users and architecture for 50 million users should not look the same. Building the giant version for a few hundred people spends complexity you do not need yet.\n\nSay the scale you actually expect, and ask what would have to change if that number grew a hundred times. Make it scalable, with no number attached, is not an architecture."
+            }
+          ]
+        },
+        {
+          "seq": 11,
+          "kind": "text",
+          "title": "Know it failed, and be able to restore",
+          "objective": "failure_drills",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A student says the video disappeared. Without a log, that sentence is the whole record. With a log you can read the path: upload requested, user authenticated, record 8821 created, job created, worker started, then an error that the codec is unsupported. A shared request id can tie the frontend call, the backend call, the database write, the AI call, and the background job into one story. Ask where the request failed before you ask an agent to rewrite the feature.\n\nLogs answer what happened. Monitoring answers whether the system is healthy right now: errors climbing, the backend silent, the queue growing, the disk nearly full, summaries failing. If the first news is an email that says the site has been down since yesterday, the users are the monitoring system.\n\nBackups are the other catastrophe. At 2:13 someone deletes every game record. At 2:14 you need a copy you can actually restore. A backup that has never been restored is a hope, not a plan."
             }
           ]
         }

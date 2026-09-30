@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "slug": "databases",
   "seq": 6,
   "title": "Databases: How Applications Organize, Connect, and Retrieve Information",
@@ -44,7 +44,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Imagine Instagram stored everything in one giant spreadsheet: users, posts, comments, likes, followers. For 100 students and 500 posts, it might work.\n\nNow scale to 100,000 users, 10 million posts, and 500 million likes, with thousands of people liking, posting, and following at the same moment. What breaks is not the row count.\n\nIt is finding the newest 20 posts fast, letting thousands change data at once without corrupting each other, and never creating the same account twice. Choosing how to store data is an architectural decision."
+              "text": "Imagine Instagram kept users, posts, comments, likes, and followers in spreadsheets. For 100 students and 500 posts, a person could still open the files and edit a cell. A spreadsheet is still the right tool when one employee updates 50 organizations once a month. It is built for a human working on a document.\n\nScale the same files to 100,000 users, 10 million posts, and 500 million likes, while thousands of people open the app, post, like, and follow at the same moment. The files can be large enough to hold the rows. What fails is the work the application does every second: find the newest 20 posts, record a like without colliding with someone else's like, and refuse a second account with the same email.\n\nOne ticket left shows the collision. Two people click Buy, both read tickets_remaining = 1, and a file that saves the last write sells that ticket twice. A database can treat the check, the reservation, the charge, and the reduced count as one operation that succeeds together or fails together. Choosing how to store data is an architectural decision, because many people are operating on the same facts at once."
             }
           ]
         },
@@ -70,7 +70,7 @@
             },
             {
               "type": "text",
-              "text": "A database is not a place where data sits. It is a system that solves several problems at once: storing bytes, structuring records, retrieving one row among millions, enforcing rules, coordinating simultaneous writers, and leaving money transfers complete or undone, never halfway.\n\nA spreadsheet is organized around documents people work with. A database is organized around data that systems continuously operate on."
+              "text": "The engine is not a folder of files. Storage is where the bytes live, on a disk or in memory. Organization is the structure it understands, such as a users table with user_id, username, email, and created_at. Retrieval is answering \"find user 7284\" or \"the newest 20 posts from people Maya follows\" without a person scrolling the sheet.\n\nIntegrity is a rule the engine refuses to break: an email must be unique, a user_id cannot be empty, and a post must belong to a user that exists. Concurrency is thousands of those writes at the same moment, coordinated so they do not overwrite each other into nonsense.\n\nReliability is the crash in the middle of a change. Moving $100 means subtract it from account A and add it to account B. If the system dies after the subtract and before the add, the money has vanished. A transaction ties the two changes together: both commit, or neither does. A spreadsheet is organized around documents people work with. A database is organized around data that systems continuously operate on."
             }
           ]
         },
@@ -123,7 +123,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "A relational database organizes information into tables and connects them using identifiers. In a Discord-like product, users, servers, channels, and messages each get their own table.\n\nA message does not store username = \"Alex\" as its identity; it stores user_id = 83912, because usernames can change while the relationship stays stable.\n\nA primary key identifies one record. A foreign key points at another record, and the database can refuse a link to something that does not exist."
+              "text": "A relational database puts each kind of thing in its own table and connects the tables with identifiers. In a Discord-like product, users, servers, channels, and messages are four tables. A message row holds message_id, channel_id, user_id, the content, and created_at. It does not store username = \"Alex\" as the identity of the author.\n\nAlex can rename their account. Old messages should still belong to the same person, so the message stores user_id = 83912. That number is the primary key: it identifies one user row, and it stays put when the display name changes. The user_id on the message is a foreign key. It points at that user and says this message belongs to this person.\n\nA foreign key can also refuse a lie. If a write tries to attach user_id = 999999999 and no such user exists, the database rejects the message. The relationship stays valid because the identifier is stable and the engine checks that the target is real."
             }
           ]
         },
@@ -148,7 +148,7 @@
             },
             {
               "type": "text",
-              "text": "Relationships are why relational databases matter for products. USER writes MESSAGE, USER owns SERVER, SERVER contains CHANNEL, CHANNEL contains MESSAGE.\n\nEach link uses a stable id so the connection survives when display names change."
+              "text": "Each arrow is a foreign key stored on the child row. A user owns a server because the server row holds owner_id. A server contains a channel because the channel row holds server_id. A channel contains a message because the message row holds channel_id, and a user writes that message because the same row holds user_id.\n\nThose links are one-to-many. One user can own many servers, one server can hold many channels, and one channel can hold many messages. Each child points at one parent. A one-to-one link is the smaller case: one user, one settings row.\n\nNames can change and the arrows still hold. The channel can be renamed and Alex can be renamed. server_id and user_id do not change, so every message that points at them still points at the same channel and the same person."
             }
           ]
         },
@@ -181,7 +181,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "One player can join many games, and one game can hold many players. Two tables alone cannot represent that cleanly, so you create a third: GAME_PARTICIPANTS, with game_id, player_id, joined_at, team, and score.\n\nFacts like team and score belong to the pairing, not to the player or the game alone. Each membership gets its own row.\n\nSometimes the relationship between two things is itself a thing."
+              "text": "One player can join many games, and one game can hold many players. A players table and a games table cannot store that cleanly. A single player column on the game has nowhere to put the other players. A list of game ids on the player still has nowhere to put the facts that belong only to this player in this game.\n\nYou add a third table, GAME_PARTICIPANTS. Each row is one membership: game_id, player_id, joined_at, team, and score. The row is not a copy of the player and not a copy of the game. It is the pairing. The pairing can also record whether they left early.\n\nSometimes the relationship between two things is itself a thing. That third table is what you ask an agent to create, instead of stuffing a list into a column."
             },
             {
               "type": "callout",
@@ -226,7 +226,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "If every comment row also copies the video's title, description, and channel name, a video with 50,000 comments carries the same information 50,000 times. When the title changes, which copy is correct?\n\nNormalization means storing an important fact in one logical place: the comment points to the video instead of copying it. Systems sometimes deliberately duplicate information to make reading faster, which is called denormalization.\n\nDatabase design is often a tradeoff between keeping information clean and retrieving it quickly."
+              "text": "A comments table that also copies the video title, the description, and the channel name looks convenient until a video has 50,000 comments. The same title now lives in 50,000 rows. Change it once and you must find every copy. Miss one, and the product shows two titles with no way to know which is official.\n\nNormalization means keeping that fact in one logical place. A videos table holds video_id, title, and channel_id. A comments table holds comment_id, video_id, user_id, and the comment text. The comment points at the video. It does not carry the video's title with it.\n\nSystems sometimes copy a fact on purpose so a busy screen does not have to gather it from several tables. That deliberate copy is denormalization. It can make the read faster, and it brings back the risk that the copies disagree. Database design is often a tradeoff between keeping information clean and retrieving it quickly."
             }
           ]
         },
@@ -259,7 +259,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Ask a database for video_id = 82739102731 out of 10 billion rows. Checking row by row is a full scan. An index is an extra organized structure, like the back of a textbook, that lets the database navigate toward matching records instead of reading everything.\n\nIndexes speed up reads but cost storage and make every write update the index too. Do not design your database only by asking what information you have. Ask how your application will need to retrieve it.\n\nQuery patterns determine which indexes and table shapes are worth the cost."
+              "text": "Ask for video_id = 82739102731 in a table of 10 billion videos. One strategy starts at row 1 and checks every row until it hits. That is a full scan. On a small table you will not notice. At this size the feed cannot wait for it.\n\nAn index is a second structure, like the index at the back of a textbook. You do not read every page to find photosynthesis. You look up the word and jump. The database uses the index to move toward matching rows instead of reading the whole table. The index is not free. Every insert or update may have to change the index too, and the index takes disk. More indexes are not automatically better.\n\nYou build the index for the questions the application actually asks. Get the newest 50 messages in channel 928. Find a user by email. List unread notifications for user 739. Those questions decide the tables, the relationships, and the indexes. Do not design the database only by listing what you store. Ask how the application will need to retrieve it."
             },
             {
               "type": "callout",
@@ -277,7 +277,7 @@
           "blocks": [
             {
               "type": "text",
-              "text": "Different stores fit different shapes of information: document databases hold nested records that vary, key-value stores answer fast lookups like sessions and counters, graph databases are built for exploring relationships, and vector search finds information that is semantically similar, which powers AI retrieval.\n\nFor most student applications a relational database like PostgreSQL is a very good default. Vector search can find documents that explain what happens after approval, but the exact fact application_status = approved belongs in the structured database, your source of truth.\n\nA vector index should usually not be your application's main source of truth."
+              "text": "A relational database such as PostgreSQL fits facts with a stable shape, real relationships, and rules that must not drift: accounts, orders, school records, inventory. You can ask questions that cross those tables, and a transaction can commit several changes together. For most student products it is the right default. Adding five database products because an agent named them is not a design.\n\nOther stores answer other questions. A document database keeps one nested record whose shape may vary, such as Maya's theme and notification settings stored as a tree inside her user document. Links between many kinds of documents get harder than in tables. A key-value store answers a single fast lookup, such as the session for user 827, which makes it a place for cache, sessions, and counters, not the system of record. A graph database is built to walk relationships: this person follows that person, who works at a company, which sits in a city. Tables can store those links too. The graph store is optimized for the walk.\n\nVector search stores numerical embeddings and answers which text is close in meaning. \"How do I change my enrollment?\" can retrieve a page titled \"Procedure for modifying student registration\" even though the words differ. It should not answer whether Maya's application is approved. That exact fact, application_status = approved, stays in the structured database. A vector index should usually not be your application's main source of truth."
             }
           ]
         },
@@ -292,6 +292,30 @@
               "tone": "info",
               "title": "Punchline",
               "text": "Use the simplest data architecture that matches your information, relationships, queries, reliability needs, and expected scale, not every database your agent can name."
+            }
+          ]
+        },
+        {
+          "seq": 6,
+          "kind": "text",
+          "title": "Copies, bigger machines, and more machines",
+          "objective": "choosing",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A thousand rows will forgive almost any reasonable design. A hundred million rows and 10,000 requests a second will not. Vertical scaling means one bigger machine: more processor, more memory, a faster disk. It is the simple move, and the machine eventually runs out. Horizontal scaling means more machines, which forces a decision about how the data is split and how the copies stay in agreement.\n\nReplication keeps another copy so a crash does not lose the data, reads can spread across servers, or people in another region sit closer to a copy. Partitioning, sometimes called sharding, splits the set itself. Users 1 through 10 million might live on one server and the next 10 million on another. Both tactics create more than one place a fact can live.\n\nA cache is the extreme copy. When millions of people ask for the same page, the fastest query is to skip the database and read a result you saved in a faster store. When the original row changes, that saved result can be stale. Speed often wants another copy, and every extra copy can disagree with the original. Do not build that machinery for 50 users. Do know which lever you would pull when one server is no longer enough."
+            }
+          ]
+        },
+        {
+          "seq": 7,
+          "kind": "text",
+          "title": "The file is not a row",
+          "objective": "choosing",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A video, a photo, or a long PDF is the wrong thing to stuff into an ordinary column. The application needs to store the file and hand it back, not join it field by field to other rows. Object storage holds the file. The relational database holds the address of that file and the facts around it: who uploaded it, which project it belongs to, and what type it is.\n\nThe rest of the split follows the same test. Exact facts stay in the relational database: user id, project status, permissions, whether a payment went through. A login session or a repeated read can sit in a cache. Search by meaning can sit in a vector index. A small product may need only PostgreSQL and a place for files.\n\nMatch the store to the job. Extra named databases do not make the architecture more serious. They make it something you now have to keep consistent."
             }
           ]
         }

@@ -142,6 +142,30 @@ def same_elicitation_dimension(left: str | None, right: str | None) -> bool:
     return elicitation_dimension_family(left) == elicitation_dimension_family(right)
 
 
+def elicitation_attempt_state(
+    *,
+    pending_key: str | None,
+    target_key: str,
+    target_kind: str,
+    prior_attempts: int,
+) -> tuple[str, int]:
+    """Continue a pending elicitation only while it matches the asked family.
+
+    A planner switch to another family clears the stale pending key and
+    restarts the attempt counter, so option chips never describe a dimension
+    the student is no longer discussing (Plan 07 W7.4).
+    """
+    current_family = elicitation_dimension_family(target_key)
+    if target_key == "constraints:geo":
+        current_family = "constraints"
+    if target_kind == "profile_validation":
+        current_family = "profile"
+    if pending_key and pending_key == current_family:
+        elicit_key = "constraints" if pending_key == "constraints:geo" else pending_key
+        return elicit_key, prior_attempts + 1
+    return current_family, 1
+
+
 def should_offer_options(
     *,
     reply_signal: str,

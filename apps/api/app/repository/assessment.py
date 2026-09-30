@@ -1641,11 +1641,14 @@ class TurnTransaction:
             {"session_id": self._session_id},
         )
         row = result.mappings().one()
+        boundary = int(row["last_boundary"] or 0)
         return {
             "student_messages": int(row["student_messages"] or 0),
             "responses_since_snapshot": int(row["responses_since_snapshot"] or 0),
             "max_sequence": int(row["max_sequence"] or 0),
-            "last_boundary": int(row["last_boundary"] or 0),
+            "last_boundary": boundary,
+            # Plan 07 W7.8 name for the same snapshot boundary.
+            "last_boundary_sequence": boundary,
         }
 
     async def recent_messages(self) -> list[dict[str, Any]]:
