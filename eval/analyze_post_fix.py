@@ -15,7 +15,7 @@ OUT = ROOT / "eval" / "traces" / (
 dumps = [
     json.load(open(p, encoding="utf-8"))
     for p in sorted(OUT.glob("*.json"))
-    if p.name != "suite_report.json"
+    if p.name not in ("suite_report.json", "reassessment.json")
 ]
 report = build_suite_report(dumps, OUT)
 violations = assert_suite(report, dumps)
@@ -27,7 +27,7 @@ for m in report["per_scenario"]:
     rows.append(
         {
             "id": m["scenario_id"],
-            "turns": m["n_turns"],
+            "turns": m.get("n_turns") or 0,
             "final": m.get("final_stage"),
             "review": m.get("reached_profile_review"),
             "match": m.get("reached_project_matching"),

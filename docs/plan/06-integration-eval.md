@@ -276,9 +276,19 @@ Executed on `main` over HEAD `ce5b37c` + Phase 6 working tree. Tiered loop follo
 - **D3 — seam:** `learning_enabled` defaults `false` everywhere; the single e2e/eval toggle is the
   per-session `POST /v1/sessions` flag (env `LEARNING_ENABLED_DEFAULT` only changes the default).
   Mirrors `LEARNING_QUIZ_COOLDOWN_SECONDS` — a documented config seam, never a weakened assertion.
-- **D4 — exactly one T4.** D1 changed the shared conversation pipeline, so one combined run over
-  A1–A23 is the release gate; T3 covered the learning subset first (cheapest doctrine) so the
-  single T4 runs on a stable tree. No second full run: nothing changed after it.
+- **D4 — one combined gate, targeted re-runs on variance.** D1 changed the shared conversation
+  pipeline, so the combined run over A1–A23 is the release gate; T3 covered the learning subset
+  first. Gate history, kept honest: the first T4 pass was interrupted at 16/28 by an environment
+  restart (API down; Postgres volume restarted) and resumed in the same out-dir — 28/28 clean,
+  Findings=0, **3 assertion violations**: A2 `learn_chat_checkin_replay` (matching abstained
+  `no_relevant_opportunity` 10× while `motivation` was re-probed 11 consecutive times), A6
+  `multi_value_nuance` (an `execution` contradiction opened on the final evaluated turn), A18
+  `sim_luz_bilingual_food` (`broad_evidence`: 5/6 dimensions touched). All three sit on shared
+  assessment paths untouched by the Phase 6 diff, and each passed on the Phase 1 baseline — i.e.
+  live-LLM sample variance, not a code regression. Per the tiered doctrine the three dumps were
+  preserved at `eval/traces/2026-09-30-phase6-final-violations1` and re-run in place in the same
+  gate dir; all three passed, final report: **28/28 clean, Findings=0, AssertionViolations=0**.
+  No assertion or threshold was weakened; no second full run was needed after the re-run went green.
 - **D5 — discovered blocker (not in prompt):** `audit.decision_events.turn_id` was `NOT NULL`,
   so turn-less learning endpoints could not emit audit events. Migration 022 drops the
   constraint and adds the partial unique index `(correlation_id, sequence) WHERE turn_id IS NULL`
@@ -298,13 +308,15 @@ Executed on `main` over HEAD `ce5b37c` + Phase 6 working tree. Tiered loop follo
 
 | Metric | `2026-09-30-phase1-final` (21 scen.) | `2026-09-30-phase6-final` (28 scen.) |
 |---|---|---|
-| Clean runs | 21/21 | T4_RUNNING |
-| Findings | 0 | T4_RUNNING |
-| Assertion violations | 2 (A2; fixed, proven in `…-phase1-a2`) | T4_RUNNING |
-| Completion | 19/21 | T4_RUNNING |
-| p50 / p95 latency | 5,305.5 / 8,647 ms | T4_RUNNING |
-| Duplicate assistant msgs / stage regressions | 0 / 0 | T4_RUNNING |
-| Learning: first-attempt pass rate, check-in response rate | n/a | T4_RUNNING |
+| Clean runs | 21/21 | **28/28** |
+| Findings | 0 | **0** |
+| Assertion violations | 2 (A2; fixed, proven in `…-phase1-a2`) | **0** (A1–A23; see D4 gate history) |
+| Completion (reached `complete`) | 19/21 | **18/21** assessment (greeting/multi_value/student_questions reached `project_matching`, 1-turn-behind variance vs baseline's 19) + `learn_chat_checkin_replay` complete by design; other `learn_*` are 1–10t endpoint probes |
+| p50 / p95 per-turn latency | 5,305.5 / 8,647 ms | **5,517 / 9,428 ms** (431 turns, nearest-rank) |
+| Duplicate assistant msgs / stage regressions | 0 / 0 | **0 / 0** |
+| Evidence acceptance rate | 0.997 | **0.997** (582/584) |
+| Stuck cohort review/match (A5) | 4/4 | **4/4** |
+| Learning: first-attempt pass / check-in response | n/a | unlock=1.0, remediation=0.0 (fail-first by design) / budget·inactivity·retention=1.0 |
 
 ### Gate results (all run on the Phase 6 tree)
 
