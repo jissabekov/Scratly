@@ -163,6 +163,19 @@ async def seed(dsn: str, content_dir: Path, dry_run: bool) -> dict[str, int]:
             return counts
 
         async with connection.transaction():
+            # Resequencing permutes (archetype_key, seq) among managed rows; no
+            # upsert order satisfies every permutation, so vacate the live seq
+            # space for exactly the rows this run manages, then upsert. seq is
+            # a smallint with CHECK(seq > 0): 32767 - seq stays in-range and
+            # far from declared targets.
+            managed_ids = [
+                module_id(archetype_key, module.slug)
+                for archetype_key, module, _, _ in loaded
+            ]
+            await connection.execute(
+                "UPDATE learning.modules SET seq = 32767 - seq WHERE id = ANY($1::uuid[])",
+                managed_ids,
+            )
             for archetype_key, module, quiz, checkins in loaded:
                 mid = module_id(archetype_key, module.slug)
                 await connection.execute(

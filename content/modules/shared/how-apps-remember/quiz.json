@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "how-apps-remember",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "kinds",
+          "kind": "mcq",
+          "stem": "A social post screen shows a video, a caption, a username, a like count and comments. What is the screen itself?",
+          "options": [
+            { "key": "a", "label": "One record stored as a single row" },
+            { "key": "b", "label": "A temporary presentation assembled from several different kinds of stored information" },
+            { "key": "c", "label": "The video file itself" },
+            { "key": "d", "label": "The official stored copy of everything shown" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "Think about where each visible piece of the post actually lives.",
+          "feedback_correct": "Correct. The screen is assembled at display time from records, files, relationships, events and cached copies.",
+          "feedback_wrong": "The screen is not the data. One post is assembled from many kinds of storage: records, a video file, like relationships, comment records, history events and a cached copy.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "kinds",
+          "kind": "select_all",
+          "stem": "Which pieces of a product are best stored as their own kind of information rather than buried as fields inside one giant record? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Uploaded video files" },
+            { "key": "b", "label": "The likes connecting users to posts" },
+            { "key": "c", "label": "The history of who viewed the post" },
+            { "key": "d", "label": "The post's caption text" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.5,
+          "hint_text": "Files, connections and history each have their own shape; a caption is just a field.",
+          "feedback_correct": "Correct. Files, relationships and event history are their own kinds; the caption is a field on the post record.",
+          "feedback_wrong": "Files belong in file storage with a catalog record pointing to them, likes are relationships between users and posts, and views are events. A caption is ordinary structured data on the post record.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "lifetime",
+          "kind": "mcq",
+          "stem": "A student spends twenty minutes filling a form, refreshes the page, and loses everything. What went wrong architecturally?",
+          "options": [
+            { "key": "a", "label": "The draft only ever existed as temporary screen state and was never saved" },
+            { "key": "b", "label": "The server deleted the draft on purpose" },
+            { "key": "c", "label": "The cache expired too early" },
+            { "key": "d", "label": "Browsers are unable to hold typed text" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "The text existed somewhere — ask where, and for how long.",
+          "feedback_correct": "Correct. Unsaved form text is screen state; a refresh can erase it.",
+          "feedback_wrong": "The text lived only in the page's screen state, so refreshing destroyed it. Nothing was ever sent to be saved. Choosing a longer lifetime, such as a server-saved draft, prevents the loss.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "retrieval",
+          "kind": "mcq",
+          "stem": "Why should every important thing have a stable ID instead of relying on a name?",
+          "options": [
+            { "key": "a", "label": "IDs are shorter to type" },
+            { "key": "b", "label": "Two students can share a name and a username can change, so names cannot reliably identify anything" },
+            { "key": "c", "label": "Databases cannot store names" },
+            { "key": "d", "label": "IDs keep the data encrypted" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Ask whether a name still points at the same thing tomorrow.",
+          "feedback_correct": "Correct. Names collide and change; a stable ID keeps pointing at the same thing.",
+          "feedback_wrong": "Exact retrieval such as opening project 847 depends on a stable identity. Names fail because two students can share one and usernames can be edited, while the ID keeps meaning the same thing.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "agent_spec",
+          "kind": "mcq",
+          "stem": "An AI feature must recommend opportunities based on a student's past activity. What must the application do?",
+          "options": [
+            { "key": "a", "label": "Nothing, because the model automatically remembers the student" },
+            { "key": "b", "label": "Retrieve the student's saved history and send it to the model as context" },
+            { "key": "c", "label": "Keep all history only in the browser cache" },
+            { "key": "d", "label": "Replace the student record with semantic search" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Remember: a model has no memory of its own.",
+          "feedback_correct": "Correct. The application retrieves saved context and hands it to the model.",
+          "feedback_wrong": "An AI model does not automatically remember a student, a prior recommendation, or project history. The application must retrieve the saved information and include it in the request to the model.",
+          "slide_ref": 14,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "kinds",
+          "kind": "mcq",
+          "stem": "Five hundred students save the same opportunity. What is the sound design?",
+          "options": [
+            { "key": "a", "label": "Copy the complete opportunity into each student record" },
+            { "key": "b", "label": "Create five hundred relationships connecting the students to the same opportunity record" },
+            { "key": "c", "label": "List all five hundred students inside the opportunity's description text" },
+            { "key": "d", "label": "Keep the saves only in the browser cache" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "A save connects two records instead of copying one of them.",
+          "feedback_correct": "Correct. Saves are relationships between students and the one opportunity.",
+          "feedback_wrong": "Copying the opportunity into every student record creates five hundred disconnected duplicates that can drift apart. A save is a relationship connecting each student record to the same shared opportunity record.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "kinds",
+          "kind": "mcq",
+          "stem": "A student uploads a resume PDF. What belongs in the database record?",
+          "options": [
+            { "key": "a", "label": "The complete contents of the PDF file" },
+            { "key": "b", "label": "The file name, owner, upload date, permissions and storage location" },
+            { "key": "c", "label": "Nothing; uploaded files need no records" },
+            { "key": "d", "label": "The student's entire profile" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "The database is the catalog, not the shelf.",
+          "feedback_correct": "Correct. The record describes and locates the file; file storage holds the file.",
+          "feedback_wrong": "The database acts as the library catalog: it stores what the file is, who owns it, where it sits, and who may see it. The file itself goes to file storage, the shelves.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "lifetime",
+          "kind": "select_all",
+          "stem": "Which examples are persistent state? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "A published post" },
+            { "key": "b", "label": "Text typed into a form but never submitted" },
+            { "key": "c", "label": "A saved grade" },
+            { "key": "d", "label": "Which menu is currently open" }
+          ],
+          "answer": ["a", "c"],
+          "difficulty": 0.45,
+          "hint_text": "Persistent means it survives refresh, restart and switching devices.",
+          "feedback_correct": "Correct. A published post and a saved grade must survive long after the page closes.",
+          "feedback_wrong": "Persistent state must outlive the page, the device and the session, like a published post or a saved grade. Unsubmitted text and an open menu are screen state that disappears on refresh.",
+          "slide_ref": 7,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "retrieval",
+          "kind": "select_all",
+          "stem": "A product must answer two questions: 'show the opportunities this student saved' and 'show deadlines arriving this week'. Which retrieval patterns does it need? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Relationship retrieval, following student to saved opportunities" },
+            { "key": "b", "label": "Time-based retrieval, finding deadlines within a date range" },
+            { "key": "c", "label": "File storage, retrieving the PDF bytes" },
+            { "key": "d", "label": "None; one stored list can answer both questions" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.5,
+          "hint_text": "One question follows a connection; the other follows a clock.",
+          "feedback_correct": "Correct. Saved opportunities are reached through relationships, and approaching deadlines need recorded time fields.",
+          "feedback_wrong": "Saved-by questions follow relationships between records, and approaching-deadline questions need time-based retrieval over stored dates. Neither is a file problem, and no single stored list answers both.",
+          "slide_ref": 11,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "agent_spec",
+          "kind": "mcq",
+          "stem": "Which instruction gives a coding agent a real architecture instead of a guess?",
+          "options": [
+            { "key": "a", "label": "Build an app for students to find opportunities. Use a database." },
+            { "key": "b", "label": "Store students and opportunities as structured records, saves as relationships, resumes in file storage, and support exact filters plus semantic matching." },
+            { "key": "c", "label": "Make the search smart." },
+            { "key": "d", "label": "Store everything about a user as one long text field." }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "Look for the instruction that names things, relationships, files and retrieval.",
+          "feedback_correct": "Correct. It names the records, relationships, files and retrieval patterns instead of leaving them to guesswork.",
+          "feedback_wrong": "A vague request forces the agent to invent the architecture: what records contain, where files go, whether saves are relationships, how matching works. The strong request names all of those decisions.",
+          "slide_ref": 14,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "kinds",
+          "kind": "mcq",
+          "stem": "Why does a like not live inside the post's caption or inside one user's record?",
+          "options": [
+            { "key": "a", "label": "Likes are stored as files" },
+            { "key": "b", "label": "A like is a relationship between a user and a post; it belongs to neither alone" },
+            { "key": "c", "label": "Counts cannot be stored in a database" },
+            { "key": "d", "label": "Captions are read-only" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Ask which single record a like could fairly belong to.",
+          "feedback_correct": "Correct. A like connects a user and a post, so it is stored as a relationship.",
+          "feedback_wrong": "A like needs both sides: which user and which post. It belongs to neither record alone, so the system stores it as a relationship connecting them, which is also how the count is computed.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "kinds",
+          "kind": "select_all",
+          "stem": "Which might an application store as events (history) rather than current state? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "A student opened an opportunity at 3:42 PM" },
+            { "key": "b", "label": "A teacher changed a grade" },
+            { "key": "c", "label": "The student's current grade value" },
+            { "key": "d", "label": "The application crashed" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.5,
+          "hint_text": "Events describe what happened; state describes what is true now.",
+          "feedback_correct": "Correct. Openings, changes and crashes are things that happened; the current grade is state.",
+          "feedback_wrong": "Events record what happened at a moment, like a view, an edit or a crash, and support history and auditing. The student's current grade is what is true now, which is state, not history.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "lifetime",
+          "kind": "mcq",
+          "stem": "A video app loads your next videos before you even swipe. What kind of information is that preloaded copy?",
+          "options": [
+            { "key": "a", "label": "Persistent state" },
+            { "key": "b", "label": "A cache: a fast temporary copy that can be rebuilt if lost" },
+            { "key": "c", "label": "Session state" },
+            { "key": "d", "label": "An event record" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "It exists for speed, and losing it should not lose anything real.",
+          "feedback_correct": "Correct. Preloading keeps a fast copy close to the user; the official data lives elsewhere.",
+          "feedback_wrong": "Preloaded videos are a cache: a fast copy made for speed. A cache is not the official truth, so if it disappears the app simply retrieves or rebuilds the information from the real store.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "retrieval",
+          "kind": "mcq",
+          "stem": "When is semantic search the right tool to decide a result?",
+          "options": [
+            { "key": "a", "label": "Checking whether a deadline has passed" },
+            { "key": "b", "label": "Checking whether a student is old enough" },
+            { "key": "c", "label": "Finding opportunities similar in meaning to a student's interests" },
+            { "key": "d", "label": "Confirming whether a payment succeeded" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.45,
+          "hint_text": "Meaning helps with similarity; exact rules need exact fields.",
+          "feedback_correct": "Correct. Semantic retrieval finds similarity of meaning even when the exact words differ.",
+          "feedback_wrong": "Semantic search finds things similar in meaning, so it can match interests to descriptions worded differently. Deadlines, age eligibility and payments are exact facts that structured filters and rules must decide.",
+          "slide_ref": 13,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "agent_spec",
+          "kind": "mcq",
+          "stem": "What makes 'build an app for students to find opportunities; use a database' a weak instruction to a coding agent?",
+          "options": [
+            { "key": "a", "label": "Databases are outdated technology" },
+            { "key": "b", "label": "The agent must guess the records, fields, relationships, files and retrievals the product needs" },
+            { "key": "c", "label": "Coding agents cannot write database code" },
+            { "key": "d", "label": "The instruction uses too few words to compile" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "The code may run while the architecture is wrong.",
+          "feedback_correct": "Correct. The agent can produce running code built on guessed architecture.",
+          "feedback_wrong": "Vague instructions make the agent invent what a student record holds, how files are stored, whether saves are relationships and how matching works. The code may run while the architecture remains wrong.",
+          "slide_ref": 14,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

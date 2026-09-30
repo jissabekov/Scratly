@@ -1,0 +1,326 @@
+{
+  "version": "1.0.0",
+  "slug": "backend",
+  "seq": 5,
+  "title": "Backend: Where the Product Becomes Real",
+  "description": "The backend is not just the invisible part. Follow one request from a Like button through rules, state changes, and trust checks to see how the backend coordinates the whole product.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "coordinator",
+      "label": "Explain the backend as the part that coordinates the product and turns intent into controlled change",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "state_transitions",
+      "label": "Model a product action as a legal transition between states with rules and consequences, not just a button",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "trust",
+      "label": "Explain why the backend treats requests crossing the trust boundary as untrusted and verifies facts itself",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "reliability",
+      "label": "Recognize when operations must be atomic, idempotent, or separated into a core action and side effects",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "The part that coordinates",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Who liked the song?",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "You press the heart on a song and it fills in. The button did not decide anything, and the database did not decide anything either. Between what you wanted and what got stored, something ran the product. That something is the backend."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "What the backend sits between",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "backend-coordination-stack",
+              "alt": "A vertical stack showing what the backend coordinates: what the user wants, what the product allows, what data exists, what computation must happen, which other systems are needed, what changes permanently, and what result goes back",
+              "caption": "The backend is the part that decides how all the pieces work together to produce the behavior of the product.",
+              "steps": [
+                "What the user wants",
+                "What the product allows",
+                "What data exists",
+                "What computation must happen",
+                "What other systems are needed",
+                "What changes permanently",
+                "What result goes back to the user"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "What does the backend add?",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A database can store that a user liked 842 songs. A payment service can charge cards. An AI model can classify music. What does the backend add?",
+              "options": [
+                { "key": "a", "label": "It stores the 842 likes so they survive a restart" },
+                { "key": "b", "label": "It decides when each thing happens, in what order, with which information, and under which rules" },
+                { "key": "c", "label": "It draws the Like button onto the user's screen" },
+                { "key": "d", "label": "It carries the request across the internet" }
+              ],
+              "answer_key": "b",
+              "explanation": "Storing, charging, classifying, rendering and transporting are all jobs done by other parts. The backend's job is coordination: which thing runs when, in what order, using which information, under which rules, and what changes permanently.",
+              "objective": "coordinator"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Intent in, controlled change out",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "The frontend captures intent. The backend turns that intent into controlled changes in the system."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "States, rules, and the trust boundary",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Think in transitions, not buttons",
+          "objective": "state_transitions",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "\"I need a button called Approve\" is frontend thinking. The better question is: what happens to the system when something becomes approved? Products are systems that move between states, and the backend controls which moves are legal and what else must happen when they occur."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "One application, legal moves",
+          "objective": "state_transitions",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "application-state-transitions",
+              "alt": "A scholarship application moving from Draft to Submitted to Under Review, then branching to Approved, Needs More Information, or Rejected",
+              "caption": "Can a project jump from Idea straight to Completed? Probably not. Defining the legal transitions is backend architecture, decided before any code.",
+              "steps": [
+                "Draft -> Submitted",
+                "Submitted -> Under Review",
+                "Under Review -> Approved",
+                "Under Review -> Needs More Information",
+                "Under Review -> Rejected",
+                "Idea -> Completed? Probably not a legal move"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "What does approval really mean?",
+          "objective": "state_transitions",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A scholarship application moves from Under Review to Approved. What does that transition actually involve?",
+              "options": [
+                { "key": "a", "label": "Calling approve_application() and nothing else" },
+                { "key": "b", "label": "Checking the reviewer's permission, confirming it is not already rejected, recording who approved and when, and triggering consequences like a notification" },
+                { "key": "c", "label": "Changing the label the applicant sees on screen" },
+                { "key": "d", "label": "Asking the frontend whether approval is allowed" }
+              ],
+              "answer_key": "b",
+              "explanation": "A transition has preconditions and consequences: who may cause it, what must already be true, what gets recorded, and what else must happen. That is the real backend design behind a single button.",
+              "objective": "state_transitions"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "text",
+          "title": "Requests cross a boundary of trust",
+          "objective": "trust",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "The frontend runs on a device the user controls; the backend runs on infrastructure the product controls. Everything crossing that line is a request, not truth. A game that sends coins_to_add = 1,000,000 or a store that sends price = $1.00 is only asking. The backend decides what is true."
+            },
+            {
+              "type": "text",
+              "text": "And every important fact needs one authoritative home, a source of truth. If a student's county is copied into the profile, the project, and the recommendation, a move to a new county leaves three disagreeing copies. The backend should know which system owns each fact; everywhere else references or derives it."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "The frontend tells the backend what the user wants. The backend determines what is actually true."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "check",
+          "title": "Whose price is real?",
+          "objective": "trust",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "An e-commerce frontend sends product_id = 42 and price = $1.00, but the products database says the price is $800. What should the backend do?",
+              "options": [
+                { "key": "a", "label": "Charge $1.00, because the request carries the price the user agreed to" },
+                { "key": "b", "label": "Ignore the sent price and look up the real one in the products database, the source of truth" },
+                { "key": "c", "label": "Reject the purchase so no one is overcharged" },
+                { "key": "d", "label": "Ask the frontend to confirm which price is correct" }
+              ],
+              "answer_key": "b",
+              "explanation": "The request only expresses intent. Price is a fact the backend must establish itself from the system that owns it. Trusting a price sent by a user-controlled device would let anyone name their own price.",
+              "objective": "trust"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "One request, end to end",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "diagram",
+          "title": "Inside a single request",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "backend-request-pipeline",
+              "alt": "A pipeline from request to response: identify who is asking, validate the request, authorize the action, apply rules, read current state, perform the operation, trigger side effects, and return the result",
+              "caption": "One request moves through the same conceptual stages every time. The frontend only ever displays the result.",
+              "steps": [
+                "Request arrives as intent",
+                "Identify who is asking",
+                "Validate that the request makes sense",
+                "Authorize whether this user may do it",
+                "Apply product rules",
+                "Read the current state",
+                "Perform the operation and change state",
+                "Trigger side effects",
+                "Return the result"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "worked_example",
+          "title": "Reserve seat 14C",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "Reserve seat 14C on Flight 817",
+              "steps": [
+                "The backend receives the request to reserve seat 14C. It is intent; nothing has happened yet.",
+                "It identifies the user from the trusted login session, not a user_id typed by the browser.",
+                "It validates that flight 817 and seat 14C actually exist.",
+                "It authorizes: is this user allowed to book this seat?",
+                "It reads current state: is 14C available right now?",
+                "It applies rules, like exit-row eligibility or fare restrictions.",
+                "It performs the operation: 14C changes from AVAILABLE to RESERVED FOR USER 9182.",
+                "It triggers side effects and replies confirmed; the frontend displays the result."
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "text",
+          "title": "Two taps on the same seat",
+          "objective": "reliability",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Two people see seat 14C as available and both press Reserve. A badly designed backend lets both check, both pass, and both reserve. Now two people own one seat. Some operations must be treated as one protected change: atomic means it happens completely or does not happen, never halfway, like a $100 transfer that cannot subtract without adding."
+            },
+            {
+              "type": "text",
+              "text": "The same thinking covers repeats and extras. A slow network can deliver the same Pay request twice, so the backend must recognize it as one operation rather than two charges. And a failed confirmation email should not undo a saved order: the core action and its side effects are different things."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "An atomic operation happens completely or does not happen. Not halfway."
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "check",
+          "title": "Pay pressed twice",
+          "objective": "reliability",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A user presses Pay, the network stalls, and they press again. Two identical payment requests reach the backend. What should happen?",
+              "options": [
+                { "key": "a", "label": "Charge twice, because two requests arrived" },
+                { "key": "b", "label": "Recognize both as the same operation and charge once" },
+                { "key": "c", "label": "Cancel the payment because it looked duplicated" },
+                { "key": "d", "label": "Keep whichever request arrived second" }
+              ],
+              "answer_key": "b",
+              "explanation": "Retries happen constantly: impatient users, lost responses, automatic network retries. The backend needs to recognize that a repeated request is the same operation so performing it again does not create a second charge. That property is called idempotency.",
+              "objective": "reliability"
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "callout",
+          "title": "Decide before you build",
+          "objective": "coordinator",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Define the states, the rules, and the source of truth first. Without them, the agent is not implementing your product. It is inventing one."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

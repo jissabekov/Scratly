@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "slug": "files-and-search",
+  "objectives": [
+    {
+      "objective": "three_forms",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain the difference between structured, semi-structured and unstructured information?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "An 80-page annual report is uploaded as one PDF. Which form of information is it?",
+          "options": [
+            {"key": "a", "label": "Unstructured — the system receives one file and does not automatically understand the paragraphs inside"},
+            {"key": "b", "label": "Structured — the document contains names and dates"},
+            {"key": "c", "label": "Semi-structured — it was sent through an API"}
+          ],
+          "answer": ["a"],
+          "explanation": "The PDF arrives as a file whose contents the system cannot address as fields; the JSON-style varying document would be semi-structured and a fixed record would be structured."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "A school club app holds many kinds of information. Give one realistic example of each form — structured, semi-structured and unstructured — and say why it belongs in that form.",
+          "rubric": {"criteria": ["Names one plausible example of each of the three forms", "Correctly matches each example to structured, semi-structured or unstructured"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why having access to a file is not the same as understanding its contents.",
+          "rubric": {"criteria": ["States that the system receives a file without automatically knowing what is inside", "Explains that something must extract structure before the contents become usable"]}
+        }
+      ]
+    },
+    {
+      "objective": "store_split",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain how a database record about a file relates to the file itself in object storage?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Maya uploads a 90 MB annual-report PDF. What does the database store?",
+          "options": [
+            {"key": "a", "label": "The 90 MB of PDF bytes inside the organization's row"},
+            {"key": "b", "label": "A document record with the ID, owner, type and storage location of the file"},
+            {"key": "c", "label": "One column per paragraph of the report"}
+          ],
+          "answer": ["b"],
+          "explanation": "The database keeps facts about the file, including the pointer to it; the bytes live in object storage."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Sketch the document record a system would create when a student uploads a project photo. List at least four fields it should contain, and say where the photo itself lives.",
+          "rubric": {"criteria": ["Lists at least four fields such as document_id, owner or project ID, type and storage_location", "States that the photo's bytes live in file or object storage, not inside the row"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain what the database knows about an uploaded file versus what object storage holds.",
+          "rubric": {"criteria": ["Explains that the database stores facts about the file such as ID, owner, type and location", "States that the file's bytes live in storage and the record points to them"]}
+        }
+      ]
+    },
+    {
+      "objective": "retrieval",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could match a search question to the right tool: database filter, keyword search or semantic search?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A user asks the system to find documents that mention the phrase food insecurity. Which retrieval tool fits best?",
+          "options": [
+            {"key": "a", "label": "A database filter on exact field values"},
+            {"key": "b", "label": "Keyword search over the text of documents"},
+            {"key": "c", "label": "Semantic search over embeddings"}
+          ],
+          "answer": ["b"],
+          "explanation": "The question names specific words to find inside document text, which is exactly what keyword or full-text search does."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write three questions a community-resources app might answer — one that needs a database filter, one that needs keyword search, and one that needs semantic search — and label each.",
+          "rubric": {"criteria": ["Provides one clear question per retrieval tool", "Each question genuinely needs its labeled tool rather than any of the three"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between keyword search and semantic search, and give an example where keyword search fails.",
+          "rubric": {"criteria": ["Explains that keyword search matches words while semantic search matches meaning", "Gives an example where different words with the same meaning defeats keyword search"]}
+        }
+      ]
+    },
+    {
+      "objective": "rag_pipeline",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could trace what happens between a user uploading a PDF and the AI answering a question about it?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "In the upload-and-ask pipeline, what happens immediately before the AI generates its answer?",
+          "options": [
+            {"key": "a", "label": "The entire document collection is sent to the model"},
+            {"key": "b", "label": "Search and retrieval pick the strongest passages, which are given to the model with the question"},
+            {"key": "c", "label": "The PDF is converted back into a database row"}
+          ],
+          "answer": ["b"],
+          "explanation": "Find first, generate second: retrieval selects the relevant sections and places them into the model's context with the question."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "List the stages between a user uploading a report and the AI answering a question about it, in order, from storage to the generated answer.",
+          "rubric": {"criteria": ["Includes storing the file, creating a record, extracting text, chunking and indexing", "Ends with search or retrieval feeding the relevant passages to the AI"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why the system retrieves relevant passages first instead of sending every document to the AI.",
+          "rubric": {"criteria": ["Mentions scale, cost or speed as reasons not to send everything", "Explains that retrieval delivers the small relevant subset the AI actually needs"]}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,297 @@
+{
+  "version": "1.0.0",
+  "slug": "frontend",
+  "seq": 4,
+  "title": "Frontend: Designing What the User Can See, Do, and Break",
+  "description": "The frontend is the control surface, not the whole application. Learn to describe what the user sees and can do, every state a screen can be in, what the screen must remember, and the consequence of every button.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "surface",
+      "label": "Explain the frontend as a control surface built from information, actions, state and feedback, not decoration",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "states",
+      "label": "Design every state a screen can be in, because a visible change is not proof that anything succeeded",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "memory",
+      "label": "Choose how long information must live, from temporary screen state to server-saved data",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "consequence",
+      "label": "Specify the consequence of every action and compare design options by tradeoff before asking an agent to build",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "The surface is not the system",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The heart that lies",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Put a phone in airplane mode and tap the heart on a post. Often it still turns red. The screen changed even though the server never received anything. So what did the tap actually do?"
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "What one tap really starts",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "like-tap-sequence",
+              "alt": "The full sequence from tapping a heart, through the frontend changing the icon and sending the action, to the server saving the like and other devices updating",
+              "caption": "The visible change is only the first step.",
+              "steps": [
+                "The user taps the heart",
+                "The frontend immediately turns the icon red",
+                "The frontend sends the action to a server",
+                "The server checks who the user is",
+                "The server saves the like",
+                "Recommendation and like counts update",
+                "Other devices eventually receive the new count"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Was the like saved?",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "The heart turned red the instant you tapped. What do we actually know happened?",
+              "options": [
+                { "key": "a", "label": "The like was saved on the server" },
+                { "key": "b", "label": "The screen changed; saving still needs a server response, and the red heart may be an optimistic update the app must undo if the request fails" },
+                { "key": "c", "label": "Nothing at all happened" },
+                { "key": "d", "label": "The creator was already notified" }
+              ],
+              "answer_key": "b",
+              "explanation": "An optimistic update changes the screen before confirmation to make the app feel fast. If the request then fails, the frontend must undo the change or show an error. The red heart is a promise, not a receipt.",
+              "objective": "states"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Change is not proof",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "The screen changing does not prove that anything was saved."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "text",
+          "title": "A control surface of four parts",
+          "objective": "surface",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A frontend is a control surface built from four things: information the user can see, actions the user can take, state the screen currently remembers, and feedback about what is happening. A game lobby shows players and a countdown, allows inviting a friend and marking ready, remembers the selected character, and communicates 'waiting for one more player'. That is architecture, not decoration."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Every screen is a collection of states",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The version nobody designs",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Asked to picture a music search screen, most people draw only the successful version: a search box, song results, play buttons. The real screen has many possible states, and each one needs a designed answer for what the user sees and can do."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "One screen, eight realities",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "screen-state-map",
+              "alt": "The states of a search screen from untouched, through typing, loading, success, empty, error, offline and partial",
+              "caption": "Each state needs its own answer for what the user sees and what they can do next.",
+              "steps": [
+                "Initial - nothing searched yet",
+                "Typing - suggestions, or wait for the user to submit",
+                "Loading - spinner or placeholders while results travel",
+                "Success - results arrived",
+                "Empty - the search worked but nothing matched",
+                "Error - the search could not be completed",
+                "Offline - the device has no connection",
+                "Partial - songs loaded but the images did not"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Empty is not error",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A student searches, the request succeeds, and no songs match. Which state is the screen in?",
+              "options": [
+                { "key": "a", "label": "Error, because the user got nothing" },
+                { "key": "b", "label": "Empty: a successful request with nothing to show" },
+                { "key": "c", "label": "Loading, because results may appear later" },
+                { "key": "d", "label": "Offline" }
+              ],
+              "answer_key": "b",
+              "explanation": "Empty is not failure. The system worked correctly and found nothing, so the design should say something useful, like 'no results found; check the spelling or try a different search', rather than an error message or a blank panel.",
+              "objective": "states"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "A fraction of the product",
+          "objective": "states",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Designing only the successful screen means designing only a fraction of the product."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "What the screen keeps, and what each button does",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The draft that was never saved",
+          "objective": "memory",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A student types a long event description, refreshes, and loses it. 'The user fills out the form' is an incomplete design. Is the text saved only on submit or auto-saved as a draft? Does the user see a Saved indicator? Can they continue on another device?"
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Four levels of keeping",
+          "objective": "memory",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "frontend-memory-levels",
+              "alt": "Four levels of frontend information from temporary screen state through browser-saved and URL state to server-saved data",
+              "caption": "The further down the list, the longer the information survives.",
+              "steps": [
+                "Screen state: an open menu or unsaved form text, gone on refresh",
+                "Browser-saved: a draft or theme preference, surviving refresh on this device",
+                "URL state: filters stored in the address, bookmarkable and shareable",
+                "Server-saved: a profile, registration or submission, following the user across devices"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Pick the right place",
+          "objective": "memory",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A tournament registration must be visible when the student logs in on a different laptop. Which level does it need?",
+              "options": [
+                { "key": "a", "label": "Screen state held by the open page" },
+                { "key": "b", "label": "URL state in the address bar" },
+                { "key": "c", "label": "Server-saved data attached to the account" },
+                { "key": "d", "label": "A draft saved in the first browser" }
+              ],
+              "answer_key": "c",
+              "explanation": "Only server-saved data follows the account to a different device. Screen state dies on refresh, a browser draft stays on the first machine, and the address bar cannot hold a registration.",
+              "objective": "memory"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "worked_example",
+          "title": "The button test",
+          "objective": "consequence",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "Every action needs a consequence",
+              "steps": [
+                "When the user presses Register...",
+                "...the frontend should disable the button and show progress...",
+                "...the backend should verify that spaces remain and save the registration...",
+                "...and the user should see either a confirmation or a useful error.",
+                "If you cannot complete this sentence for a button, the button has not been designed."
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "text",
+          "title": "There is rarely one correct screen",
+          "objective": "consequence",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Cards are good for browsing on a phone, a table is good for comparing dates and prices, and a map is good when distance matters. The right interface depends on what the user is trying to decide, so ask an agent to compare options instead of building the first one. The same discipline applies to components: a piece earns reuse when it repeats, behaves independently or changes separately."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "A frontend is not a collection of pretty rectangles. It is a system of decisions: what the user knows, what the user can do, what the screen remembers, what the system saves, and what happens when things go wrong."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

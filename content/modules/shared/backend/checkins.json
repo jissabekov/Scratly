@@ -1,0 +1,150 @@
+{
+  "version": "1.0.0",
+  "slug": "backend",
+  "objectives": [
+    {
+      "objective": "coordinator",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain what the backend adds on top of the database, the frontend, and external services?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A user presses Like and the heart fills in. Neither the button nor the database made the decision. What did the backend do?",
+          "options": [
+            {"key": "a", "label": "It stored the like so it survives a restart"},
+            {"key": "b", "label": "It managed the transition from not liked to liked: identifying the user, checking rules, creating the relationship, and returning the new state"},
+            {"key": "c", "label": "It carried the tap across the internet"},
+            {"key": "d", "label": "It rendered the filled heart on the screen"}
+          ],
+          "answer": ["b"],
+          "explanation": "Storage, transport, and rendering belong to other parts. The backend coordinates the whole transition between intent and stored change."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick one action in an app you use, like posting a photo or adding to a cart. List four things the backend does for it between the tap and the confirmed result.",
+          "rubric": {"criteria": ["Names concrete backend stages such as identify, validate, authorize, read state, or change state", "Orders the steps from the user's intent to the returned result", "Does not assign the work to the button or the database alone"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between the frontend capturing intent and the backend turning it into controlled change.",
+          "rubric": {"criteria": ["Explains that the frontend captures what the user wants", "Explains that the backend decides what actually happens under rules", "Gives a correct example of an intent becoming a controlled change"]}
+        }
+      ]
+    },
+    {
+      "objective": "state_transitions",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could model a feature as states and legal transitions rather than as a button?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A food delivery order moves Cart -> Order Created -> Payment Confirmed -> Delivered. Why define these states before building?",
+          "options": [
+            {"key": "a", "label": "So the app has more screens to show"},
+            {"key": "b", "label": "So the backend knows which moves are legal, who can cause them, and what must happen when they occur"},
+            {"key": "c", "label": "So the database has tables to fill"},
+            {"key": "d", "label": "So the marketing team can name the stages"}
+          ],
+          "answer": ["b"],
+          "explanation": "States exist so the backend can govern the transitions: legality, permissions, and consequences."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Design the states for a group food order where friends add items to one cart and one person checks out. List the states and two transitions with their rules.",
+          "rubric": {"criteria": ["Lists sensible states such as Cart Open, Cart Locked, Payment Confirmed, Order Submitted", "Names at least two transitions and a rule for each, like who may check out or that editing stops after checkout begins"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why 'add an Approve button' is frontend thinking, and what the backend version of that request looks like.",
+          "rubric": {"criteria": ["Explains that a button only captures intent", "Describes the backend version as a state transition with preconditions and consequences", "Mentions who may cause the change or what must already be true"]}
+        }
+      ]
+    },
+    {
+      "objective": "trust",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain why the backend verifies facts instead of trusting what the frontend sends?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A school app frontend sends student_id = 9182 and role = administrator. What should the backend do with that role?",
+          "options": [
+            {"key": "a", "label": "Trust it, because the request came from the real app"},
+            {"key": "b", "label": "Treat it as a claim and establish the user's actual role from a trusted source"},
+            {"key": "c", "label": "Reject every request that mentions a role"},
+            {"key": "d", "label": "Store the claimed role in the database as truth"}
+          ],
+          "answer": ["b"],
+          "explanation": "Everything crossing the trust boundary is a request, not truth. Facts like identity and role must be established on the product's side."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Imagine a checkout request that sends the cart total from the frontend. Write down which facts the backend must look up itself and which system owns each one.",
+          "rubric": {"criteria": ["Identifies facts like price, availability, and user identity that the backend must verify", "Names a plausible source of truth for each fact, such as the products database or login session", "Treats the sent total as a claim, not the amount to charge"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the trust boundary and what 'source of truth' means for one fact like a user's county.",
+          "rubric": {"criteria": ["Explains that the frontend runs on a user-controlled device, so its requests are claims", "Describes the source of truth as the system that officially owns a fact", "Notes that copies elsewhere should reference or derive from the owner"]}
+        }
+      ]
+    },
+    {
+      "objective": "reliability",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could spot when an operation needs to be atomic, idempotent, or separated from its side effects?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Two people press Reserve on seat 14C at the same moment and both see it available. What does the backend need?",
+          "options": [
+            {"key": "a", "label": "A faster server so the two requests do not overlap"},
+            {"key": "b", "label": "A way to check availability and reserve as one protected operation, so it happens completely or not at all"},
+            {"key": "c", "label": "A rule that the first user to click always wins, even if both succeeded"},
+            {"key": "d", "label": "A bigger seat map on the frontend"}
+          ],
+          "answer": ["b"],
+          "explanation": "Speed does not remove the collision. Check-and-reserve must be one atomic change, otherwise both requests can pass the check and both succeed."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "For a group order checkout, list the operations that must succeed together and the side effects that are allowed to fail without canceling the order.",
+          "rubric": {"criteria": ["Separates core operations like payment and order creation from side effects like receipts and notifications", "Explains that a failed side effect leaves the core operation intact"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain what can go wrong when two requests arrive at once or the same request arrives twice, and what properties protect the system.",
+          "rubric": {"criteria": ["Describes a concurrency problem like double-booking or a halfway transfer", "Describes a repeat problem like a double charge", "Names atomicity or idempotency as the protecting idea"]}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "frontend",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "surface",
+          "kind": "mcq",
+          "stem": "Which four things make up a frontend control surface?",
+          "options": [
+            { "key": "a", "label": "Colors, fonts, animations and logos" },
+            { "key": "b", "label": "Information the user sees, actions the user can take, state the screen remembers, and feedback about what is happening" },
+            { "key": "c", "label": "Pages, buttons, links and images" },
+            { "key": "d", "label": "Screens, servers, files and networks" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "Think of what a game lobby shows, allows, remembers and communicates.",
+          "feedback_correct": "Correct. Information, actions, state and feedback are the four parts of the control surface.",
+          "feedback_wrong": "The four parts are information (what the user sees), actions (what they can do), state (what the screen remembers) and feedback (what the app communicates). Styling alone is decoration, not the surface's job.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "states",
+          "kind": "mcq",
+          "stem": "With the phone in airplane mode, tapping a heart still turns it red. What does the red heart prove?",
+          "options": [
+            { "key": "a", "label": "The like was saved to the server" },
+            { "key": "b", "label": "Only that the screen changed; it may be an optimistic update the app must undo when the request fails" },
+            { "key": "c", "label": "The server answered instantly" },
+            { "key": "d", "label": "The phone secretly reconnected" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "A promise is not a receipt.",
+          "feedback_correct": "Correct. The red heart is the frontend acting early; saving still needs the server's response.",
+          "feedback_wrong": "The screen can change without the server knowing anything, especially in airplane mode. An optimistic update shows success early and must be undone or reported if the request fails.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "states",
+          "kind": "mcq",
+          "stem": "A search request succeeds but nothing matches. What should the design call this, and show?",
+          "options": [
+            { "key": "a", "label": "An error state, because the user got nothing" },
+            { "key": "b", "label": "An empty state: the request worked, so the screen needs its own helpful message" },
+            { "key": "c", "label": "A loading state, because results might still arrive" },
+            { "key": "d", "label": "A partial state, because only part of the screen loaded" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Did the system fail, or did it succeed with nothing to show?",
+          "feedback_correct": "Correct. Empty means the search worked and found nothing, so it gets a designed message such as 'check the spelling or try a different search'.",
+          "feedback_wrong": "Empty is its own state: the request succeeded and there is simply nothing to display. Treating it as an error blames the system for a correct result, and a spinner promises data that will never arrive.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "memory",
+          "kind": "mcq",
+          "stem": "A submitted application must still exist after a refresh, a restart and a device switch. Which level must hold it?",
+          "options": [
+            { "key": "a", "label": "Screen state" },
+            { "key": "b", "label": "Browser-saved data on that one device" },
+            { "key": "c", "label": "Server-saved data attached to the account" },
+            { "key": "d", "label": "URL state in the address bar" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.35,
+          "hint_text": "Which level follows the account, not the device?",
+          "feedback_correct": "Correct. Only server-saved data follows the user across devices and restarts.",
+          "feedback_wrong": "Screen state dies on refresh and browser-saved data stays on one machine. A submission that must survive everything belongs in server-saved data tied to the account.",
+          "slide_ref": 11,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "consequence",
+          "kind": "mcq",
+          "stem": "Complete the button test: 'When the user presses Register...'",
+          "options": [
+            { "key": "a", "label": "The frontend disables the button and shows progress, the backend verifies space and saves the registration, and the user sees a confirmation or a useful error" },
+            { "key": "b", "label": "The button changes color" },
+            { "key": "c", "label": "The page reloads to be safe" },
+            { "key": "d", "label": "Nothing needs to be specified; the backend handles it all" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "The sentence needs a frontend reaction, a backend job, and a user-visible result.",
+          "feedback_correct": "Correct. The test names what the frontend does, what the backend does, and what the user sees.",
+          "feedback_wrong": "The button test has three parts: the frontend reaction, the backend work, and what the user sees at the end. A color change alone leaves the whole conversation undesigned.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "surface",
+          "kind": "select_all",
+          "stem": "A game lobby remembers several things while it is open. Which of these belong to the screen's state? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The character the player selected" },
+            { "key": "b", "label": "Whether the player has marked ready" },
+            { "key": "c", "label": "Whether the lobby is currently waiting on a player" },
+            { "key": "d", "label": "The exact shade of the team logo" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "State is what the screen remembers now, not what it looks like.",
+          "feedback_correct": "Correct. Selected character, ready status and waiting status are things the screen must remember.",
+          "feedback_wrong": "State is what the screen currently remembers: the selected character, the ready flag, who is in the lobby, whether a match is starting. A logo's color is styling, not state.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "states",
+          "kind": "mcq",
+          "stem": "Why is designing only the happy path a real failure?",
+          "options": [
+            { "key": "a", "label": "Happy paths are unattractive" },
+            { "key": "b", "label": "Initial, loading, empty, error and offline versions still exist; an undesigned state is designed by accident at the worst moment" },
+            { "key": "c", "label": "It makes the app slower" },
+            { "key": "d", "label": "Servers refuse requests from happy-path screens" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "The other states still happen; the question is whether anyone designed them.",
+          "feedback_correct": "Correct. The states exist whether or not you design them.",
+          "feedback_wrong": "Users will still hit loading, empty, error and offline situations. If the designer never specified them, each becomes an accidental blank or confusing screen exactly when the user needs help most.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "states",
+          "kind": "select_all",
+          "stem": "Which are real states a search screen must define? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Empty: the search succeeded but nothing matched" },
+            { "key": "b", "label": "Loading: the request was sent and is still travelling" },
+            { "key": "c", "label": "Offline: the device has no connection" },
+            { "key": "d", "label": "Happy: the only state that needs designing" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.4,
+          "hint_text": "Count the ways reality departs from the ideal result list.",
+          "feedback_correct": "Correct. Empty, loading and offline are all real states that need designed answers.",
+          "feedback_wrong": "A search screen has to cover initial, typing, loading, success, empty, error, offline and even partial results. The successful version is only one state among several, never the only one.",
+          "slide_ref": 7,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "memory",
+          "kind": "select_all",
+          "stem": "Which kinds of frontend information survive a page refresh? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "A server-saved profile" },
+            { "key": "b", "label": "Filters stored in the URL, such as /events?city=Tulsa" },
+            { "key": "c", "label": "Unsaved text typed into a form" },
+            { "key": "d", "label": "A draft saved in the browser" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.45,
+          "hint_text": "Ask which copies live somewhere other than the open page.",
+          "feedback_correct": "Correct. Server-saved data, URL state and browser drafts all survive refresh; unsaved form text does not.",
+          "feedback_wrong": "Server-saved data lives with the account, URL state is rebuilt from the address, and a browser draft persists on the device. Text that was never saved exists only in screen state, which refresh destroys.",
+          "slide_ref": 11,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "consequence",
+          "kind": "mcq",
+          "stem": "When does a piece of a screen deserve to become its own reusable component?",
+          "options": [
+            { "key": "a", "label": "Always; every title and icon should be a component" },
+            { "key": "b", "label": "When it appears more than once, behaves independently, or needs to change separately" },
+            { "key": "c", "label": "Never; components only add complexity" },
+            { "key": "d", "label": "Whenever it has an icon" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Reuse should pay for the complexity it adds.",
+          "feedback_correct": "Correct. Repetition, independent behavior or separate change justify a component.",
+          "feedback_wrong": "A component earns its complexity when it repeats across screens, behaves on its own, or changes independently. Splitting every title and icon into components adds structure without helping.",
+          "slide_ref": 14,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "surface",
+          "kind": "mcq",
+          "stem": "Why call the frontend a control surface rather than the whole application?",
+          "options": [
+            { "key": "a", "label": "Because it is the only part that matters" },
+            { "key": "b", "label": "Because it is the surface through which a person operates the rest of the system; a beautiful screen connected to nothing is a demo" },
+            { "key": "c", "label": "Because it contains the database" },
+            { "key": "d", "label": "Because it runs on phones" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Think about what happens behind the controls.",
+          "feedback_correct": "Correct. The frontend operates the system; without the system behind it, the surface is only a demo.",
+          "feedback_wrong": "The frontend is how a person operates the application, not the application itself. A beautiful screen connected to nothing is a demo, and a powerful backend with a confusing screen is a product nobody can use.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "states",
+          "kind": "mcq",
+          "stem": "Why show a spinner or placeholders after a search is submitted?",
+          "options": [
+            { "key": "a", "label": "For decoration while the real design loads" },
+            { "key": "b", "label": "Loading is a real state; without feedback the user cannot tell waiting from broken" },
+            { "key": "c", "label": "To slow the interface down" },
+            { "key": "d", "label": "To fill empty space on the screen" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "What would the user think if the screen simply froze?",
+          "feedback_correct": "Correct. Feedback during loading tells the user the request is travelling rather than lost.",
+          "feedback_wrong": "Loading is a real state that needs feedback. A silent screen after a tap leaves the user guessing whether the request was sent, is working, or failed, so the surface must communicate that work is in progress.",
+          "slide_ref": 7,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "memory",
+          "kind": "mcq",
+          "stem": "Why is 'the user fills out the form' an incomplete specification?",
+          "options": [
+            { "key": "a", "label": "It does not name the font" },
+            { "key": "b", "label": "It never says when the draft is saved, whether saving is automatic, what the user sees on save or failure, or whether the work survives another device" },
+            { "key": "c", "label": "It forgets the button color" },
+            { "key": "d", "label": "It does not name a database brand" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.45,
+          "hint_text": "Ask what happens to the typed text over time.",
+          "feedback_correct": "Correct. The spec must decide when and where the work is saved and what the user sees along the way.",
+          "feedback_wrong": "Typed text is only screen state until something saves it. The design must say whether saving happens on submit or automatically, whether the user sees a Saved indicator, what happens if saving fails, and whether the draft follows the user to another device.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "states",
+          "kind": "select_all",
+          "stem": "A like button uses an optimistic update, and the request then fails. What should the app do? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Undo the red heart or show an error" },
+            { "key": "b", "label": "Tell the user the like did not go through" },
+            { "key": "c", "label": "Leave the heart red as though it saved" },
+            { "key": "d", "label": "Charge the user for the failed like" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.5,
+          "hint_text": "The optimistic promise was not kept; the screen must stop pretending.",
+          "feedback_correct": "Correct. The failed change is undone and the user is told, so the screen stops claiming something that is not true.",
+          "feedback_wrong": "An optimistic update is a bet that the request will succeed. When it fails, the frontend must reverse the change or surface an error; leaving the red heart would lie to the user about what is saved.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "consequence",
+          "kind": "mcq",
+          "stem": "A discovery page could show results as cards, a table or a map. Which choice is correct?",
+          "options": [
+            { "key": "a", "label": "Always cards, because they look modern" },
+            { "key": "b", "label": "The right interface depends on what the user is trying to decide: comparing favors a table, distance favors a map, browsing on a phone favors cards" },
+            { "key": "c", "label": "Always a map, because the results are local" },
+            { "key": "d", "label": "Whichever is fastest for the agent to generate" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Match the layout to the user's decision, not to fashion.",
+          "feedback_correct": "Correct. Each layout serves a different decision, so the choice follows the user's goal.",
+          "feedback_wrong": "There is rarely one correct screen. A table helps compare dates and prices, a map helps when distance matters, and cards help casual browsing on small screens. The decision the user is making should pick the layout.",
+          "slide_ref": 14,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

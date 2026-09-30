@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "files-and-search",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "three_forms",
+          "kind": "mcq",
+          "stem": "A platform stores a student record with fields student_id, name, county and graduation_year, plus a 40-page annual report saved as a PDF. Which statement is correct?",
+          "options": [
+            { "key": "a", "label": "Both are structured, because the application stores both of them" },
+            { "key": "b", "label": "The record is structured, but the PDF is unstructured because the system cannot address the report's paragraphs as fields" },
+            { "key": "c", "label": "The PDF is structured, because it contains names and dates" },
+            { "key": "d", "label": "The record is unstructured, because it came from a form" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Ask whether the system can address each value as a named field.",
+          "feedback_correct": "Correct. Structure means the system knows the shape of each value; the PDF arrives as one file.",
+          "feedback_wrong": "A record is structured when the system knows what each field means. The PDF may contain names and dates, but the application receives it as one file and cannot address its paragraphs as fields, so it is unstructured.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "three_forms",
+          "kind": "select_all",
+          "stem": "Which of these are examples of unstructured information? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "A scanned volunteer handbook saved as a PDF" },
+            { "key": "b", "label": "A JSON document describing an organization's programs" },
+            { "key": "c", "label": "An audio recording of a board meeting" },
+            { "key": "d", "label": "A database row with name, city and active_status" }
+          ],
+          "answer": ["a", "c"],
+          "difficulty": 0.4,
+          "hint_text": "Unstructured information arrives as a file the system does not automatically understand.",
+          "feedback_correct": "Correct. A scanned handbook and an audio recording both arrive as files whose contents the system cannot address as fields.",
+          "feedback_wrong": "Unstructured information arrives as a file — a scanned handbook or a recording — whose contents the system cannot address as fields. The JSON document is semi-structured, and the database row is structured.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "store_split",
+          "kind": "mcq",
+          "stem": "An uploaded proposal PDF lives in object storage at /files/projects/88/proposal.pdf. What belongs in the database?",
+          "options": [
+            { "key": "a", "label": "The PDF's bytes, so every query can return the file" },
+            { "key": "b", "label": "A document record with the ID, owner, type, permissions and storage location" },
+            { "key": "c", "label": "Nothing — file storage replaces the database for documents" },
+            { "key": "d", "label": "A separate column for every paragraph in the proposal" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "The database knows about the file; something else holds the file.",
+          "feedback_correct": "Correct. The database keeps the record — ID, owner, type and location — while object storage keeps the bytes.",
+          "feedback_wrong": "The database stores facts about the file, including the storage_location that points at it. The PDF's bytes live in object storage, and turning paragraphs into columns is exactly the design that does not scale.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "retrieval",
+          "kind": "mcq",
+          "stem": "A user types the word basketball into a document search box and the system scans the text of stored documents. Which retrieval tool is working?",
+          "options": [
+            { "key": "a", "label": "A database filter on a category field" },
+            { "key": "b", "label": "Keyword search across the text of documents" },
+            { "key": "c", "label": "Semantic search on embeddings" },
+            { "key": "d", "label": "The AI model's memory of every document" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "The question is matching words inside documents.",
+          "feedback_correct": "Correct. Searching the text of documents for a word is keyword or full-text search.",
+          "feedback_wrong": "The system is matching words inside document text, which is keyword search. A filter matches named fields, semantic search matches meaning, and the model has no memory of documents it was never shown.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "rag_pipeline",
+          "kind": "mcq",
+          "stem": "In the upload-and-ask pipeline, why does the system retrieve relevant passages before calling the AI?",
+          "options": [
+            { "key": "a", "label": "So the model can be trained on the documents" },
+            { "key": "b", "label": "Because the prompt looks better with paragraphs in it" },
+            { "key": "c", "label": "Because sending every document on every question is slow, expensive and buries the model in irrelevant text" },
+            { "key": "d", "label": "Because PDFs cannot be stored in object storage" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.45,
+          "hint_text": "Think about what happens at two million PDFs instead of twenty.",
+          "feedback_correct": "Correct. Retrieval delivers the small relevant subset, which keeps answers fast, cheap and focused.",
+          "feedback_wrong": "Sending an entire collection on every question means more computation, slower responses, higher cost and a greater chance the model focuses on the wrong information. Retrieval finds the small relevant subset first — find first, generate second.",
+          "slide_ref": 12,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "three_forms",
+          "kind": "mcq",
+          "stem": "An API returns a JSON document in which each organization's fields can differ — one lists programs, another lists only a contact person. This is best described as:",
+          "options": [
+            { "key": "a", "label": "Structured information — it must fit one fixed table" },
+            { "key": "b", "label": "Semi-structured information — it has organization, but the shape can vary" },
+            { "key": "c", "label": "Unstructured information — it is only a file" },
+            { "key": "d", "label": "An embedding — it represents meaning mathematically" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "The information has structure, but not one fixed shape.",
+          "feedback_correct": "Correct. JSON payloads with varying fields are the classic semi-structured case.",
+          "feedback_wrong": "Information with organization but a shape that varies record to record is semi-structured, like API payloads and logs. Structured information fits fixed fields, and unstructured information arrives as a file with no addressable fields at all.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "store_split",
+          "kind": "select_all",
+          "stem": "A video record in the database contains video_id, user_id, caption, likes and storage_location. Which statements are correct? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The database knows facts about the video while storage holds the video itself" },
+            { "key": "b", "label": "The storage_location field is how the record points outside the database to the file" },
+            { "key": "c", "label": "The video's bytes are stored inside the video_id field" },
+            { "key": "d", "label": "The database is no longer needed once a file is in object storage" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "Think about who knows about the file versus who holds it.",
+          "feedback_correct": "Correct. The record carries the facts and the pointer; object storage carries the bytes.",
+          "feedback_wrong": "The record holds metadata and a pointer to the file, and the database still provides IDs, ownership and permissions. Bytes never live inside an ID field, and object storage alone cannot answer questions about relationships.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "retrieval",
+          "kind": "select_all",
+          "stem": "A user searches for opportunities for teenagers who enjoy sports, and the system must find documents that mean the same thing even when the words differ. Which statements apply? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Semantic search compares meaning rather than exact words" },
+            { "key": "b", "label": "Embeddings turn text into mathematical representations that can be compared for similarity" },
+            { "key": "c", "label": "A database filter on exact field values will find it reliably" },
+            { "key": "d", "label": "Keyword search is guaranteed to find documents with no shared words" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.5,
+          "hint_text": "The question is about meaning, not fields or words.",
+          "feedback_correct": "Correct. Semantic search uses embeddings to compare meaning, which is why it can match ideas that share no words.",
+          "feedback_wrong": "Meaning-based retrieval compares embeddings — mathematical representations of meaning — so documents with different words can still match. Filters only match field values and keyword search only matches words, so neither can promise a match here.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "retrieval",
+          "kind": "mcq",
+          "stem": "A product must answer: find active Tulsa organizations doing food-access work, then explain why they fit. What makes the search efficient?",
+          "options": [
+            { "key": "a", "label": "Run semantic search across every document in the system first" },
+            { "key": "b", "label": "Filter the database to active Tulsa organizations first, then search meaning within that smaller set" },
+            { "key": "c", "label": "Ask the AI to read every record and decide" },
+            { "key": "d", "label": "Chunk the user's question into smaller pieces first" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.5,
+          "hint_text": "Cheap exact filters shrink the pile before expensive meaning search runs.",
+          "feedback_correct": "Correct. Filtering first shrinks the candidate set, so the meaning-based search runs over far less information.",
+          "feedback_wrong": "Search works best as a pipeline. An exact database filter on county and status removes almost everything cheaply, then semantic search handles the ambiguous part over a small set — far more efficient than searching everything in the system.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "rag_pipeline",
+          "kind": "mcq",
+          "stem": "In the upload-and-ask pipeline, why are large documents broken into chunks?",
+          "options": [
+            { "key": "a", "label": "Because object storage cannot hold a file larger than one page" },
+            { "key": "b", "label": "So search can retrieve the one relevant section instead of an entire 300-page document" },
+            { "key": "c", "label": "Because the database requires every file to be split" },
+            { "key": "d", "label": "To make the original upload finish faster" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Think about what gets returned when the answer sits on page 187.",
+          "feedback_correct": "Correct. Chunking lets retrieval return the section that answers the question rather than a whole document.",
+          "feedback_wrong": "Chunking exists so retrieval can hand the AI the few relevant sections, like chunk 217 with the answer, instead of 300 pages. Chunks too large bury the answer in noise; chunks too small split the answer from its context.",
+          "slide_ref": 12,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "three_forms",
+          "kind": "mcq",
+          "stem": "Which statement best captures why a PDF is different from a database row?",
+          "options": [
+            { "key": "a", "label": "The system receives the PDF as one file; understanding its contents is a separate step" },
+            { "key": "b", "label": "PDFs are always too large for any database to store" },
+            { "key": "c", "label": "A row always contains more text than a PDF" },
+            { "key": "d", "label": "Files and rows are interchangeable once uploaded" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Access is not the same as understanding.",
+          "feedback_correct": "Correct. Having access to a file is not the same thing as understanding its contents.",
+          "feedback_wrong": "The PDF arrives as one file and the system does not automatically understand the paragraphs inside — making the contents usable takes a separate step such as extraction. Size is not the real issue; addressable structure is.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "store_split",
+          "kind": "mcq",
+          "stem": "A student says the app's document record IS the document. What is the better mental model?",
+          "options": [
+            { "key": "a", "label": "The record holds metadata and a pointer; the file itself lives in object storage" },
+            { "key": "b", "label": "The record compresses the whole document into a row" },
+            { "key": "c", "label": "Object storage keeps the metadata and the database keeps the file" },
+            { "key": "d", "label": "They are the same thing because both have an ID" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "Separate knowing about a thing from being the thing.",
+          "feedback_correct": "Correct. The database knows what the object is; object storage holds the object itself.",
+          "feedback_wrong": "The record is metadata plus a pointer — ID, owner, type and storage_location — while the file's bytes live in object storage. It is the same relational thinking, except one relationship now points outside the database.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "retrieval",
+          "kind": "mcq",
+          "stem": "A document says athletic opportunities for adolescents, but the user searched teen sports programs. Which approach can still find it?",
+          "options": [
+            { "key": "a", "label": "A database filter on the county field" },
+            { "key": "b", "label": "Keyword search for the exact phrase" },
+            { "key": "c", "label": "Semantic search, because it matches meaning rather than identical words" },
+            { "key": "d", "label": "No tool can find it" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.4,
+          "hint_text": "The words differ but the meaning is close.",
+          "feedback_correct": "Correct. Embeddings let the system compare meaning, so different words can still match.",
+          "feedback_wrong": "The two phrases share almost no words, so keyword search and field filters miss it. Semantic search compares mathematical representations of meaning, which is how related ideas with different wording still surface.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "store_split",
+          "kind": "select_all",
+          "stem": "A product must store uploaded grant PDFs and let staff find them later. Which pieces belong in the design? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Object or file storage for the original PDFs" },
+            { "key": "b", "label": "A document table with owner, type and storage location" },
+            { "key": "c", "label": "A database column for every paragraph of every report" },
+            { "key": "d", "label": "The actual PDF bytes inside each organization's row" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "Give each system the job it is good at.",
+          "feedback_correct": "Correct. The files live in storage; the database keeps the records that describe and locate them.",
+          "feedback_wrong": "Good architecture gives each part the job it is good at: object storage holds the files, and the database holds records — owner, type, permissions, location — that point at them. Stuffing bytes or paragraphs into rows is the design this architecture exists to avoid.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "rag_pipeline",
+          "kind": "mcq",
+          "stem": "The AI gives a wrong answer even though the prompt is well written and the correct PDF is stored. What should the builder inspect first?",
+          "options": [
+            { "key": "a", "label": "Whether the model needs a friendlier personality" },
+            { "key": "b", "label": "Whether the right passages were extracted, chunked, indexed and retrieved" },
+            { "key": "c", "label": "Whether the user typed the question clearly enough" },
+            { "key": "d", "label": "Whether the filename is descriptive" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.5,
+          "hint_text": "The answer depends on what the pipeline delivered before the model ever ran.",
+          "feedback_correct": "Correct. Bad extraction, chunking, indexing or retrieval feeds the model the wrong information, and no prompt can fix that.",
+          "feedback_wrong": "The failure could be anywhere upstream: bad extraction, bad chunking, bad indexing or bad retrieval, all delivering the wrong context to a fine model. Inspect what reached the model before touching the prompt.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

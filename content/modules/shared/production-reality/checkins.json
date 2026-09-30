@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "slug": "production-reality",
+  "objectives": [
+    {
+      "objective": "pieces",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could list the separate pieces of a product and explain what deployment must answer for each one?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A deployed frontend calls http://localhost:8000/upload and the button does nothing for visitors. What does localhost refer to?",
+          "options": [
+            {"key": "a", "label": "The team's production server"},
+            {"key": "b", "label": "Whatever computer the code is running on — the visitor's own machine"},
+            {"key": "c", "label": "The database host"}
+          ],
+          "answer": ["b"],
+          "explanation": "Localhost always means this same computer, so a deployed frontend pointing at localhost looks for a backend on the visitor's own machine."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take an app idea and list at least four of its pieces — for example frontend, backend, database, storage, AI, workers — and write where each one would run or what it would connect to.",
+          "rubric": {"criteria": ["Lists at least four distinct pieces of the system", "Gives a plausible home or connection for each rather than treating the app as one thing"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between code existing, code running, and a product operating.",
+          "rubric": {"criteria": ["Separates code stored in a repository from a process running somewhere", "Explains that operating means all needed pieces serve users together"]}
+        }
+      ]
+    },
+    {
+      "objective": "state_survival",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain which parts of a system are disposable and which must survive?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "The backend machine is replaced. What should happen to user accounts and uploaded videos?",
+          "options": [
+            {"key": "a", "label": "They are recreated the next time each user logs in"},
+            {"key": "b", "label": "They persist because they live in the database and object storage, not in the backend"},
+            {"key": "c", "label": "They are lost unless users made their own backups"}
+          ],
+          "answer": ["b"],
+          "explanation": "Compute is disposable and state must survive, so user data lives in persistent systems a new backend can reconnect to."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take an app idea and sort five of its things into two lists: disposable (restartable compute, temporary files) and must-survive (accounts, uploads, records).",
+          "rubric": {"criteria": ["Sorts at least five items into the two lists", "Correctly places user data and media in the must-survive list"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why storing uploads inside the backend machine is an architecture bug rather than a coding bug.",
+          "rubric": {"criteria": ["Explains that compute can be replaced while state must persist", "Shows the consequence: a replacement backend starts with the files gone"]}
+        }
+      ]
+    },
+    {
+      "objective": "workloads",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could decide whether a piece of work belongs in the request, a background job, or a media-delivery path?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "An upload needs two minutes of video processing. What should the upload request do?",
+          "options": [
+            {"key": "a", "label": "Hold the connection open until processing finishes"},
+            {"key": "b", "label": "Store the upload, mark it processing, queue the job and respond immediately"},
+            {"key": "c", "label": "Refuse the upload as too large"}
+          ],
+          "answer": ["b"],
+          "explanation": "The request does the fast part and a worker does the slow part; the database tracks the status so the user can see it change."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "List three tasks from an app idea and label each one: answer inside the request, do in the background, or deliver through a media/CDN path.",
+          "rubric": {"criteria": ["Labels three concrete tasks", "Each label matches the task's real wait time and size"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain what a queue and a worker do for an application.",
+          "rubric": {"criteria": ["Describes the queue as a list of waiting work and the worker as the separate program that performs it", "Explains the user gets an immediate response while status updates later"]}
+        }
+      ]
+    },
+    {
+      "objective": "failure_drills",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could predict what a product should do when a dependency fails or usage multiplies by one hundred?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "The AI provider goes down on a busy Friday night. What should the product do?",
+          "options": [
+            {"key": "a", "label": "Take the whole site offline until it returns"},
+            {"key": "b", "label": "Keep serving scores and video and mark summaries temporarily unavailable"},
+            {"key": "c", "label": "Hide the failure so nobody notices"}
+          ],
+          "answer": ["b"],
+          "explanation": "Graceful degradation keeps every feature that does not need the failed dependency working, with a clear temporary error for the rest."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Run the multiply-by-100 test on an app idea: name the first thing you think would break — backend capacity, database connections, AI rate limits, the processing queue or the cloud bill — and one fix for it.",
+          "rubric": {"criteria": ["Names a plausible first bottleneck", "Pairs it with a reasonable fix such as more capacity, caching, a queue or limits"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain graceful degradation and give one example.",
+          "rubric": {"criteria": ["Explains that the product keeps working minus the failed part", "Gives an example such as scores still working while AI summaries pause"]}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "backend",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "coordinator",
+          "kind": "mcq",
+          "stem": "A database can store 842 liked songs, a payment service can charge cards, and an AI model can classify music. What does the backend contribute that none of these do?",
+          "options": [
+            { "key": "a", "label": "It stores the likes so they survive a server restart" },
+            { "key": "b", "label": "It decides when each thing happens, in what order, with which information, and under which rules" },
+            { "key": "c", "label": "It renders the buttons the user presses" },
+            { "key": "d", "label": "It carries messages between computers" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Storage, payment, classification, rendering and transport are all handled by other parts. What is left?",
+          "feedback_correct": "Correct. The backend coordinates: when each thing happens, in what order, using which information, under which rules.",
+          "feedback_wrong": "Storing, rendering and transporting are jobs owned by the database, the frontend and the network. The backend's job is coordination: it decides when each capability runs, in what order, with which information and under which rules.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "coordinator",
+          "kind": "select_all",
+          "stem": "A request to reserve a seat travels through the backend pipeline. Which steps happen inside the backend? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Identifying who is asking, from the trusted login session" },
+            { "key": "b", "label": "Checking whether this user is allowed to perform the action" },
+            { "key": "c", "label": "Reading the current state and changing it" },
+            { "key": "d", "label": "Drawing the confirmation onto the user's screen" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "Follow the pipeline from request to result. Which stage is left to the frontend?",
+          "feedback_correct": "Correct. Identify, authorize, read state and change state all happen in the backend; the frontend only renders the returned result.",
+          "feedback_wrong": "Identify, authorize and the state change all happen inside the backend pipeline. Rendering the confirmation is the frontend's job; it displays whatever result the backend returns.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "state_transitions",
+          "kind": "mcq",
+          "stem": "A student tells a coding agent: \"I need a button called Approve.\" What is the more useful backend question to answer first?",
+          "options": [
+            { "key": "a", "label": "What color should the Approve button be" },
+            { "key": "b", "label": "What happens to the system when something becomes approved: which states exist, who can cause the change, and what else must happen" },
+            { "key": "c", "label": "Which programming language the button should be written in" },
+            { "key": "d", "label": "How many users will click the button each day" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "A button is frontend thinking. Ask what the action does to the system.",
+          "feedback_correct": "Correct. The real design is the transition: legal moves, preconditions, and consequences.",
+          "feedback_wrong": "A button is only how the intent is captured. Backend design starts with the transition: what states exist, which moves are legal, who can cause them, and what else must happen when they occur.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "trust",
+          "kind": "mcq",
+          "stem": "A store's frontend sends product_id = 42 and price = $1.00, but the products database lists the price as $800. What should the backend do?",
+          "options": [
+            { "key": "a", "label": "Charge $1.00 because the request carries that price" },
+            { "key": "b", "label": "Ignore the sent price and read the real one from the products database" },
+            { "key": "c", "label": "Cancel the order automatically" },
+            { "key": "d", "label": "Average the two prices" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "Which side of the trust boundary owns the price?",
+          "feedback_correct": "Correct. The backend determines facts itself from the source of truth; the request is only intent.",
+          "feedback_wrong": "A request crossing the trust boundary is a request, not truth. Price lives in the products database, which is the source of truth, so the backend looks it up rather than trusting a value the user's device sent.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "reliability",
+          "kind": "mcq",
+          "stem": "A project is submitted and saved, but the follow-up Slack notification fails to send. What should happen to the submission?",
+          "options": [
+            { "key": "a", "label": "The submission should be deleted because part of the workflow failed" },
+            { "key": "b", "label": "The submission should stand, because the notification was a side effect, not the core operation" },
+            { "key": "c", "label": "The submission should return to Draft until Slack recovers" },
+            { "key": "d", "label": "The user should be logged out" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Separate the operation that defines success from the extras that follow it.",
+          "feedback_correct": "Correct. The state change Draft -> Submitted is the core operation; a failed side effect should not undo it.",
+          "feedback_wrong": "The core operation is the state change Draft -> Submitted, which already succeeded. The Slack message is a side effect, and letting a non-critical failure destroy the core change makes the system less reliable, not more.",
+          "slide_ref": 12,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "coordinator",
+          "kind": "mcq",
+          "stem": "Which description best captures what a backend is?",
+          "options": [
+            { "key": "a", "label": "The invisible part of the app that nobody needs to think about" },
+            { "key": "b", "label": "The part of the system that turns user intent into controlled changes in the system" },
+            { "key": "c", "label": "Another name for the database" },
+            { "key": "d", "label": "The network cable between the frontend and the data" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "The frontend captures intent. What does the backend do with it?",
+          "feedback_correct": "Correct. The frontend captures intent and the backend turns it into controlled change.",
+          "feedback_wrong": "The backend is not just the invisible part, and it is not the database or the network. It is the coordinating layer that turns the intent the frontend captured into controlled, rule-checked changes in the system.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "state_transitions",
+          "kind": "select_all",
+          "stem": "An application moves from Under Review to Approved. Which consequences might the backend need to enforce as part of that transition? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Checking that the reviewer has permission to approve" },
+            { "key": "b", "label": "Confirming the application is not already rejected" },
+            { "key": "c", "label": "Recording who approved it and when" },
+            { "key": "d", "label": "Letting the applicant keep editing it afterward" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.5,
+          "hint_text": "Think about preconditions, records, and what the new state prevents.",
+          "feedback_correct": "Correct. Permission, the current state check, and recording the approver and time are all part of the transition.",
+          "feedback_wrong": "A transition carries preconditions and consequences: the reviewer needs permission, the application must be in a state that allows approval, and the approver and time get recorded. Approval usually ends editing, so letting the applicant keep editing would contradict the new state.",
+          "slide_ref": 7,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "state_transitions",
+          "kind": "mcq",
+          "stem": "A project platform defines states: Idea, Project Draft, Teacher Review, Outreach Sent, Project Active, Completed. Which jump is probably NOT a legal transition?",
+          "options": [
+            { "key": "a", "label": "Project Draft -> Teacher Review" },
+            { "key": "b", "label": "Idea -> Completed" },
+            { "key": "c", "label": "Outreach Sent -> Project Active" },
+            { "key": "d", "label": "Project Active -> Completed" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Which move skips every checkpoint the product is built around?",
+          "feedback_correct": "Correct. Jumping from Idea to Completed skips every review and outreach step the states exist to control.",
+          "feedback_wrong": "Draft -> Teacher Review, Outreach Sent -> Project Active and Project Active -> Completed are moves the workflow exists to allow. Idea -> Completed skips all of them, which is exactly the kind of transition backend rules exist to prevent.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "trust",
+          "kind": "select_all",
+          "stem": "Which facts should the backend establish itself rather than trusting what the frontend sent? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Who the user is, from a trusted login session" },
+            { "key": "b", "label": "The real price of product 42" },
+            { "key": "c", "label": "Whether seat 14C is currently available" },
+            { "key": "d", "label": "The role the user's browser claims, like role = administrator" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.5,
+          "hint_text": "Anything arriving from a device the user controls is a claim, not a fact.",
+          "feedback_correct": "Correct. Identity, price and current availability are all facts the backend verifies against trusted sources.",
+          "feedback_wrong": "Identity, price and availability must be established by the backend from trusted sources like the login session and the database. A claimed role is exactly what the backend must NOT trust: the browser asserting role = administrator is a request, not truth.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "reliability",
+          "kind": "mcq",
+          "stem": "A slow network delivers the same Pay request twice. Which property should the backend have so the user is not charged twice?",
+          "options": [
+            { "key": "a", "label": "Idempotency: performing the same request again does not create a second charge" },
+            { "key": "b", "label": "Speed: answering faster so the user stops pressing the button" },
+            { "key": "c", "label": "Normalization: storing the card number in only one table" },
+            { "key": "d", "label": "Rendering: showing a spinner so the user waits" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.45,
+          "hint_text": "The question is about recognizing a repeated request as the same operation.",
+          "feedback_correct": "Correct. Idempotency means repeating the same request does not accidentally perform the action twice.",
+          "feedback_wrong": "The property is idempotency: the backend recognizes the repeated request as the same operation and performs it once. A spinner or faster response reduces how often it happens but cannot guarantee safety, and normalization is a database design idea.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "coordinator",
+          "kind": "mcq",
+          "stem": "A reservation request is formatted correctly and seat 14C exists, but this user is not allowed to book seats for other people. Which pipeline stage rejects it?",
+          "options": [
+            { "key": "a", "label": "Validate" },
+            { "key": "b", "label": "Authorize" },
+            { "key": "c", "label": "Return result" },
+            { "key": "d", "label": "Trigger side effects" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.45,
+          "hint_text": "Valid means well-formed. A different stage asks whether this user may do it.",
+          "feedback_correct": "Correct. A perfectly valid request can still be unauthorized; authorization is its own stage.",
+          "feedback_wrong": "Validation only asks whether the request makes sense, and this one does. Authorization asks the different question of whether this user may perform this action, so a valid request can still be rejected there.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "state_transitions",
+          "kind": "mcq",
+          "stem": "Why do products define states like Draft, Submitted, Under Review and Approved at all?",
+          "options": [
+            { "key": "a", "label": "So the frontend has more labels to display" },
+            { "key": "b", "label": "So the backend can control which moves are legal, who may cause them, and what else must happen when they occur" },
+            { "key": "c", "label": "So the database has something to store" },
+            { "key": "d", "label": "So reports look more organized" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "States exist to be governed, not displayed.",
+          "feedback_correct": "Correct. Products are systems that move between states, and the backend controls the moves.",
+          "feedback_wrong": "States are not labels for the screen. Products are systems that move between states, and the backend's job is controlling which transitions are legal, who can cause them, and what consequences each one carries.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "trust",
+          "kind": "mcq",
+          "stem": "A student's county is stored in three places: the profile, the project, and the recommendation. The student moves to a new county. Which copy is correct?",
+          "options": [
+            { "key": "a", "label": "Whichever copy was updated most recently" },
+            { "key": "b", "label": "All three are equally correct until one is edited" },
+            { "key": "c", "label": "The system that owns the fact is correct, and the other copies should reference or derive from it" },
+            { "key": "d", "label": "Whichever one the frontend currently displays" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.45,
+          "hint_text": "Every important fact needs one authoritative home.",
+          "feedback_correct": "Correct. The source of truth owns the fact; copies elsewhere should reference or derive from it.",
+          "feedback_wrong": "Duplicated facts drift apart, and recency is guesswork when copies disagree. The fix is ownership: one system is the source of truth for the fact, and other places reference or derive it rather than keeping independent copies.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "trust",
+          "kind": "select_all",
+          "stem": "The backend treats everything crossing the trust boundary as a request, not truth. Which claims should it verify rather than accept? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "user_id = 9182 typed by the browser" },
+            { "key": "b", "label": "coins_to_add = 1,000,000 sent by a game client" },
+            { "key": "c", "label": "price = $1.00 sent by a shopping cart" },
+            { "key": "d", "label": "The seat availability it just read from its own database" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.5,
+          "hint_text": "Which of these arrived from a device the user controls?",
+          "feedback_correct": "Correct. Values arriving from the user's side are claims to verify; the database read is the backend's own trusted state.",
+          "feedback_wrong": "A claimed user_id, a coin count and a price all arrive from a device the user controls, so each is a request to verify. The seat availability read from the backend's own database is on the trusted side of the boundary.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "reliability",
+          "kind": "select_all",
+          "stem": "Which situations signal that an operation needs protection like atomicity or idempotency? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Two users try to reserve the same seat at the same moment" },
+            { "key": "b", "label": "A payment request can be retried automatically after a network failure" },
+            { "key": "c", "label": "A $100 transfer must subtract from one account and add to the other" },
+            { "key": "d", "label": "A user changes their profile picture once a month" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.55,
+          "hint_text": "Look for operations that can collide, repeat, or stop halfway.",
+          "feedback_correct": "Correct. Simultaneous claims, automatic retries, and multi-step changes are exactly where atomicity and idempotency matter.",
+          "feedback_wrong": "Two simultaneous reservations collide, a retried payment can repeat, and a transfer can stop halfway, so all three need protection. A rare profile-picture change has no collision, repeat or halfway risk, so it does not demand the same safeguards.",
+          "slide_ref": 12,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

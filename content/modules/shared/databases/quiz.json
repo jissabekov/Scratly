@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "databases",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "purpose",
+          "kind": "mcq",
+          "stem": "Instagram hypothetically stores everything in one giant spreadsheet. At 100,000 users and 500 million likes, what actually breaks?",
+          "options": [
+            { "key": "a", "label": "The file physically cannot hold that many rows" },
+            { "key": "b", "label": "Finding the newest posts fast, letting thousands of people change data at once, and preventing duplicate accounts, all at the same time" },
+            { "key": "c", "label": "Spreadsheets run out of columns" },
+            { "key": "d", "label": "Computers cannot open files that large" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Capacity is not the hard part. Think about retrieval, simultaneous change, and rules.",
+          "feedback_correct": "Correct. The breaking points are retrieval speed, concurrency, integrity, and reliability, not storage capacity.",
+          "feedback_wrong": "Modern storage holds huge amounts of data, so capacity is not the real problem. What breaks is finding specific records quickly, thousands of simultaneous changes staying consistent, rules like unique emails being enforced, and failures not leaving data in an impossible state.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "purpose",
+          "kind": "select_all",
+          "stem": "A database is several systems working together. Which jobs does it handle for an application? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Enforcing rules like email must be unique" },
+            { "key": "b", "label": "Retrieving one specific record among millions" },
+            { "key": "c", "label": "Keeping simultaneous changes from corrupting each other" },
+            { "key": "d", "label": "Drawing the screens the user interacts with" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "Think storage, organization, retrieval, integrity, concurrency, reliability.",
+          "feedback_correct": "Correct. Integrity, retrieval, and concurrency are core database jobs; rendering belongs to the frontend.",
+          "feedback_wrong": "A database enforces rules, retrieves specific records fast, and coordinates simultaneous changes. Drawing screens is the frontend's job, not the database's.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "relational",
+          "kind": "mcq",
+          "stem": "A message row records its author as user_id = 83912 rather than username = \"Alex\". Why?",
+          "options": [
+            { "key": "a", "label": "Numbers are smaller than names" },
+            { "key": "b", "label": "The id stays stable when Alex changes their username, so the relationship survives" },
+            { "key": "c", "label": "Databases cannot store text in a messages table" },
+            { "key": "d", "label": "It hides the author's identity for privacy" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "What happens to every stored mention of a name when the name changes?",
+          "feedback_correct": "Correct. A primary key is a stable identifier; the facts about the user can change without breaking the link.",
+          "feedback_wrong": "A primary key like user_id is a stable identifier for one record. Usernames are facts that can change, so storing the name would break or corrupt the relationship the moment Alex picks a new one.",
+          "slide_ref": 7,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "design_tradeoffs",
+          "kind": "mcq",
+          "stem": "Every comment row copies the video's title, so a video with 50,000 comments stores the title 50,000 times. The title changes. Which copy is correct?",
+          "options": [
+            { "key": "a", "label": "Whichever copy was updated most recently" },
+            { "key": "b", "label": "No one can tell, which is why the fact should have lived in one logical place that comments point to" },
+            { "key": "c", "label": "All copies update themselves automatically" },
+            { "key": "d", "label": "The longest copy is correct" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "When the same fact lives in thousands of places, updates can leave them disagreeing.",
+          "feedback_correct": "Correct. Storing one fact in one logical place, and pointing to it, is the normalization fix.",
+          "feedback_wrong": "Duplicated facts drift apart and there is no reliable way to know which copy is right. Normalization stores the fact once and lets comments reference it; deliberate duplication for read speed exists too, but it is a conscious tradeoff, not an accident.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "choosing",
+          "kind": "mcq",
+          "stem": "A coding agent proposes PostgreSQL, MongoDB, Redis, a vector database, and Elasticsearch for a small school project. What is the right response?",
+          "options": [
+            { "key": "a", "label": "Accept all five, since more databases means a stronger architecture" },
+            { "key": "b", "label": "Start with the simplest fit, usually one relational database like PostgreSQL, and add other stores only when a real need demands them" },
+            { "key": "c", "label": "Pick whichever database has the most features" },
+            { "key": "d", "label": "Avoid databases entirely and store everything in files" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Architecture depends on the problem, not on how many technologies you can name.",
+          "feedback_correct": "Correct. Match the data architecture to the information, queries, and scale you actually have.",
+          "feedback_wrong": "Each extra store adds infrastructure, consistency, and debugging cost. A relational database like PostgreSQL is a very good default for most applications; add document, key-value, or vector stores when a demonstrated need requires them.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "purpose",
+          "kind": "mcq",
+          "stem": "What is the precise difference between a spreadsheet and a database?",
+          "options": [
+            { "key": "a", "label": "A spreadsheet is organized around documents people work with; a database is organized around data that systems continuously operate on" },
+            { "key": "b", "label": "A spreadsheet is free and a database costs money" },
+            { "key": "c", "label": "A database is just a spreadsheet with more rows" },
+            { "key": "d", "label": "A spreadsheet cannot contain text" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Think about who or what each one is designed to serve.",
+          "feedback_correct": "Correct. Spreadsheets serve humans editing documents; databases serve software operating on data continuously.",
+          "feedback_wrong": "The distinction is about purpose, not price or size. A spreadsheet is organized around documents people work with; a database is organized around data that systems continuously operate on, with retrieval, rules, and concurrency built in.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "relational",
+          "kind": "mcq",
+          "stem": "Players join many games and each game holds many players, and every membership has its own team and score. What is the clean way to model this?",
+          "options": [
+            { "key": "a", "label": "A comma-separated list of game ids on each player row" },
+            { "key": "b", "label": "A comma-separated list of player names on each game row" },
+            { "key": "c", "label": "A third table where each row is one player's membership in one game, carrying team and score" },
+            { "key": "d", "label": "Only the player or the game table, whichever is queried more often" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.45,
+          "hint_text": "Where do facts like team and score belong when they describe the pairing, not either side alone?",
+          "feedback_correct": "Correct. A join table gives each membership its own row, so the relationship itself can hold information.",
+          "feedback_wrong": "Team and score describe the pairing of one player and one game, not either alone, so they need a row per membership. Lists crammed into a column cannot carry that cleanly, and dropping one side loses the relationship entirely.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "relational",
+          "kind": "select_all",
+          "stem": "In a relational database, which statements about keys are true? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "A primary key uniquely identifies one record" },
+            { "key": "b", "label": "A foreign key points at a record in another place, linking the two" },
+            { "key": "c", "label": "A foreign key can prevent a message from pointing at a user who does not exist" },
+            { "key": "d", "label": "A foreign key stores a copy of the other record's data" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.5,
+          "hint_text": "One key names a record; the other key references it.",
+          "feedback_correct": "Correct. Primary keys identify, foreign keys point, and the database can refuse links to records that do not exist.",
+          "feedback_wrong": "A primary key identifies one record and a foreign key points at another record, and the database can reject a foreign key that references nothing. A foreign key is a reference, not a copy of the other record's data.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "design_tradeoffs",
+          "kind": "select_all",
+          "stem": "Which statements about database indexes are true? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "An index lets the database navigate toward matching records instead of scanning every row" },
+            { "key": "b", "label": "An index works like the index at the back of a textbook" },
+            { "key": "c", "label": "Every write may have to update the index too, so indexes are not free" },
+            { "key": "d", "label": "Adding more indexes always makes a database better" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "Indexes trade storage and write cost for read speed.",
+          "feedback_correct": "Correct. Indexes speed up lookups but cost storage and add work to every write.",
+          "feedback_wrong": "An index is an extra organized structure that avoids the full row-by-row scan, like a textbook index. It is not free: it takes storage and must be updated on writes, so more indexes do not automatically mean better.",
+          "slide_ref": 12,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "choosing",
+          "kind": "mcq",
+          "stem": "Your app must answer \"What is Maya's current application status?\" and also \"find documents about what happens after approval.\" Which tools fit each?",
+          "options": [
+            { "key": "a", "label": "Vector search for the status, PostgreSQL for the documents" },
+            { "key": "b", "label": "PostgreSQL for the exact status, vector search for the semantically similar documents" },
+            { "key": "c", "label": "Vector search for both, since it is newer" },
+            { "key": "d", "label": "A spreadsheet for both" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Which question needs an exact answer, and which needs similarity?",
+          "feedback_correct": "Correct. Exact facts belong to the structured source of truth; semantic similarity is where vector search belongs.",
+          "feedback_wrong": "An exact fact like application_status = approved belongs in the structured database, which remains the source of truth. Vector search finds information that is semantically similar to a question, which suits document retrieval, not authoritative facts.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "purpose",
+          "kind": "select_all",
+          "stem": "Which capabilities separate a database from a file of saved values? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Enforcing rules so invalid data is rejected" },
+            { "key": "b", "label": "Letting thousands of users change data at once without corrupting each other" },
+            { "key": "c", "label": "Keeping a transfer from ending half-completed after a crash" },
+            { "key": "d", "label": "Guaranteeing the data can never be lost" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "Think integrity, concurrency, and reliability.",
+          "feedback_correct": "Correct. Rules, concurrency control, and reliable transactions are what make a database more than saved values.",
+          "feedback_wrong": "Integrity rules, concurrency control, and transactions that keep a transfer from ending half-done are exactly the jobs a database adds beyond saved values. No database can guarantee data can never be lost.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "relational",
+          "kind": "mcq",
+          "stem": "A message tries to save user_id = 999999999, but no such user exists. What does the foreign key let the database do?",
+          "options": [
+            { "key": "a", "label": "Nothing; the message saves normally" },
+            { "key": "b", "label": "Refuse the invalid link, protecting the integrity of the data" },
+            { "key": "c", "label": "Automatically create the missing user" },
+            { "key": "d", "label": "Convert the id into a username" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "A foreign key is a reference the database can police.",
+          "feedback_correct": "Correct. Foreign keys let the database reject relationships that point at nothing.",
+          "feedback_wrong": "A foreign key points at a record elsewhere, and the database can refuse the write when the target does not exist. That is the database protecting the integrity of the product rather than silently saving a broken link.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "design_tradeoffs",
+          "kind": "mcq",
+          "stem": "A query asks for video_id = 82739102731 out of 10 billion rows. What is the difference between a full scan and an index?",
+          "options": [
+            { "key": "a", "label": "A full scan checks every row in order; an index uses an extra organized structure to navigate toward the match" },
+            { "key": "b", "label": "A full scan uses the index; an index checks every row" },
+            { "key": "c", "label": "There is no difference at small scale only" },
+            { "key": "d", "label": "An index is a second copy of the table that stays in sync by magic" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "One reads everything; the other is like the back of a textbook.",
+          "feedback_correct": "Correct. A scan checks row by row; an index is a separate organized structure that points toward matches.",
+          "feedback_wrong": "A full scan checks rows one by one until it finds the match, which is brutal at billions of rows. An index is an extra organized structure, like a textbook index, that navigates toward matching records, at the cost of storage and write-time updates.",
+          "slide_ref": 12,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "design_tradeoffs",
+          "kind": "mcq",
+          "stem": "What is the more mature question to design a database around, besides \"what information do I have?\"",
+          "options": [
+            { "key": "a", "label": "What is the newest database technology available" },
+            { "key": "b", "label": "How will my application need to retrieve it" },
+            { "key": "c", "label": "How many tables can I create" },
+            { "key": "d", "label": "What do other companies use" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "Query patterns determine tables, relationships, and indexes.",
+          "feedback_correct": "Correct. The questions your application asks most often should shape tables, relationships, and indexes.",
+          "feedback_wrong": "The retrieval patterns, like newest 50 messages in a channel or projects belonging to one user, should shape the tables, relationships, and indexes. Technology fashions and table counts are not design inputs.",
+          "slide_ref": 12,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "choosing",
+          "kind": "select_all",
+          "stem": "Match the need to the sensible store. Which pairings are sound? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Orders, users, and statuses with relationships: a relational database like PostgreSQL" },
+            { "key": "b", "label": "Login sessions and temporary counters: a key-value store" },
+            { "key": "c", "label": "Finding documents semantically similar to a question: vector search" },
+            { "key": "d", "label": "The permanent record of payments: a cache" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.5,
+          "hint_text": "Temporary, fast lookups and authoritative records are different jobs.",
+          "feedback_correct": "Correct. Relational for structured relationships, key-value for fast temporary lookups, vector for semantic similarity.",
+          "feedback_wrong": "Structured records with relationships fit a relational database, sessions and counters fit a fast key-value store, and semantic similarity fits vector search. A cache is for speed, not the permanent record of something like payments.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

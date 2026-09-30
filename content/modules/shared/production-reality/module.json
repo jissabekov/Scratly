@@ -1,0 +1,304 @@
+{
+  "version": "1.0.0",
+  "slug": "production-reality",
+  "seq": 10,
+  "title": "Make It Survive Reality",
+  "description": "Your code works on your laptop. Now make it survive reality: figure out where every piece actually runs, what must survive a backend restart, which work belongs in the background, and what breaks when ten thousand people arrive at once.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "pieces",
+      "label": "Explain that deployment means deciding where each piece of the product runs and how it connects",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "state_survival",
+      "label": "Distinguish disposable compute from persistent state and place each where it belongs",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "workloads",
+      "label": "Match each kind of work to the right pattern: fast request, background job or media delivery",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "failure_drills",
+      "label": "Predict what a real system should do when a dependency fails or usage multiplies",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "Running is not the same as existing",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Where is your project, really?",
+          "objective": "pieces",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Ask a team where their project is and you hear GitHub, or on my computer. GitHub may hold the code, but code existing is not code running, and a laptop that turns off cannot serve anyone. For a real product, several pieces have to be operating at the same time — whether or not any one computer is awake."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "An app is many pieces",
+          "objective": "pieces",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "product-pieces-map",
+              "alt": "A product broken into pieces: frontend, backend, database, file storage, AI service, background processing, notifications and external APIs, each of which may run somewhere different",
+              "caption": "Deploy my app is not an instruction. The application is several different pieces, possibly on different machines in different companies, and deployment answers the same questions for each one.",
+              "steps": [
+                "Frontend: the pages and components the browser loads",
+                "Backend: receives uploads, handles accounts, calls AI",
+                "Database: users, games, scores, metadata",
+                "File storage: the actual videos and photos",
+                "AI service: generates the game summaries",
+                "Background workers: compress video and make thumbnails",
+                "External APIs: maps, messaging, sports data"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Whose localhost?",
+          "objective": "pieces",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "The frontend deploys successfully and the site loads, but the Upload Video button does nothing. Inside the code is http://localhost:8000/upload. What is wrong?",
+              "options": [
+                { "key": "a", "label": "The upload feature was never built" },
+                { "key": "b", "label": "Localhost on the visitor's computer is not the team's backend — the frontend still points at a development address" },
+                { "key": "c", "label": "The browser just needs a refresh" },
+                { "key": "d", "label": "The domain name is wrong" }
+              ],
+              "answer_key": "b",
+              "explanation": "Localhost means this same computer. The deployed frontend now runs on every user's machine, and none of those machines hosts the team's backend on port 8000. The development address must become the production backend address, such as api.fridaynight.app.",
+              "objective": "pieces"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "The questions deployment answers",
+          "objective": "pieces",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "For every piece: what is it, where does it run, how do other pieces reach it, what does it need, and what happens if it stops?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "What must survive",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "I delete your backend right now",
+          "objective": "state_survival",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Here is the test: if the backend server were deleted this second, what should disappear? Ideally, nothing important. Backend code can be restarted or replaced — compute is disposable. User accounts, scores and videos are state, and state must survive. A new backend starts, connects to the same database and the same storage, and the product continues."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "worked_example",
+          "title": "The video and its record",
+          "objective": "state_survival",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "The video and its record",
+              "steps": [
+                "A student uploads an 800 MB championship clip.",
+                "The video's bytes go into object storage; the database never holds the file.",
+                "The database keeps the record: video_id, user_id, game_id, filename, upload_time, processing_status, storage_location.",
+                "One logical video may map to several stored objects: original, 1080p, 720p and a thumbnail.",
+                "The record is how every piece of the system finds and describes the file."
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "What must survive?",
+          "objective": "state_survival",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "The backend is replaced by a new machine. Which of these must still exist for the product to continue?",
+              "options": [
+                { "key": "a", "label": "The backend's local /uploads folder" },
+                { "key": "b", "label": "The database records and the files in object storage" },
+                { "key": "c", "label": "The backend's running processes" },
+                { "key": "d", "label": "The temporary variables from the last request" }
+              ],
+              "answer_key": "b",
+              "explanation": "Compute is replaceable; state is not. Processes and request variables die with the machine by design, but accounts, scores and media must live in systems built to persist — the database and object storage — so a replacement backend can reconnect and continue.",
+              "objective": "state_survival"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "An architecture bug, not a coding bug",
+          "objective": "state_survival",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Saving uploads to a folder inside the running backend is not a coding bug. It is an architecture bug — the next backend starts empty."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "When reality arrives",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Not all work is the same",
+          "objective": "workloads",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "One endpoint returns a game's score in 50 milliseconds. Another asks an AI for a summary and waits 5 to 20 seconds. A third accepts a 500 MB video that needs compression, thumbnails and analysis — minutes of work. Fast request, slow job and heavy computation should feel different, because forcing all of them through the same request shape makes the architecture fragile."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Do not make the user wait",
+          "objective": "workloads",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "queue-worker-flow",
+              "alt": "An upload flow that stores the video, marks it processing in the database, puts a job on a queue and responds immediately, while a separate worker compresses the video, creates thumbnails, runs AI analysis and marks it ready",
+              "caption": "A queue is a list of work waiting to happen. A worker is a separate program that performs it. Ask of every task: does the user need to wait for this?",
+              "steps": [
+                "User uploads video → the file is stored",
+                "Database sets status = processing",
+                "Backend adds a job to the queue and responds immediately",
+                "A worker picks up the job",
+                "Worker compresses, creates thumbnails and runs AI analysis",
+                "Database updated: status = ready"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "text",
+          "title": "Big files take a different road",
+          "objective": "workloads",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "When ten thousand people replay the winning touchdown, the backend should not download a 500 MB file and forward it to every viewer. Frequently requested large files are served from object storage through a CDN — copies kept closer to the people asking. The backend controls access; the media system handles delivery."
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "check",
+          "title": "Match the job to the shape",
+          "objective": "workloads",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Processing an uploaded video takes several minutes. Where should that work happen?",
+              "options": [
+                { "key": "a", "label": "Inside the upload request, so the user gets one complete answer" },
+                { "key": "b", "label": "In the frontend, so the servers stay free" },
+                { "key": "c", "label": "As a background job — the request accepts the upload, queues the work and responds immediately" },
+                { "key": "d", "label": "In the database, so the work stays close to the data" }
+              ],
+              "answer_key": "c",
+              "explanation": "A request that waits minutes risks dead connections and a locked-up backend. Accept the upload, record status = processing, enqueue the work and respond. A worker does the slow parts and updates the record when ready — the same pattern behind report generation, mass email and document analysis.",
+              "objective": "workloads"
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "text",
+          "title": "Break it before reality does",
+          "objective": "failure_drills",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Reality has its own test plan. The AI provider goes down — scores and video should still work while summaries show a temporary error; that is graceful degradation. Someone uploads a 40 GB file — size limits and type validation are architecture, not UI polish. Twenty thousand viewers want the same summary — generate it once, store it, reuse it instead of paying twenty thousand times. A leaked API key in frontend code becomes a stranger's cloud bill — secrets live in the backend environment, never in code users can read."
+            }
+          ]
+        },
+        {
+          "seq": 6,
+          "kind": "check",
+          "title": "The AI provider is down",
+          "objective": "failure_drills",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "On Friday night the AI summary provider stops responding. What should a resilient product do?",
+              "options": [
+                { "key": "a", "label": "Show an error page for the whole site" },
+                { "key": "b", "label": "Keep serving scores and video, and mark summaries temporarily unavailable" },
+                { "key": "c", "label": "Wait silently until the provider comes back" },
+                { "key": "d", "label": "Delete the summary feature" }
+              ],
+              "answer_key": "b",
+              "explanation": "One dependency failing should not sink features that do not need it. Graceful degradation returns everything the product can still provide and says clearly what is temporarily missing.",
+              "objective": "failure_drills"
+            }
+          ]
+        },
+        {
+          "seq": 7,
+          "kind": "callout",
+          "title": "The three brutal tests",
+          "objective": "failure_drills",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Kill the laptop — does the product still run? Kill the backend — does anything important survive? Multiply users, files, AI calls and traffic by one hundred — what breaks first?"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

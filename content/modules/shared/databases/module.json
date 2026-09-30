@@ -1,0 +1,301 @@
+{
+  "version": "1.0.0",
+  "slug": "databases",
+  "seq": 6,
+  "title": "Databases: How Applications Organize, Connect, and Retrieve Information",
+  "description": "Why can't Instagram run on a spreadsheet? Learn what a database system actually does, how tables connect through keys and relationships, and how to pick the simplest data architecture that fits.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "purpose",
+      "label": "Explain what a database system does beyond saving data: structure, retrieval, integrity, concurrency, and reliability",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "relational",
+      "label": "Model connected information with tables, stable keys, and relationships",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "design_tradeoffs",
+      "label": "Explain how duplication, indexes, and query patterns shape database design",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "choosing",
+      "label": "Match the database type and scale techniques to what the product actually needs",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "Why a spreadsheet is not enough",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Could Instagram run on Excel?",
+          "objective": "purpose",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Imagine Instagram stored everything in one giant spreadsheet: users, posts, comments, likes, followers. For 100 students and 500 posts, it might work. Now scale to 100,000 users, 10 million posts, and 500 million likes, with thousands of people liking, posting, and following at the same moment. What breaks is not the row count. It is finding the newest 20 posts fast, letting thousands change data at once without corrupting each other, and never creating the same account twice."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Several jobs at once",
+          "objective": "purpose",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "database-system-jobs",
+              "alt": "A database engine shown as several capabilities working together: storage, organization, retrieval, integrity, concurrency, and reliability",
+              "caption": "A database is not a place where data sits. It is a system that solves several problems at the same time.",
+              "steps": [
+                "Storage: where the bytes physically live",
+                "Organization: how the data is structured",
+                "Retrieval: finding one record among millions",
+                "Integrity: rules like email must be unique",
+                "Concurrency: thousands changing data at once",
+                "Reliability: never leaving money half-transferred"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "What actually breaks?",
+          "objective": "purpose",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "At 10 million posts and thousands of simultaneous users, what actually breaks when everything lives in one giant spreadsheet?",
+              "options": [
+                { "key": "a", "label": "The file physically cannot hold that many rows" },
+                { "key": "b", "label": "Finding the newest 20 posts fast, letting thousands like at once without corrupting each other, and preventing duplicate accounts, all at the same time" },
+                { "key": "c", "label": "Spreadsheets do not have enough columns for that much data" },
+                { "key": "d", "label": "Computers cannot open files that large" }
+              ],
+              "answer_key": "b",
+              "explanation": "Modern storage can hold huge amounts of information. The real problems are retrieval speed, simultaneous changes staying consistent, rules being enforced, and failures not leaving the data in an impossible state.",
+              "objective": "purpose"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Documents versus operations",
+          "objective": "purpose",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "A spreadsheet is organized around documents people work with. A database is organized around data that systems continuously operate on."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Tables, keys, and relationships",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Connected by identifiers",
+          "objective": "relational",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A relational database organizes information into tables and connects them using identifiers. In a Discord-like product, users, servers, channels, and messages each get their own table. A message does not store username = \"Alex\" as its identity; it stores user_id = 83912, because usernames can change while the relationship stays stable."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "How the tables connect",
+          "objective": "relational",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "relational-table-links",
+              "alt": "Connected tables where a user writes messages and owns a server, the server contains channels, and each channel contains messages",
+              "caption": "A primary key identifies one record. A foreign key points at another record, and the database can refuse a link to something that does not exist.",
+              "steps": [
+                "USER writes MESSAGE",
+                "USER owns SERVER",
+                "SERVER contains CHANNEL",
+                "CHANNEL contains MESSAGE",
+                "message.user_id is a foreign key pointing at one user"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Why not store the name?",
+          "objective": "relational",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A message row needs to record who wrote it. Why store user_id = 83912 instead of username = \"Alex\"?",
+              "options": [
+                { "key": "a", "label": "Numbers take up less space than names" },
+                { "key": "b", "label": "The id stays stable even when Alex changes their username, so the relationship survives" },
+                { "key": "c", "label": "Databases cannot store text inside a messages table" },
+                { "key": "d", "label": "The username is private and must be hidden" }
+              ],
+              "answer_key": "b",
+              "explanation": "A primary key like user_id is a stable identifier for one record. Names and other facts about the user can change, but every message pointing at 83912 still points at the same user.",
+              "objective": "relational"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "text",
+          "title": "When the relationship is itself a thing",
+          "objective": "relational",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "One player can join many games, and one game can hold many players. Two tables alone cannot represent that cleanly, so you create a third: GAME_PARTICIPANTS, with game_id, player_id, joined_at, team, and score."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Sometimes the relationship between two things is itself a thing."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "check",
+          "title": "Modeling many-to-many",
+          "objective": "relational",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "One player joins many games and each game holds many players, and you need to record each player's team and score per game. How do you model it?",
+              "options": [
+                { "key": "a", "label": "Add a player_names column to each game row" },
+                { "key": "b", "label": "Add a list of game_ids column to each player row" },
+                { "key": "c", "label": "Create a third table where each row is one player's membership in one game, carrying facts like team and score" },
+                { "key": "d", "label": "Keep only the most important player on each game" }
+              ],
+              "answer_key": "c",
+              "explanation": "Facts like team and score belong to the pairing, not to the player or the game alone. A join table gives each membership its own row, which is why the relationship can carry its own information.",
+              "objective": "relational"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "Design decisions: duplication, speed, and fit",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The problem with one giant table",
+          "objective": "design_tradeoffs",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "If every comment row also copies the video's title, description, and channel name, a video with 50,000 comments carries the same information 50,000 times. When the title changes, which copy is correct? Normalization means storing an important fact in one logical place: the comment points to the video instead of copying it."
+            },
+            {
+              "type": "text",
+              "text": "The tradeoff runs both ways. Systems sometimes deliberately duplicate information to make reading faster, which is called denormalization. Database design is often a tradeoff between keeping information clean and retrieving it quickly."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "check",
+          "title": "Which copy is correct?",
+          "objective": "design_tradeoffs",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A video's title was copied into every one of its 50,000 comment rows, and now the title has changed. What was the architectural mistake?",
+              "options": [
+                { "key": "a", "label": "The title should have been longer" },
+                { "key": "b", "label": "The same fact was stored in many places instead of one logical place the comments could point to" },
+                { "key": "c", "label": "The comments should have been stored in a spreadsheet" },
+                { "key": "d", "label": "The video should never have been allowed to change its title" }
+              ],
+              "answer_key": "b",
+              "explanation": "When one fact lives in 50,000 places, an update can leave them disagreeing with no way to know which is right. Keeping the fact once and pointing to it is the normalization fix; copies can still be added deliberately for speed, but as a conscious tradeoff.",
+              "objective": "design_tradeoffs"
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "text",
+          "title": "Finding one row in ten billion",
+          "objective": "design_tradeoffs",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Ask a database for video_id = 82739102731 out of 10 billion rows. Checking row by row is a full scan. An index is an extra organized structure, like the back of a textbook, that lets the database navigate toward matching records instead of reading everything. Indexes speed up reads but cost storage and make every write update the index too."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Do not design your database only by asking what information you have. Ask how your application will need to retrieve it."
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "text",
+          "title": "Not every database is relational",
+          "objective": "choosing",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Different stores fit different shapes of information: document databases hold nested records that vary, key-value stores answer fast lookups like sessions and counters, graph databases are built for exploring relationships, and vector search finds information that is semantically similar, which powers AI retrieval."
+            },
+            {
+              "type": "text",
+              "text": "For most student applications a relational database like PostgreSQL is a very good default. Vector search can find documents that explain what happens after approval, but the exact fact application_status = approved belongs in the structured database, your source of truth."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "callout",
+          "title": "The simplest fit",
+          "objective": "choosing",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Use the simplest data architecture that matches your information, relationships, queries, reliability needs, and expected scale, not every database your agent can name."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

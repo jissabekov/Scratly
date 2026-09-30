@@ -1,0 +1,316 @@
+{
+  "version": "1.0.0",
+  "slug": "apis-integrations",
+  "seq": 7,
+  "title": "Your Product Does Not Live Alone",
+  "description": "Your product needs maps, payments, and AI it will never own. Learn how an API is a contract across a system boundary, the four ways systems exchange information, and how to plan for the bad day.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "boundaries",
+      "label": "Explain a product as a system that coordinates other systems and identify where the boundary of ownership sits",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "contract",
+      "label": "Describe an API as a contract covering the request, inputs, authentication, response, and failure",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "failure",
+      "label": "Plan for external systems as dependencies you do not control: timeouts, retries, duplicates, and fallbacks",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "patterns",
+      "label": "Distinguish request/response, webhooks, scheduled sync, and batch import, and when each fits",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "Where your product ends",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Could you actually build Uber?",
+          "objective": "boundaries",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Build Uber and you need a rider app, a driver app, and a booking screen, plus maps, GPS coordinates, address search, route calculation, payments, identity verification, SMS, push notifications, and fraud detection. You could theoretically build all of it. You probably should not. Modern products are assembled from systems that own different capabilities and different information."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Assembled, not built alone",
+          "objective": "boundaries",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "product-assembled-systems",
+              "alt": "Your product in the center connected outward to a mapping system, a payment system, an AI service, a messaging service, and the database you own",
+              "caption": "Your product is not necessarily one giant piece of software. It is a system that coordinates other systems.",
+              "steps": [
+                "User action reaches Your Product",
+                "Your Product asks the Mapping System for coordinates",
+                "Your Product asks the Payment System to charge a card",
+                "Your Product asks the AI Service to analyze text",
+                "Your Product asks the Messaging Service to notify the user",
+                "Your Product reads and writes the database it owns"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "text",
+          "title": "Who owns which responsibility?",
+          "objective": "boundaries",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A Community Opportunity Finder owns its students, organizations, opportunities, and saved opportunities. When a student asks for opportunities within 20 miles, the database holds the address \"123 Main Street, Norman, OK\" but cannot turn it into coordinates. The product sends the address to a mapping system and gets back latitude 35.22, longitude -97.44."
+            },
+            {
+              "type": "text",
+              "text": "Your application owns the profile, the opportunity, and whether the student saved it. The mapping provider owns address interpretation, coordinates, and map data. That division of responsibility is the system boundary, and architecture is deciding where your product ends and another system begins."
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "check",
+          "title": "Whose job is the coordinate?",
+          "objective": "boundaries",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Your database stores an organization's street address, and a student asks to see it on a map. Who owns turning the address into coordinates?",
+              "options": [
+                { "key": "a", "label": "Your database, because it stores the address" },
+                { "key": "b", "label": "The mapping system, which owns that capability, while your product owns the profile and the saved opportunity" },
+                { "key": "c", "label": "The frontend, which can draw the map" },
+                { "key": "d", "label": "The student, who can type the coordinates" }
+              ],
+              "answer_key": "b",
+              "explanation": "Storing the address is your data; interpreting it geographically is the mapping system's capability. The boundary is drawn by ownership: what your system is responsible for versus what it asks another system for.",
+              "objective": "boundaries"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "The contract across the boundary",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "An API is an agreement",
+          "objective": "contract",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "An API is not a mysterious component. It is a defined agreement for communicating with another system: send me street, city, and state, and if the request is valid I will return latitude and longitude. That promise is the API contract, and it is far more useful than telling an agent to \"add the Maps API.\""
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "The five questions a contract answers",
+          "objective": "contract",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "api-contract-parts",
+              "alt": "The five parts of an API contract: request, input, authentication, response, and failure",
+              "caption": "Every API contract answers the same five questions, whether the provider documents them well or not.",
+              "steps": [
+                "Request: what am I asking you to do?",
+                "Input: what information do you need from me?",
+                "Authentication: how do you know I am allowed to ask?",
+                "Response: what will you send back?",
+                "Failure: what will you tell me when something goes wrong?"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "What belongs to the contract?",
+          "objective": "contract",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Which of these is part of the API contract rather than a hidden implementation detail?",
+              "options": [
+                { "key": "a", "label": "The programming language the service is written in" },
+                { "key": "b", "label": "What the request must contain, how you prove you are allowed to ask, and what success and failure look like" },
+                { "key": "c", "label": "The size of the provider's data center" },
+                { "key": "d", "label": "The color of the provider's logo" }
+              ],
+              "answer_key": "b",
+              "explanation": "The contract is the agreement at the boundary: what you send, how you authenticate, what comes back, and what failure looks like. How the provider implements it internally is theirs to change without asking you.",
+              "objective": "contract"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "text",
+          "title": "What actually travels",
+          "objective": "contract",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A request looks like POST https://api.example.com/analyze with a JSON body {\"text\": \"I want to volunteer with animals.\"} and a response {\"category\": \"animal_welfare\", \"confidence\": 0.93}. The endpoint names a capability; GET asks for information, POST does or creates, PUT updates, DELETE removes; and the status says whether it worked."
+            },
+            {
+              "type": "text",
+              "text": "Only send what the service actually needs. If the AI only needs the essay text, sending the student's name, address, and full record anyway is a privacy risk, not a feature. That discipline is called data minimization."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "The database stores it. The API transports it."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "check",
+          "title": "Stored versus transported",
+          "objective": "contract",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Your database holds a student row, and your backend sends {\"student_id\": 142, \"interests\": [\"sports\", \"education\"]} to an AI service. What is the difference between the two?",
+              "options": [
+                { "key": "a", "label": "There is no difference; JSON is just another table format" },
+                { "key": "b", "label": "The database stores the information; the API call transports it between systems" },
+                { "key": "c", "label": "The database version is always the wrong one" },
+                { "key": "d", "label": "The API version is permanent and the database version is temporary" }
+              ],
+              "answer_key": "b",
+              "explanation": "The same facts can live in both places with different jobs. The database is where the information is kept; the API payload is the same information in motion between systems.",
+              "objective": "contract"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "Living with dependencies",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The bad day",
+          "objective": "failure",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A user clicks Analyze My Essay and your backend calls an AI API. Normally it answers in 3 seconds. Today it takes 45, or is unavailable, or your usage limit is exceeded, or your API key expired. The product needs a plan for each: how long to wait (timeout), whether to try again (retry), whether the product can continue without it (fallback), what the user sees (error state), and how you will know it failed (logging)."
+            },
+            {
+              "type": "callout",
+              "tone": "warning",
+              "title": "Punchline",
+              "text": "An external integration is a dependency you do not control. Your code may be perfect; the product can still fail."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "check",
+          "title": "Retry carefully",
+          "objective": "failure",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Your system asks a payment API to charge a card $50, and the connection dies before the response arrives. What does a blind retry risk?",
+              "options": [
+                { "key": "a", "label": "Nothing; the first request obviously failed" },
+                { "key": "b", "label": "Charging $100, because the first request may have succeeded before the connection died" },
+                { "key": "c", "label": "The card being declined" },
+                { "key": "d", "label": "The API key expiring sooner" }
+              ],
+              "answer_key": "b",
+              "explanation": "A lost response does not mean the operation failed; the payment may already have happened. Repeating it blindly can perform the action twice, which is why operations are designed to be idempotent: repeating the same request does not do the action again.",
+              "objective": "failure"
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "diagram",
+          "title": "Four ways systems exchange information",
+          "objective": "patterns",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "integration-patterns",
+              "alt": "Four communication patterns between systems: request and response, webhook, scheduled synchronization, and batch file import",
+              "caption": "Integration is bigger than calling an API. Real systems are messy, and each pattern fits a different situation.",
+              "steps": [
+                "Request / Response: ask and wait for the answer",
+                "Webhook: the service sends you a message when something happens",
+                "Scheduled sync: check occasionally, like every night at 2 AM",
+                "Batch import: exchange a file, like students.csv every Friday"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "check",
+          "title": "Ask, or be told?",
+          "objective": "patterns",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Your product must know the moment a payment completes. Which pattern fits, and why not keep asking every few seconds?",
+              "options": [
+                { "key": "a", "label": "Keep asking every few seconds; polling is always more accurate" },
+                { "key": "b", "label": "A webhook: the payment service pushes one event to your backend instead of you polling forever" },
+                { "key": "c", "label": "A nightly sync, because payments can wait a day" },
+                { "key": "d", "label": "A weekly spreadsheet emailed by the provider" }
+              ],
+              "answer_key": "b",
+              "explanation": "Constantly asking is inefficient and still misses the exact moment. A webhook inverts the direction: you hand over an address and the service notifies you when the event happens.",
+              "objective": "patterns"
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "callout",
+          "title": "Give the agent an architecture",
+          "objective": "boundaries",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Do not tell your agent to connect this API. Tell it what system you are connecting to, why, what crosses the boundary, who owns the truth, what gets saved, and what happens when the connection fails."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

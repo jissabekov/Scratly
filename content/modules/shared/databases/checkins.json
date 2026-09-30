@@ -1,0 +1,150 @@
+{
+  "version": "1.0.0",
+  "slug": "databases",
+  "objectives": [
+    {
+      "objective": "purpose",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain what a database does beyond simply saving information?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "An app runs fine on a spreadsheet at 50 records, then struggles at 50,000 users changing data every second. What changed?",
+          "options": [
+            {"key": "a", "label": "Nothing; spreadsheets cannot hold that many rows"},
+            {"key": "b", "label": "The problem became about retrieval speed, simultaneous updates, enforced rules, and surviving failures, which are database jobs"},
+            {"key": "c", "label": "The data got too colorful for a spreadsheet"},
+            {"key": "d", "label": "The internet got faster"}
+          ],
+          "answer": ["b"],
+          "explanation": "Architecture depends on the problem. Scale turns storage into retrieval, concurrency, integrity, and reliability problems."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "List four jobs a database does for an application besides storing bytes, and give one example of each.",
+          "rubric": {"criteria": ["Names jobs like retrieval, integrity rules, concurrency, or reliability", "Gives a concrete example such as finding one user fast or keeping a transfer from ending halfway"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a spreadsheet and a database are designed for different things.",
+          "rubric": {"criteria": ["States that a spreadsheet is organized around documents people edit", "States that a database is organized around data systems operate on continuously", "Mentions at least one capability like fast retrieval or concurrency"]}
+        }
+      ]
+    },
+    {
+      "objective": "relational",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could model related things like users, servers, and messages as connected tables?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "What do a primary key and a foreign key each do?",
+          "options": [
+            {"key": "a", "label": "Both store copies of the row they point at"},
+            {"key": "b", "label": "A primary key identifies one record; a foreign key points at a record elsewhere and links them"},
+            {"key": "c", "label": "A primary key is for users; a foreign key is for guests"},
+            {"key": "d", "label": "They are the same thing with different names"}
+          ],
+          "answer": ["b"],
+          "explanation": "The primary key names one record; the foreign key references another record, and the database can refuse links to records that do not exist."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Design the tables for students, teams, and team memberships where a student can join many teams. Sketch the tables and the keys that connect them.",
+          "rubric": {"criteria": ["Includes a separate membership table linking student and team", "Uses stable ids as the keys rather than names", "Lets the membership row carry its own facts like role or joined date"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a message stores a user_id instead of the username, and when a relationship deserves its own table.",
+          "rubric": {"criteria": ["Explains that the id stays stable while the username can change", "Explains that a many-to-many relationship like players-in-games can carry its own information"]}
+        }
+      ]
+    },
+    {
+      "objective": "design_tradeoffs",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could reason about duplication, indexes, and query patterns when designing a database?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A video's title is copied into all 50,000 of its comment rows, then the title changes. What was the design mistake?",
+          "options": [
+            {"key": "a", "label": "Using a relational database at all"},
+            {"key": "b", "label": "Storing the same fact in many places instead of one place the comments point to"},
+            {"key": "c", "label": "Letting videos have titles"},
+            {"key": "d", "label": "Adding too many indexes"}
+          ],
+          "answer": ["b"],
+          "explanation": "Copies of one fact can disagree. Storing the fact once and referencing it is the normalization fix; deliberate duplication for speed is a separate, conscious tradeoff."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "For a messaging app, list the three questions the app will ask the database most often, then say which fields probably need indexes.",
+          "rubric": {"criteria": ["Lists realistic query patterns like newest 50 messages in a channel or a user's servers", "Connects each index choice to a real query pattern rather than indexing everything"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the tradeoff between keeping data clean in one place and copying it for speed, and what an index trades off.",
+          "rubric": {"criteria": ["Explains that duplicated facts can disagree while single-source facts stay consistent", "Explains that indexes speed reads but cost storage and write time"]}
+        }
+      ]
+    },
+    {
+      "objective": "choosing",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could pick the right kind of database for a product's actual needs?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "An app needs exact answers like a user's application_status, plus semantic search over documents. What fits each?",
+          "options": [
+            {"key": "a", "label": "Vector search for the status, relational tables for the documents"},
+            {"key": "b", "label": "A relational database for the exact status, vector search for the semantically similar documents"},
+            {"key": "c", "label": "One spreadsheet for both"},
+            {"key": "d", "label": "A graph database for both"}
+          ],
+          "answer": ["b"],
+          "explanation": "Exact facts belong in the structured source of truth; semantic similarity is where vector search belongs."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "A student project needs user accounts, projects, and documents searchable by meaning. Choose the simplest data architecture and justify each piece.",
+          "rubric": {"criteria": ["Chooses a relational database for accounts, projects, and statuses", "Adds vector search only for the semantic document need", "Avoids stacking extra databases without a demonstrated need"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why 'more databases' is not automatically better architecture.",
+          "rubric": {"criteria": ["Explains that each extra store adds infrastructure and consistency costs", "Describes choosing based on the information, relationships, queries, and scale the product actually has"]}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "slug": "invisible-conversation",
+  "objectives": [
+    {
+      "objective": "message",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could describe an action as a structured message: what leaves the device, where it goes, and what comes back?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A student submits a project form. What leaves the device?",
+          "options": [
+            {"key": "a", "label": "The whole screen, sent as a picture"},
+            {"key": "b", "label": "A structured payload with named fields such as project title, category and contact preference"},
+            {"key": "c", "label": "Nothing until the server asks for it"}
+          ],
+          "answer": ["b"],
+          "explanation": "The interface builds a message with named fields so the receiving system knows what each value means; the screen itself never travels."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick one button in an app you use. Write the payload it should send, listing at least three named fields, and name the endpoint-style capability it calls, such as /events/441/reserve.",
+          "rubric": {"criteria": ["Lists at least three named fields the message carries", "Names a specific capability rather than a vague address like /saveData"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why pressing a button is better described as starting a conversation than as changing a screen.",
+          "rubric": {"criteria": ["Describes the action becoming a message that travels to another system", "Mentions that a response returns and the interface decides what to show"]}
+        }
+      ]
+    },
+    {
+      "objective": "trust",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain why a server must validate a request instead of trusting it?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A purchase request arrives claiming the ticket price is 1 dollar. What should the server do?",
+          "options": [
+            {"key": "a", "label": "Charge 1 dollar because the request says so"},
+            {"key": "b", "label": "Ignore the claimed price and read the real price from its own database"},
+            {"key": "c", "label": "Ask the browser to confirm the price"}
+          ],
+          "answer": ["b"],
+          "explanation": "A request is not automatically trusted: values from the browser can be stale, accidental or manipulated, so the server checks its own stored truth."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take a feature like submitting a match score or reserving a seat. List four things the server must verify before it accepts the request.",
+          "rubric": {"criteria": ["Lists at least four concrete verifications", "Includes an identity check and a permission check", "Includes a check that the action still makes sense, such as availability or not already processed"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between authentication and authorization, and why hiding a button is not enough.",
+          "rubric": {"criteria": ["States that authentication identifies the user and authorization checks permission", "Explains that the server must enforce the rule because interface changes can be bypassed"]}
+        }
+      ]
+    },
+    {
+      "objective": "failure",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could list the ways a request can end, beyond simple success?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A student presses Submit, sees nothing, and presses it again. What keeps the server from recording two submissions?",
+          "options": [
+            {"key": "a", "label": "Nothing; double clicks always create doubles"},
+            {"key": "b", "label": "A unique request ID lets the server recognize the retry and return the existing result"},
+            {"key": "c", "label": "The second click deletes the first request"}
+          ],
+          "answer": ["b"],
+          "explanation": "Retrying the same action should not perform it twice; the request ID makes the retry recognizable so the server returns the existing result."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "For one action in an app, such as posting a comment, list the states the interface needs beyond success. Name at least four, such as loading, conflict, offline or not found.",
+          "rubric": {"criteria": ["Names at least four states beyond success", "Includes a waiting state and at least one failure state"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a button changing on the screen does not prove the action succeeded.",
+          "rubric": {"criteria": ["Explains that the interface can change before the server confirms", "States that the product must handle the request failing afterwards"]}
+        }
+      ]
+    },
+    {
+      "objective": "patterns",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could match a feature to its communication pattern, such as one request, an upload, a job or live updates?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A feature must show new chat messages the moment they arrive. Which pattern fits best?",
+          "options": [
+            {"key": "a", "label": "One request and one answer, sent once when the app opens"},
+            {"key": "b", "label": "An ongoing live connection that pushes events as they happen"},
+            {"key": "c", "label": "A large file upload"}
+          ],
+          "answer": ["b"],
+          "explanation": "Live updates keep a connection open so the server can push events; asking once or uploading a file cannot deliver messages as they arrive."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Match each feature to a conversation pattern: opening a song list, uploading a 60-second video, generating an AI poster, and a live typing indicator. Write the pattern next to each.",
+          "rubric": {"criteria": ["Matches all four features to a reasonable pattern", "Uses job plus polling or streaming for slow AI work", "Uses live updates rather than stored records for the typing indicator"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why not every feature should use the same kind of network conversation, with one example pair.",
+          "rubric": {"criteria": ["Explains that different features have different timing, size or liveness needs", "Gives a correct contrasting pair, such as a paged list versus a typing indicator"]}
+        }
+      ]
+    }
+  ]
+}

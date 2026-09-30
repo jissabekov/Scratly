@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "apis-integrations",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "boundaries",
+          "kind": "mcq",
+          "stem": "Someone asks an agent to build Uber. Which capabilities would the product realistically get from other systems rather than build itself?",
+          "options": [
+            { "key": "a", "label": "None; a real product builds every capability it uses" },
+            { "key": "b", "label": "Maps, route calculation, payment processing, identity verification, SMS, and fraud detection can all come from systems that already own them" },
+            { "key": "c", "label": "Only the maps; everything else must be built" },
+            { "key": "d", "label": "Only the parts the frontend cannot render" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Think about which capabilities already exist as someone else's whole product.",
+          "feedback_correct": "Correct. Products are assembled from systems that own different capabilities; you coordinate them rather than rebuild them.",
+          "feedback_wrong": "Maps, payments, identity, messaging, and fraud detection each exist as entire systems owned by providers. A product combines those capabilities rather than rebuilding them; it is a system that coordinates other systems.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "boundaries",
+          "kind": "mcq",
+          "stem": "Your database stores an organization's street address, and a student asks to see it on a map. Who owns turning the address into coordinates?",
+          "options": [
+            { "key": "a", "label": "Your database, because it stores the address" },
+            { "key": "b", "label": "The mapping system, which owns address interpretation and coordinates" },
+            { "key": "c", "label": "The frontend, which draws the map" },
+            { "key": "d", "label": "The student, who knows where it is" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "Storing data and owning a capability are different things.",
+          "feedback_correct": "Correct. Your product owns the stored address; the mapping system owns the geocoding capability.",
+          "feedback_wrong": "Owning the stored address is not the same as owning the capability to interpret it. The mapping provider owns geocoding and map data; your product owns the profile, the opportunity, and whether the student saved it. That division is the system boundary.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "contract",
+          "kind": "select_all",
+          "stem": "Which questions does an API contract answer? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "What am I asking you to do, and what information do you need from me?" },
+            { "key": "b", "label": "How do you know I am allowed to ask?" },
+            { "key": "c", "label": "What will you send back, and what happens when something goes wrong?" },
+            { "key": "d", "label": "Which language did you use to implement the service?" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.4,
+          "hint_text": "Request, input, authentication, response, failure.",
+          "feedback_correct": "Correct. The contract covers the request, the inputs, authentication, the response, and failure behavior.",
+          "feedback_wrong": "The contract answers five things: the request, the input it needs, authentication, the response, and failure. The provider's implementation language is a hidden detail, not part of the agreement.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "failure",
+          "kind": "mcq",
+          "stem": "The AI API that powers your essay analysis normally answers in 3 seconds, but today it takes 45. What is the deepest architectural lesson?",
+          "options": [
+            { "key": "a", "label": "Your code must have a bug" },
+            { "key": "b", "label": "An external integration is a dependency you do not control; your code may be perfect and the product can still fail" },
+            { "key": "c", "label": "The user pressed the button wrong" },
+            { "key": "d", "label": "The frontend should not have shown a spinner" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "What is true about a service owned by someone else on the bad day?",
+          "feedback_correct": "Correct. Every integration is a dependency outside your control, so the product needs a plan for slow, unavailable, and limited.",
+          "feedback_wrong": "A dependency you do not control can be slow, down, rate-limited, or expired while your code is flawless. That is why the architecture needs a timeout, a retry policy, a fallback, an error state for the user, and logging.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "patterns",
+          "kind": "mcq",
+          "stem": "Your product must react the moment a payment completes. Which integration pattern fits?",
+          "options": [
+            { "key": "a", "label": "Keep asking the payment API every few seconds" },
+            { "key": "b", "label": "A webhook, where the payment service sends your backend a message when the event happens" },
+            { "key": "c", "label": "A nightly sync job" },
+            { "key": "d", "label": "A weekly CSV export" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Which pattern inverts the direction so the provider tells you?",
+          "feedback_correct": "Correct. A webhook hands the provider your address and lets it push the event to you.",
+          "feedback_wrong": "Polling every few seconds is inefficient and still misses the exact moment. A webhook hands the provider an address so it can notify your backend the instant the event happens; sync and batch import are for less time-sensitive data.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "boundaries",
+          "kind": "mcq",
+          "stem": "In the Community Opportunity Finder, which split of responsibility correctly draws the system boundary?",
+          "options": [
+            { "key": "a", "label": "Your product owns profiles, opportunities, and saves; the mapping provider owns address interpretation and coordinates" },
+            { "key": "b", "label": "Your product owns everything including the map data" },
+            { "key": "c", "label": "The mapping provider owns the student's profile" },
+            { "key": "d", "label": "Whoever responds fastest owns all of it" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "Draw the line between what your system is responsible for and what it asks another system for.",
+          "feedback_correct": "Correct. Your product owns its records; the provider owns the capability it is paid to provide.",
+          "feedback_wrong": "The boundary follows ownership: your product owns the student profile, the opportunity, and the saved state, while the mapping provider owns address interpretation, coordinates, and map data.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "contract",
+          "kind": "mcq",
+          "stem": "You see POST https://api.example.com/analyze with a JSON body {\"text\": \"I want to volunteer with animals.\"}. What is this code doing?",
+          "options": [
+            { "key": "a", "label": "Sending information outside your system and expecting a structured answer back" },
+            { "key": "b", "label": "Saving the text into your own database" },
+            { "key": "c", "label": "Deleting a record at example.com" },
+            { "key": "d", "label": "Rendering text on the user's screen" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.3,
+          "hint_text": "Read it as the contract in action: an endpoint, an operation, an input, an expected response.",
+          "feedback_correct": "Correct. POST means do something or create something; the JSON body is the input crossing the boundary.",
+          "feedback_wrong": "The endpoint names a capability and POST is the operation for doing or creating something. The JSON body is information leaving your system, and a structured response is expected back, which is exactly what 'sending information outside and expecting something back' looks like.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "contract",
+          "kind": "mcq",
+          "stem": "A student record lives in your database, and the same facts travel to an AI service as JSON. What distinguishes the two?",
+          "options": [
+            { "key": "a", "label": "Nothing; they are the same thing" },
+            { "key": "b", "label": "The database stores the information; the API transports it" },
+            { "key": "c", "label": "The JSON version is more permanent" },
+            { "key": "d", "label": "The database version cannot be trusted" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Same information, different purpose.",
+          "feedback_correct": "Correct. The database stores it; the API transports it.",
+          "feedback_wrong": "The same fields can live in both shapes with different jobs: the database is where the information is stored, while the API payload is that information in motion between systems.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "failure",
+          "kind": "select_all",
+          "stem": "Your product depends on an AI API. Which belong in the plan for the bad day? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "A timeout deciding how long you are willing to wait" },
+            { "key": "b", "label": "A retry policy for whether to try again" },
+            { "key": "c", "label": "A fallback plus an error state telling the user what happened" },
+            { "key": "d", "label": "The assumption that the provider can never go down" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "The plan covers waiting, repeating, continuing without it, what the user sees, and how you learn it failed.",
+          "feedback_correct": "Correct. Timeout, retry, fallback, error state, and logging make the dependency survivable.",
+          "feedback_wrong": "A bad-day plan names the timeout, whether to retry, a fallback or error state for the user, and logging so you know it failed. Assuming the provider can never go down is precisely the mistake the plan exists to avoid.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "patterns",
+          "kind": "mcq",
+          "stem": "A partner organization cannot notify you automatically, but your product needs its new opportunities reasonably often. Which pattern fits, and what is the cost?",
+          "options": [
+            { "key": "a", "label": "Request/response on every click; the data is always perfectly fresh" },
+            { "key": "b", "label": "A scheduled sync like a nightly pull; the data may be hours old" },
+            { "key": "c", "label": "A webhook; the partner pushes each change instantly" },
+            { "key": "d", "label": "No integration is possible without real-time access" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.45,
+          "hint_text": "The partner cannot push, so who must ask, and how fresh can the copy be?",
+          "feedback_correct": "Correct. A scheduled sync pulls periodically, trading freshness for practicality when the partner cannot push.",
+          "feedback_wrong": "The partner cannot send events, which rules out a webhook, and a per-click call is what 'does not notify you automatically' makes painful. A scheduled nightly sync is the fit, at the cost of data freshness: the copy can be hours old, and the architect decides whether that is acceptable.",
+          "slide_ref": 12,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "boundaries",
+          "kind": "select_all",
+          "stem": "In a product that coordinates external systems, which responsibilities stay inside your own boundary? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The student's profile and saved opportunities" },
+            { "key": "b", "label": "The project's saved state, which remains your source of truth" },
+            { "key": "c", "label": "Address interpretation and map data" },
+            { "key": "d", "label": "Which organizations and applications exist in your records" }
+          ],
+          "answer": ["a", "b", "d"],
+          "difficulty": 0.45,
+          "hint_text": "Your boundary holds the records your product owns, not the capabilities you borrow.",
+          "feedback_correct": "Correct. Your records and your source of truth stay inside; geocoding and map data belong to the provider.",
+          "feedback_wrong": "Profiles, saved opportunities, the project's stored state, and your records of organizations and applications are yours. Address interpretation and map data are the mapping system's capability, which is why they sit outside the boundary.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "contract",
+          "kind": "mcq",
+          "stem": "An AI service only needs the essay text to produce a summary. What should leave your system?",
+          "options": [
+            { "key": "a", "label": "The student's name, address, phone number, and full school record plus the essay" },
+            { "key": "b", "label": "Only the essay text" },
+            { "key": "c", "label": "Everything in the database, so the AI has context" },
+            { "key": "d", "label": "The student's password for verification" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "What does the external service actually need to do its job?",
+          "feedback_correct": "Correct. Data minimization means sending only what the service actually needs.",
+          "feedback_wrong": "Every external call is information leaving your boundary. Sending the name, address, and full record when only the essay is required adds privacy risk with no benefit; data minimization sends only what the service needs.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "failure",
+          "kind": "mcq",
+          "stem": "A $50 charge request is sent and the connection dies before the response arrives. What does blindly retrying risk?",
+          "options": [
+            { "key": "a", "label": "Nothing; the charge obviously failed" },
+            { "key": "b", "label": "Charging $100, because the first request may have succeeded" },
+            { "key": "c", "label": "Logging the user out" },
+            { "key": "d", "label": "A smaller invoice" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "A lost response is not the same as a failed operation.",
+          "feedback_correct": "Correct. The first attempt may have succeeded, so a blind retry can double the charge.",
+          "feedback_wrong": "The response was lost, which does not prove the operation failed. A blind retry can perform the action twice, which is why such operations are designed to be idempotent: repeating the same request does not do it again.",
+          "slide_ref": 11,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "failure",
+          "kind": "mcq",
+          "stem": "The AI API key expires mid-demo and your feature breaks. Your code is unchanged and correct. What failed?",
+          "options": [
+            { "key": "a", "label": "Your code" },
+            { "key": "b", "label": "A dependency your product relies on but does not control" },
+            { "key": "c", "label": "The user's device" },
+            { "key": "d", "label": "The database schema" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "The product can fail even when your code is perfect.",
+          "feedback_correct": "Correct. An integration is a dependency you do not control, and it can fail independently of your code.",
+          "feedback_wrong": "The expired key belongs to the external dependency, not your code. Integrations can be slow, unavailable, rate-limited, or expired while your own code is flawless, which is why the product needs timeout, retry, fallback, error state, and logging plans.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "patterns",
+          "kind": "select_all",
+          "stem": "Match each situation to the integration pattern that fits. Which pairings are sound? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Checking tomorrow's weather when a user asks: request/response" },
+            { "key": "b", "label": "Learning the moment a payment completes: webhook" },
+            { "key": "c", "label": "A partner who can only email a spreadsheet every Friday: batch file import" },
+            { "key": "d", "label": "Getting live updates from a provider that never sends events: webhook" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.5,
+          "hint_text": "Who initiates, how timely must it be, and can the partner push at all?",
+          "feedback_correct": "Correct. Ask-and-wait for live answers, webhook for pushed events, and file import when a partner cannot do more.",
+          "feedback_wrong": "Request/response fits asking for a live answer, a webhook fits a provider that can push events, and a file import fits a partner whose best offer is a weekly spreadsheet. A webhook cannot exist if the provider never sends events; that situation calls for polling or sync instead.",
+          "slide_ref": 12,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

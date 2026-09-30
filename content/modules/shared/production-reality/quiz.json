@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "production-reality",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "pieces",
+          "kind": "mcq",
+          "stem": "A team's code is safely on GitHub and runs on the leader's laptop. Why can nobody use the product tonight?",
+          "options": [
+            { "key": "a", "label": "GitHub deleted the project" },
+            { "key": "b", "label": "Code existing is not code running — nothing is operating where users can reach it" },
+            { "key": "c", "label": "The laptop is too slow for users" },
+            { "key": "d", "label": "The product needs a domain name before anything else can work" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Separate code existing, code running and a product operating.",
+          "feedback_correct": "Correct. A repository holds code; an operating product needs every piece running somewhere users can reach.",
+          "feedback_wrong": "Code existing, code running and a product operating are three different states. GitHub stores code and the laptop may run it, but with the laptop off nothing is operating where users can reach it.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "state_survival",
+          "kind": "mcq",
+          "stem": "If the backend is deleted and replaced, what should be true of a well-designed product?",
+          "options": [
+            { "key": "a", "label": "Users must recreate their accounts" },
+            { "key": "b", "label": "Nothing important is lost — the new backend reconnects to the same database and storage" },
+            { "key": "c", "label": "Videos come back once users re-upload them" },
+            { "key": "d", "label": "The frontend must be redeployed before anything works" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Compute is disposable; state must survive.",
+          "feedback_correct": "Correct. The backend is replaceable compute; the product lives in its persistent state.",
+          "feedback_wrong": "Backend code can be restarted or replaced — compute is disposable. Accounts, scores and media live in the database and object storage, so a new backend connects to the same state and the product continues.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "state_survival",
+          "kind": "select_all",
+          "stem": "Which of these are persistent state that must outlive any single backend machine? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "User accounts and scores in the database" },
+            { "key": "b", "label": "Uploaded videos in object storage" },
+            { "key": "c", "label": "The backend's currently running processes" },
+            { "key": "d", "label": "Files saved inside the backend machine's /uploads folder" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.45,
+          "hint_text": "Ask which things die with the machine and which are stored somewhere built to persist.",
+          "feedback_correct": "Correct. Records in the database and files in object storage survive the loss of any one machine.",
+          "feedback_wrong": "Persistent state lives in systems designed to survive: the database and object storage. Running processes and a folder inside the backend machine die when that machine is replaced — which is why saving uploads there is an architecture bug.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "workloads",
+          "kind": "mcq",
+          "stem": "A 500 MB upload needs compression, thumbnails and AI analysis — minutes of work. What is the right shape for the system?",
+          "options": [
+            { "key": "a", "label": "Do all of it inside the upload request while the user waits" },
+            { "key": "b", "label": "Accept the upload, mark it processing, queue the work and let a worker finish it" },
+            { "key": "c", "label": "Refuse uploads larger than one megabyte" },
+            { "key": "d", "label": "Process every upload once a day at night" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Does the user need to wait for this work to finish?",
+          "feedback_correct": "Correct. The request responds immediately with a processing status; a worker does the slow parts and updates the record when ready.",
+          "feedback_wrong": "Minutes of work inside a request means dead connections and a stuck backend. The pattern is: store the file, mark status = processing, enqueue the job, respond — then a worker processes it and marks it ready.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "failure_drills",
+          "kind": "mcq",
+          "stem": "Twenty thousand viewers each trigger a fresh AI game summary, and every summary is identical. What is the architectural fix?",
+          "options": [
+            { "key": "a", "label": "Buy a faster model" },
+            { "key": "b", "label": "Generate the summary once, store it, and serve the stored result" },
+            { "key": "c", "label": "Accept that summaries are impossible at this scale" },
+            { "key": "d", "label": "Rate-limit how many viewers may watch" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Why compute the same answer twenty thousand times?",
+          "feedback_correct": "Correct. Identical output is computed once and reused — architecture determines cost behavior.",
+          "feedback_wrong": "When twenty thousand requests produce the identical result, the work should run once and be stored for reuse. Architecture determines cost behavior: per-user repeated work is a design choice, not a requirement.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "pieces",
+          "kind": "mcq",
+          "stem": "A deployed site's upload button is dead because the frontend code calls localhost:8000. What is the actual bug?",
+          "options": [
+            { "key": "a", "label": "The upload feature was never implemented" },
+            { "key": "b", "label": "The frontend still points at a development address — localhost on a visitor's machine is not the team's backend" },
+            { "key": "c", "label": "The domain name is misconfigured" },
+            { "key": "d", "label": "The visitor's browser is too old" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Ask: whose localhost?",
+          "feedback_correct": "Correct. The frontend must know where its production backend lives.",
+          "feedback_wrong": "Localhost always means this same computer. On a visitor's machine it points at their computer, not the team's backend — the address must become the production API, such as api.fridaynight.app.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "pieces",
+          "kind": "select_all",
+          "stem": "Deployment means answering the same questions for every piece of the product. Which questions? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Where does this piece run?" },
+            { "key": "b", "label": "How do the other pieces reach it?" },
+            { "key": "c", "label": "What happens if it stops?" },
+            { "key": "d", "label": "What color should its icon be?" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.4,
+          "hint_text": "Think about location, connection and failure — not appearance.",
+          "feedback_correct": "Correct. What it is, where it runs, how others reach it, what it needs and what happens if it stops — for every piece.",
+          "feedback_wrong": "Deployment answers, for each piece: what it is, where it runs, how the other pieces reach it, what information it needs and what happens if it stops. Visual details are not part of the deployment architecture.",
+          "slide_ref": 4,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "state_survival",
+          "kind": "mcq",
+          "stem": "A student uploads an 800 MB video. Where should it actually live, and what does the database keep?",
+          "options": [
+            { "key": "a", "label": "The video inside the database row and the metadata in a file" },
+            { "key": "b", "label": "The video's bytes in object storage; the database keeps the record — IDs, owner, status and storage location" },
+            { "key": "c", "label": "The video on the backend's disk, for speed" },
+            { "key": "d", "label": "The video inside the frontend's cache" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "The database knows about the file; something else holds it.",
+          "feedback_correct": "Correct. Media bytes belong in object storage while the database keeps metadata and the pointer to them.",
+          "feedback_wrong": "Large media belongs in object storage; the database stores the record — video_id, user_id, filename, status, storage_location — that describes and locates it. Files inside the backend die with the machine.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "workloads",
+          "kind": "mcq",
+          "stem": "Ten thousand people replay the same highlight clip. Which delivery path is right?",
+          "options": [
+            { "key": "a", "label": "Each viewer's request makes the backend download the file and forward it" },
+            { "key": "b", "label": "The video is served from object storage and CDN copies closer to viewers, while the backend controls access" },
+            { "key": "c", "label": "The database streams the file row by row to each viewer" },
+            { "key": "d", "label": "The frontend uploads a copy for each viewer" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.45,
+          "hint_text": "Should a 500 MB file travel through the backend ten thousand times?",
+          "feedback_correct": "Correct. The backend controls access; the media system handles delivery through copies close to the audience.",
+          "feedback_wrong": "Routing every viewer through the backend means it downloads and forwards the file thousands of times — slow and expensive. Frequently requested large files are served from storage through a CDN, with copies kept closer to viewers.",
+          "slide_ref": 11,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "failure_drills",
+          "kind": "mcq",
+          "stem": "A student puts the AI API key in the public frontend code and publishes it. What is the risk?",
+          "options": [
+            { "key": "a", "label": "Pages load slightly slower" },
+            { "key": "b", "label": "Anyone can take the key and run up real bills — privileged calls belong behind the backend with secrets in environment configuration" },
+            { "key": "c", "label": "None — browsers encrypt API keys automatically" },
+            { "key": "d", "label": "The key simply stops working" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Who can read the code the browser downloads?",
+          "feedback_correct": "Correct. Frontend code is public, so secrets there are stolen secrets; privileged calls go through the backend.",
+          "feedback_wrong": "Everything in frontend code is public — anyone can extract the key and spend real money with it. Database passwords and API keys belong in backend environment variables or secret storage, and the frontend talks to the backend, never directly to the provider with a secret.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "pieces",
+          "kind": "mcq",
+          "stem": "Which sentence best separates the three stages a project goes through?",
+          "options": [
+            { "key": "a", "label": "Code existing, code running and a product operating are the same thing" },
+            { "key": "b", "label": "Code existing somewhere, code running somewhere, and a product operating for users are three different states" },
+            { "key": "c", "label": "Running code always means the product is operating" },
+            { "key": "d", "label": "Operating only means the frontend loads" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Each stage requires something the previous one does not guarantee.",
+          "feedback_correct": "Correct. A product operates only when every needed piece is running and reachable by users.",
+          "feedback_wrong": "Code can exist without running, and code can run where nobody can reach it. A product operates only when all of its pieces — frontend, backend, database, storage, workers — are running and connected where users can reach them.",
+          "slide_ref": 1,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "state_survival",
+          "kind": "mcq",
+          "stem": "Why is saving uploads to /uploads inside the backend machine an architecture bug rather than a coding bug?",
+          "options": [
+            { "key": "a", "label": "The code contains a syntax error" },
+            { "key": "b", "label": "The files live inside disposable compute — when the backend is replaced, the uploads die with it" },
+            { "key": "c", "label": "Uploading files is not allowed in production" },
+            { "key": "d", "label": "The folder has the wrong name" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.45,
+          "hint_text": "The code works perfectly — the design is what fails.",
+          "feedback_correct": "Correct. The code does exactly what it says; the design put persistent state inside a disposable machine.",
+          "feedback_wrong": "The code works — that is what makes it an architecture bug, not a coding bug. State stored inside replaceable compute disappears when the machine is replaced. Files belong in object storage the new backend can reconnect to.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "workloads",
+          "kind": "select_all",
+          "stem": "Which jobs are good candidates for background processing instead of the user's request? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Compressing an uploaded video" },
+            { "key": "b", "label": "Generating a PDF report" },
+            { "key": "c", "label": "Sending five thousand notification emails" },
+            { "key": "d", "label": "Returning a score that is already stored for the current game" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "Ask of each task: does the user need to wait for this?",
+          "feedback_correct": "Correct. Slow work the user does not need to wait for belongs in a queue with workers.",
+          "feedback_wrong": "Compression, report generation and mass email are all slow work the user does not need to wait inside the request for — queue them. A stored score is a fast read, which is exactly what a normal request is for.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "workloads",
+          "kind": "mcq",
+          "stem": "A user uploads a video that will need minutes of processing. What should the request do first?",
+          "options": [
+            { "key": "a", "label": "Hold the connection open with a spinner until processing finishes" },
+            { "key": "b", "label": "Store the upload and respond immediately with a processing status" },
+            { "key": "c", "label": "Generate the AI summary before anything else" },
+            { "key": "d", "label": "Email the video to the user" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Fast acknowledge, slow processing.",
+          "feedback_correct": "Correct. Accept, record status = processing, queue the work and respond — the worker finishes it later.",
+          "feedback_wrong": "The request should do only the fast part: store the file, mark it processing, enqueue the job and respond. The worker compresses, thumbnails and analyzes afterward and updates the record to ready.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "failure_drills",
+          "kind": "mcq",
+          "stem": "What are the three brutal tests for a deployed product?",
+          "options": [
+            { "key": "a", "label": "Compile it, lint it and deploy it" },
+            { "key": "b", "label": "Kill the laptop, kill the backend, and multiply users, files, AI calls and traffic by one hundred to see what breaks first" },
+            { "key": "c", "label": "Alpha testing, beta testing and gamma testing" },
+            { "key": "d", "label": "Unit tests, integration tests and acceptance tests" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "Each test removes or multiplies something the product depends on.",
+          "feedback_correct": "Correct. The tests reveal whether anything was never deployed, whether state was stored in the wrong place, and where the next bottleneck is.",
+          "feedback_wrong": "Kill the laptop asks whether anything real was deployed. Kill the backend asks whether important state survives. Multiply by 100 asks which component breaks first — backend capacity, database connections, AI limits, the queue or the bill.",
+          "slide_ref": 15,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

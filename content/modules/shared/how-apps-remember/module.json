@@ -1,0 +1,300 @@
+{
+  "version": "1.0.0",
+  "slug": "how-apps-remember",
+  "seq": 2,
+  "title": "How Applications Remember",
+  "description": "What a product must remember and in what form. Learn the kinds of information applications store, how long each piece should live, and why storage is chosen based on how the product will find it again.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "kinds",
+      "label": "Distinguish the kinds of information an application stores, from records and relationships to files and events",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "lifetime",
+      "label": "Decide whether information should be temporary screen state, session state, persistent, or cached",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "retrieval",
+      "label": "Choose storage based on how the product will need to find the information again",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "agent_spec",
+      "label": "Describe an information architecture clearly enough for a coding agent to build it",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "One post is many things",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "What is behind one post?",
+          "objective": "kinds",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Open a social post. It looks like one thing: a video, a name, a caption, a like count, some comments. But what information does the application actually need to draw that screen?"
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "What the application uses",
+          "objective": "kinds",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "post-storage-pieces",
+              "alt": "One post screen beside the many kinds of stored information the application assembles it from",
+              "caption": "One screen, many kinds of memory.",
+              "steps": [
+                "Account record",
+                "Post record",
+                "Video file in file storage",
+                "Like and follow relationships",
+                "Comment records",
+                "View history events",
+                "Privacy rules",
+                "Recommendation information",
+                "Temporary cached copy on the phone"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "worked_example",
+          "title": "Where a resume actually lives",
+          "objective": "kinds",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "The catalog and the shelves",
+              "steps": [
+                "A student uploads resume.pdf.",
+                "File storage keeps the actual file.",
+                "A database record stores the file name, owner, upload date, type, and storage location.",
+                "The record also stores who is allowed to see it.",
+                "The database is the library catalog. File storage is the shelves containing the books."
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "check",
+          "title": "What does a Save button store?",
+          "objective": "kinds",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Five hundred students save the same opportunity. What should the application store?",
+              "options": [
+                { "key": "a", "label": "A full copy of the opportunity inside each student's record" },
+                { "key": "b", "label": "Five hundred relationships connecting each student to the same opportunity record" },
+                { "key": "c", "label": "A new file for every save" },
+                { "key": "d", "label": "Nothing until a student reloads the page" }
+              ],
+              "answer_key": "b",
+              "explanation": "A save is a relationship: it connects a student and an opportunity and belongs to neither alone. Copying the whole opportunity into five hundred student records would create five hundred disconnected duplicates that can drift apart.",
+              "objective": "kinds"
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "callout",
+          "title": "The screen is not the data",
+          "objective": "kinds",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "A screen is not the data. It is a temporary presentation assembled from data."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "How long should it live?",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The comment that vanished",
+          "objective": "lifetime",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "You type a long comment, accidentally refresh the page, and it disappears. The comment existed, but only on the device. It was never saved. Every piece of information has a lifetime, and the product has to choose it."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Four lifetimes",
+          "objective": "lifetime",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "state-lifetime-levels",
+              "alt": "Levels of information lifetime from temporary screen state through session state and persistent state, plus cache",
+              "caption": "Ask: should this still exist after the page closes?",
+              "steps": [
+                "Screen state: unsaved form text, an open menu, scroll position",
+                "Session state: being logged in, a shopping cart, a half-finished quiz",
+                "Persistent state: a published post, a submitted assignment, a grade",
+                "Cache: a fast temporary copy of information that officially lives elsewhere"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Pick the right lifetime",
+          "objective": "lifetime",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A student submits an application. Tomorrow, on a different device, it must still be there. Which lifetime does the submission need?",
+              "options": [
+                { "key": "a", "label": "Screen state, held in the open page" },
+                { "key": "b", "label": "Session state, lasting until logout" },
+                { "key": "c", "label": "Persistent state, surviving restarts and device switches" },
+                { "key": "d", "label": "Cache, because it is the fastest to read" }
+              ],
+              "answer_key": "c",
+              "explanation": "A submission must survive refresh, restart, and switching devices, so it needs persistent state. Screen and session state expire too early, and a cache is only a rebuildable copy of something stored elsewhere.",
+              "objective": "lifetime"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "A fast copy, not the truth",
+          "objective": "lifetime",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "A cache is not normally the official truth. It is a fast copy. If it disappears, the product should be able to retrieve or rebuild the information."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "Built to be found again",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Storage follows retrieval",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Do not ask only where to store information. Ask how the product will need to find it again. And give every important thing a stable ID: two students can share a name and usernames can change, but student_id never changes its meaning."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Six ways to find information",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "retrieval-patterns",
+              "alt": "Six retrieval patterns: exact lookup by ID, filtering on fields, sorting and ranking, following relationships, text search, semantic search, and time-based retrieval",
+              "caption": "If time matters to the product, the system must record time.",
+              "steps": [
+                "Exact: open project 847 by its ID",
+                "Filter: state equals Oklahoma, deadline has not passed",
+                "Sort and rank: newest first, lowest price, highest score",
+                "Relationships: show the people I follow",
+                "Text search: documents containing the phrase water quality",
+                "Semantic: similar in meaning, even when the words differ",
+                "Time-based: what changed since the last login"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Filter the facts, rank the meaning",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A student asks: find AI or data opportunities near Tulsa open to high school seniors. Which design answers it best?",
+              "options": [
+                { "key": "a", "label": "Let semantic similarity decide whether the student is eligible" },
+                { "key": "b", "label": "Apply structured filters for county, eligibility, and deadline, then rank the survivors by meaning" },
+                { "key": "c", "label": "Store each opportunity as one long paragraph and scan it by hand" },
+                { "key": "d", "label": "Look up each opportunity by exact ID" }
+              ],
+              "answer_key": "b",
+              "explanation": "Exact facts such as county, age eligibility, and deadlines need structured filters. Similarity of meaning needs semantic search. Semantic similarity should never decide whether a deadline passed or a student is eligible.",
+              "objective": "retrieval"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Facts first, meaning second",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Filter first using facts. Rank or search using meaning."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "text",
+          "title": "From vague request to architecture",
+          "objective": "agent_spec",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Telling an agent to build an app that uses a database forces it to guess the records, fields, relationships, files, events, and retrievals. Naming them turns a guess into a build. And remember: an AI model does not automatically remember a student or a past recommendation. The application must retrieve the saved context and send it to the model."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "You do not need to memorize database technology. You need to learn to see information clearly. Without those decisions, the agent is only guessing."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

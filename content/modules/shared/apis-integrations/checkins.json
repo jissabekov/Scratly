@@ -1,0 +1,150 @@
+{
+  "version": "1.0.0",
+  "slug": "apis-integrations",
+  "objectives": [
+    {
+      "objective": "boundaries",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could draw the boundary between what your product owns and what another system owns?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A volunteer-finder app stores an address and needs to show it on a map. What does the system boundary look like?",
+          "options": [
+            {"key": "a", "label": "Your product owns the address and the saved opportunity; the mapping provider owns geocoding and map data"},
+            {"key": "b", "label": "Your product owns everything, including the world's map data"},
+            {"key": "c", "label": "The mapping provider owns the student's profile"},
+            {"key": "d", "label": "There is no boundary once two systems connect"}
+          ],
+          "answer": ["a"],
+          "explanation": "The boundary is drawn by ownership: your records inside, the provider's capability outside."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick a product idea and list what your system would own versus which capabilities you would get from external systems like maps, payments, or AI.",
+          "rubric": {"criteria": ["Separates owned data and responsibilities from borrowed capabilities", "Names at least one external system and what it owns", "Does not claim the product must build everything itself"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain what it means that a product is a system that coordinates other systems, using one example.",
+          "rubric": {"criteria": ["Explains that products combine capabilities owned by different systems", "Gives a concrete example like maps or payments provided from outside", "Describes the boundary as a division of responsibility"]}
+        }
+      ]
+    },
+    {
+      "objective": "contract",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could describe what an API contract covers: request, input, authentication, response, and failure?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "What is an API, most usefully understood?",
+          "options": [
+            {"key": "a", "label": "A mysterious component only experts can use"},
+            {"key": "b", "label": "A defined agreement for communicating with another system: what you send, how you prove access, and what comes back on success and failure"},
+            {"key": "c", "label": "A database your product does not own"},
+            {"key": "d", "label": "A faster version of the internet"}
+          ],
+          "answer": ["b"],
+          "explanation": "An API is a contract across the boundary, not magic: request, input, authentication, response, and failure."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick an external service a product might call, like geocoding or AI analysis. Write its mini-contract: the request, the input it needs, how you authenticate, what comes back, and what failure looks like.",
+          "rubric": {"criteria": ["Covers all five parts: request, input, authentication, response, failure", "Keeps the input to what the service actually needs"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between information stored in your database and the same information traveling to another system as JSON.",
+          "rubric": {"criteria": ["States that the database stores the information while the API transports it", "Explains that the same facts can serve different purposes in each place", "Notes that only what the service needs should be sent"]}
+        }
+      ]
+    },
+    {
+      "objective": "failure",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could plan for an external service being slow, down, or rate-limited?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Your essay-analysis feature calls an AI API that is unavailable today. What should the product have planned?",
+          "options": [
+            {"key": "a", "label": "Nothing; the provider is responsible for uptime"},
+            {"key": "b", "label": "A timeout, a retry policy, a fallback or error state for the user, and logging so you know it failed"},
+            {"key": "c", "label": "Deleting the feature"},
+            {"key": "d", "label": "Waiting silently until it comes back"}
+          ],
+          "answer": ["b"],
+          "explanation": "The integration is a dependency you do not control, so the product needs a plan for each failure mode."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "For an 'Analyze My Project' button that calls an AI service, write the bad-day plan: timeout, retry, fallback, what the user sees, and what happens to the saved project if analysis fails.",
+          "rubric": {"criteria": ["Names a timeout, retry, fallback or error state, and logging", "Keeps the saved project intact when the AI call fails, e.g. a status like ANALYSIS_FAILED with retry"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why an external integration is a dependency you do not control, and what repeating a payment request can do.",
+          "rubric": {"criteria": ["Explains that the provider can be slow, down, limited, or expired while your code is correct", "Explains that a lost response can hide a completed operation, so a blind retry can act twice"]}
+        }
+      ]
+    },
+    {
+      "objective": "patterns",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could choose between request/response, a webhook, a scheduled sync, and a file import?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A partner can only email a spreadsheet of new organizations every Friday. Which pattern still counts as integration?",
+          "options": [
+            {"key": "a", "label": "None; integration requires a real-time API"},
+            {"key": "b", "label": "Batch file import; your system ingests the file on a schedule"},
+            {"key": "c", "label": "A webhook, since they send email"},
+            {"key": "d", "label": "Request/response on every page load"}
+          ],
+          "answer": ["b"],
+          "explanation": "A scheduled file import is still system integration; it just uses a file instead of a live API."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "For a product that needs weather on demand, payment completion events, and a nightly feed of school data, assign each need to a pattern and say why.",
+          "rubric": {"criteria": ["Maps weather-on-demand to request/response, payment events to webhook, and the nightly feed to scheduled sync", "Justifies each choice with freshness or who initiates the communication"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain when you would pick a webhook over a scheduled sync, and what 'data freshness' has to do with it.",
+          "rubric": {"criteria": ["Explains that a webhook pushes events the moment they happen while sync copies data on a schedule", "Connects the choice to how fresh the information must be and whether the partner can push"]}
+        }
+      ]
+    }
+  ]
+}

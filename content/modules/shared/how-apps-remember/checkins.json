@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "slug": "how-apps-remember",
+  "objectives": [
+    {
+      "objective": "kinds",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could tell apart the kinds of information an application stores, such as records, relationships, files and events?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A student uploads a video for a project. Where does the video file itself belong?",
+          "options": [
+            {"key": "a", "label": "Inside the project record as a very long text field"},
+            {"key": "b", "label": "In file storage, with a database record holding its name, owner, location and permissions"},
+            {"key": "c", "label": "Inside the student's profile record"}
+          ],
+          "answer": ["b"],
+          "explanation": "The database is the catalog describing and locating the file; file storage is the shelf holding the file itself."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick one screen in an app you use, such as a post, a playlist page or a game lobby. List four different kinds of information the application must store to draw it, and label each as a record, relationship, file or event.",
+          "rubric": {"criteria": ["Names at least four concrete pieces of information behind the screen", "Labels each with a sensible kind such as record, relationship, file or event", "Does not treat the screen itself as the stored data"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why one post on a screen is not one thing in storage.",
+          "rubric": {"criteria": ["Explains that the screen is assembled from several kinds of stored information", "Gives at least two concrete examples such as a file, a record or a relationship"]}
+        }
+      ]
+    },
+    {
+      "objective": "lifetime",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could decide whether a piece of information should be screen state, session state, persistent, or cached?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Which question best decides whether information needs persistent state?",
+          "options": [
+            {"key": "a", "label": "Is the information large enough to need a file?"},
+            {"key": "b", "label": "Should it still exist after the browser closes, the device restarts, or the user switches devices?"},
+            {"key": "c", "label": "Is the information shown near the top of the screen?"}
+          ],
+          "answer": ["b"],
+          "explanation": "Lifetime is about survival: anything that must outlive the page, the session or the device needs persistent storage."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Think of one app feature that frustrated you by forgetting something, such as a lost draft or a reset cart. Name the information that was lost and the lifetime it should have had instead.",
+          "rubric": {"criteria": ["Names the specific information that was lost", "Chooses a longer lifetime such as session or persistent and justifies it"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a cache is not the official truth, using one example.",
+          "rubric": {"criteria": ["Explains that a cache is a fast copy of data stored elsewhere", "States that losing the cache should not lose the real information"]}
+        }
+      ]
+    },
+    {
+      "objective": "retrieval",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could choose how to store information based on how the product will find it again?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A student wants opportunities similar in spirit to 'helping rural businesses', even if those exact words never appear. Which retrieval pattern finds them?",
+          "options": [
+            {"key": "a", "label": "Exact retrieval by ID"},
+            {"key": "b", "label": "Structured filtering on fields"},
+            {"key": "c", "label": "Semantic retrieval, matching meaning rather than words"}
+          ],
+          "answer": ["c"],
+          "explanation": "Semantic retrieval finds similarity of meaning; exact lookup and field filters only work when the exact values or words are present."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write three questions a product you use needs to answer, and label each with a retrieval pattern: exact, filter, sort or rank, relationship, text search, semantic or time-based.",
+          "rubric": {"criteria": ["Lists three distinct questions the product must answer", "Matches each to a reasonable retrieval pattern", "Uses structured filters for exact facts and semantic or text search for wording"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the rule 'filter first using facts, rank or search using meaning'.",
+          "rubric": {"criteria": ["Explains that exact rules such as eligibility and deadlines use structured filters", "Explains that semantic search ranks or finds by meaning and must not decide exact facts"]}
+        }
+      ]
+    },
+    {
+      "objective": "agent_spec",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could describe an app's information clearly enough for a coding agent to build it?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Which instruction gives a coding agent an architecture rather than a guess?",
+          "options": [
+            {"key": "a", "label": "Build an app where students find opportunities. Use a database."},
+            {"key": "b", "label": "Store students and opportunities as structured records, saves as relationships, resumes in file storage, and combine exact filters with semantic matching."},
+            {"key": "c", "label": "Make the app store everything it needs."}
+          ],
+          "answer": ["b"],
+          "explanation": "The strong instruction names the records, relationships, files and retrieval patterns so the agent builds the intended system instead of inventing one."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Rewrite this weak instruction for an agent: 'Build an app where students share project ideas.' Name two structured records, one relationship, one file type, and one retrieval pattern the product needs.",
+          "rubric": {"criteria": ["Names two records, one relationship, one file type and one retrieval pattern", "Keeps relationships as connections rather than copied data"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why an AI feature cannot simply remember a student's history, and what the application must do instead.",
+          "rubric": {"criteria": ["States that the model has no automatic memory of the student", "Explains that the application retrieves saved context and sends it to the model"]}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "slug": "ai-models-agents",
+  "objectives": [
+    {
+      "objective": "ai_jobs",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could name the five jobs a model can do inside a product and say when plain code is the better choice?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A feature listens to a voicemail and produces text the app can use. Which model job is that?",
+          "options": [
+            {"key": "a", "label": "Perceive — turning messy human information into something software can use"},
+            {"key": "b", "label": "Act — performing an operation in the world"},
+            {"key": "c", "label": "Decide — choosing among ambiguous options"}
+          ],
+          "answer": ["a"],
+          "explanation": "Transcribing speech is perceive work: understanding input traditional software struggles with, not acting or deciding."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take one app idea you have. Write one feature that needs AI and say which job it is — perceive, interpret, generate, decide or act — plus one feature that should stay plain code.",
+          "rubric": {"criteria": ["Names a feature and matches it to a sensible model job", "Names a rule-like feature and keeps it as normal code"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between asking an AI to decide and asking code to decide.",
+          "rubric": {"criteria": ["Explains that AI suits ambiguous interpretation while code suits fixed rules", "Gives one example of each or explains why reliable rules should stay code"]}
+        }
+      ]
+    },
+    {
+      "objective": "tools_agency",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain who performs an action when an AI agent uses a tool?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "An agent sends a refund by calling a refund tool. Who actually performs the refund?",
+          "options": [
+            {"key": "a", "label": "The model, by writing the refund sentence"},
+            {"key": "b", "label": "Application code executing the tool the model requested"},
+            {"key": "c", "label": "The customer receiving the refund"}
+          ],
+          "answer": ["b"],
+          "explanation": "The model chooses or requests the action; the surrounding application performs the real operation."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Invent one tool for a school-club agent — for example get_schedule or send_reminder. Write its name, what input it needs, and what it returns to the model.",
+          "rubric": {"criteria": ["Defines a concrete tool with a clear name and purpose", "Specifies a sensible input and what the application returns to the model"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why the model chose the action and the application performed the action can both be true at once.",
+          "rubric": {"criteria": ["Separates deciding or requesting from executing", "Mentions that developers define the tools and their input and output shapes"]}
+        }
+      ]
+    },
+    {
+      "objective": "ladder",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could choose the lowest rung of AI architecture that still solves a problem?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A feature takes one messy paragraph and must return five structured fields. What is the simplest sufficient design?",
+          "options": [
+            {"key": "a", "label": "A single model call that returns the fields"},
+            {"key": "b", "label": "An autonomous agent with a tool loop"},
+            {"key": "c", "label": "Three coordinated agents"}
+          ],
+          "answer": ["a"],
+          "explanation": "One input and one structured output need no loop and no autonomy; more agents would only add cost, latency and debugging difficulty."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take one feature idea and place it on the ladder: model call, grounded AI, AI workflow or agent. Write one sentence defending your level.",
+          "rubric": {"criteria": ["Picks a plausible ladder level for the stated feature", "Justifies the choice by simplicity or by who controls the steps"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between an AI workflow and an agent.",
+          "rubric": {"criteria": ["States that workflow steps are predetermined while an agent chooses its next step", "Notes that the agent's flexibility makes it harder to control and test"]}
+        }
+      ]
+    },
+    {
+      "objective": "guardrails",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could explain why more AI autonomy requires more limits and verification?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "An agent can search, read, draft, send and delete. Which actions should require human approval?",
+          "options": [
+            {"key": "a", "label": "Search and read"},
+            {"key": "b", "label": "Send and delete"},
+            {"key": "c", "label": "None of them — agents are meant to be autonomous"}
+          ],
+          "answer": ["b"],
+          "explanation": "AI saying something wrong and doing something wrong are different risk levels; consequential actions deserve confirmation."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Write two stopping conditions you would give an agent that researches scholarship deadlines — for example limits on searches, minutes, cost or retries.",
+          "rubric": {"criteria": ["Gives two concrete limits such as tool calls, time, cost or retries", "Frames them as architecture the system enforces, not suggestions to the model"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why an agent without stopping rules is unfinished software rather than more autonomous.",
+          "rubric": {"criteria": ["Explains that unlimited loops can burn cost and time without finishing", "Connects autonomy to needing more verification and control around it"]}
+        }
+      ]
+    }
+  ]
+}

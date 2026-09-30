@@ -1,0 +1,325 @@
+{
+  "version": "1.0.0",
+  "slug": "ai-models-agents",
+  "seq": 9,
+  "title": "AI Models and Agents: Putting Intelligence Inside a Product",
+  "description": "The same model can power five different products; what differs is everything around it. Learn the five jobs a model can do, why the model only requests actions while software performs them, and how to pick the simplest architecture that works before giving an agent its brakes.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "ai_jobs",
+      "label": "Identify the five jobs a model can do inside a product and when plain code is the better choice",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "tools_agency",
+      "label": "Explain that a model chooses or requests actions while the surrounding application performs them",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "ladder",
+      "label": "Choose the simplest sufficient AI architecture, from a single model call up to an agent",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "guardrails",
+      "label": "Explain why more AI autonomy requires more context control, permissions and stopping conditions",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "The same model, many products",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Five products, one kind of model",
+          "objective": "ai_jobs",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "One product reads a photo of a handwritten form and returns fields. Another answers questions from a 300-page handbook. A third checks calendars and proposes meeting times. A fourth edits code, runs tests and fixes its own errors. A fifth reschedules your appointment by phone. Are these five kinds of AI? Not necessarily. The underlying models may be similar — what makes the products different is everything surrounding the model."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Everything around the model",
+          "objective": "ai_jobs",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "model-plus-surroundings",
+              "alt": "A model at the center surrounded by instructions, data, tools, software logic, permissions, memory and the interface",
+              "caption": "The interesting question is no longer can I put a model in my app. It is what role intelligence should play inside my system.",
+              "steps": [
+                "Instructions: what role should it perform",
+                "Data: what it is allowed to see",
+                "Tools: what it may request the system to do",
+                "Software logic: what normal code still controls",
+                "Permissions: what it may change",
+                "Memory: what the product stores for it",
+                "Interface: how people reach it"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "diagram",
+          "title": "Five jobs a model can do",
+          "objective": "ai_jobs",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "five-model-jobs",
+              "alt": "Five jobs: perceive messy inputs, interpret meaning, generate new content, decide among ambiguous options, and act by requesting tools",
+              "caption": "Most AI features are one or two of these jobs wearing a product's clothes.",
+              "steps": [
+                "Perceive: read a photo, a scanned form, speech or a screenshot",
+                "Interpret: decide what messy text means, like mapping fixing motorcycles to mechanical engineering",
+                "Generate: draft text, code or summaries — or turn messy input into structured data",
+                "Decide: route an ambiguous request to billing or account support",
+                "Act: request a tool so the system can actually do something"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "check",
+          "title": "AI or plain code?",
+          "objective": "ai_jobs",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A product rule says: if account age is under 18, require parental consent. Should an AI model make this decision?",
+              "options": [
+                { "key": "a", "label": "Yes — AI is newer, so it should make every decision" },
+                { "key": "b", "label": "No — this is a clear rule with no ambiguity, so plain code is the right tool" },
+                { "key": "c", "label": "Yes — but only if the model is large enough" },
+                { "key": "d", "label": "No — because AI cannot do math" }
+              ],
+              "answer_key": "b",
+              "explanation": "This rule has no ambiguity: a number is compared to a threshold and the outcome is fixed. Do not replace a perfectly reliable rule with a model just because AI exists. Save the model for interpretation, like deciding which support category a rambling request belongs to.",
+              "objective": "ai_jobs"
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "callout",
+          "title": "Ambiguity versus certainty",
+          "objective": "ai_jobs",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "AI is good at ambiguity. Code is good at certainty."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "The model asks, the application acts",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "A model cannot send the email",
+          "objective": "tools_agency",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "By itself, a model cannot update your database, send an email, issue a refund or create a calendar event. It produces text, data or a decision. To make anything happen in the world it needs tools — defined operations that the surrounding software can execute on its behalf."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "worked_example",
+          "title": "One tool call, step by step",
+          "objective": "tools_agency",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "One tool call, step by step",
+              "steps": [
+                "The model decides it needs the customer's current order status.",
+                "It requests the tool: get_order_status(order_id = 4821).",
+                "The application executes the tool against the real system.",
+                "The result returns: shipped, expected delivery July 21.",
+                "The model continues its answer using that result."
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Who actually does it?",
+          "objective": "tools_agency",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "An agent issues a refund through a refund tool. Who performs the refund?",
+              "options": [
+                { "key": "a", "label": "The model performs it by generating the right words" },
+                { "key": "b", "label": "The application executes the tool — the model only chose or requested the action" },
+                { "key": "c", "label": "The user performs it by confirming the prompt" },
+                { "key": "d", "label": "The tool performs it without any software being involved" }
+              ],
+              "answer_key": "b",
+              "explanation": "Tool use is a contract. Developers define the available operations and their input and output shapes; the model decides when to request one; application code performs the real operation. Words from the model do not move money.",
+              "objective": "tools_agency"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "diagram",
+          "title": "The agent loop",
+          "objective": "tools_agency",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "agent-decision-loop",
+              "alt": "A loop starting from a goal: understand the situation, choose an action, call a tool, get the result, inspect it, check whether the task is complete, and loop again or respond",
+              "caption": "The developer did not program the exact path. That flexibility is what makes an agent an agent — and what makes it harder to control and evaluate.",
+              "steps": [
+                "Goal: investigate why registrations dropped",
+                "Understand the situation",
+                "Choose an action",
+                "Call a tool and get the result",
+                "Inspect the result",
+                "Task complete? No → choose the next action; yes → respond"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "Climb only as high as you need",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "diagram",
+          "title": "The architecture ladder",
+          "objective": "ladder",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "ai-architecture-ladder",
+              "alt": "A ladder from level 0 normal software up through one model call, grounded AI, AI workflow and agent, to a multi-agent system at the top",
+              "caption": "Start as low on the ladder as possible. Complexity should be earned.",
+              "steps": [
+                "Level 0 — normal software: rules and lookups, perfectly predictable",
+                "Level 1 — one model call: input in, result out",
+                "Level 2 — grounded AI: search first, then the model answers from what was retrieved",
+                "Level 3 — AI workflow: predetermined steps where software controls the process",
+                "Level 4 — agent: the model decides what to do next",
+                "Level 5 — multi-agent: one AI delegates work to others"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "text",
+          "title": "Who controls the next step?",
+          "objective": "ladder",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "In a workflow, the steps are predetermined: code validates fields, calls the model, checks duplicates and stores results; the AI participates but software controls the process. In an agent, the exact path is not programmed — the model inspects, chooses and acts until it decides the task is done. An agent architecture is mostly about deciding who controls the next step: your code or the model."
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "How much architecture?",
+          "objective": "ladder",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A feature must read a messy volunteer application and extract name, availability and interests into fields. What is the simplest sufficient architecture?",
+              "options": [
+                { "key": "a", "label": "A multi-agent system with a coordinator and reviewer agents" },
+                { "key": "b", "label": "An autonomous agent that keeps working until it is satisfied" },
+                { "key": "c", "label": "A single model call that returns the structured fields" },
+                { "key": "d", "label": "A coding agent that rewrites the application form" }
+              ],
+              "answer_key": "c",
+              "explanation": "One input, one extraction, one structured output — a single model call solves it, with no loop and no autonomy. Three agents would not make it three times smarter, only more expensive, slower and harder to debug.",
+              "objective": "ladder"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "text",
+          "title": "What the model sees",
+          "objective": "guardrails",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Everything the model receives becomes its context: instructions, the user request, current state, retrieved information, tool definitions, tool results and examples. Context engineering asks not which prompt to write but what information the model should have at the moment it makes this decision. Too little context and it guesses; the wrong context and it concludes wrongly; too much and cost rises while the important facts get buried."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "check",
+          "title": "Which actions need a human?",
+          "objective": "guardrails",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "An agent can search, read, draft, send and delete. Which split respects risk?",
+              "options": [
+                { "key": "a", "label": "Everything automatic — that is what agents are for" },
+                { "key": "b", "label": "Search, read and draft automatic; send and delete require human approval" },
+                { "key": "c", "label": "Only search is automatic; even reading needs approval" },
+                { "key": "d", "label": "Approval only when the user is watching the screen" }
+              ],
+              "answer_key": "b",
+              "explanation": "AI saying something wrong and AI doing something wrong are different risk levels. Read-only work is low risk, drafts are medium, and actions that send, delete, publish or move money are high risk and deserve human confirmation. Untrusted content adds a second danger: hidden text on a page can look like instructions to a model.",
+              "objective": "guardrails"
+            }
+          ]
+        },
+        {
+          "seq": 6,
+          "kind": "text",
+          "title": "Agents need brakes",
+          "objective": "guardrails",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A venue-finding agent could search forever unless the architecture limits it: a maximum of 10 tool calls, 2 minutes, fifty cents of model cost, 3 retries, or a rule to stop after 5 qualified venues. Limits like these are part of the product. An agent without stopping rules is not more autonomous — it is unfinished software."
+            },
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "The more autonomy you give an AI, the more verification and control you must build around it."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

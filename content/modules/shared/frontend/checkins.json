@@ -1,0 +1,146 @@
+{
+  "version": "1.0.0",
+  "slug": "frontend",
+  "objectives": [
+    {
+      "objective": "surface",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could describe a screen as information, actions, state and feedback rather than just how it looks?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Why is a beautiful screen connected to nothing called a demo rather than a product?",
+          "options": [
+            {"key": "a", "label": "Because demos use brighter colors"},
+            {"key": "b", "label": "Because the frontend is the control surface for the rest of the system; without real actions, state and feedback behind it, nothing is being operated"},
+            {"key": "c", "label": "Because it was built too quickly"}
+          ],
+          "answer": ["b"],
+          "explanation": "The frontend is the surface through which a person operates the application; if no system sits behind the controls, the screen is only demonstrating an idea."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick one screen you use often, such as a chat, a lobby or a search page. Label four things on it as information, action, state or feedback, one of each.",
+          "rubric": {"criteria": ["Names one concrete example of each of the four parts", "Puts remembered things such as open tabs or typed text under state, not information"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why frontend architecture is more than decoration.",
+          "rubric": {"criteria": ["Explains that the frontend controls what the user can see, do and understand about the system", "Notes that weak design makes a working system unusable"]}
+        }
+      ]
+    },
+    {
+      "objective": "states",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could list the states an important screen needs, beyond the successful one?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A heart icon turns red the instant it is tapped, before any server answer. What is this called, and what must the app be ready to do?",
+          "options": [
+            {"key": "a", "label": "A confirmed save; nothing else is needed"},
+            {"key": "b", "label": "An optimistic update; the app must undo it or show an error if the request fails"},
+            {"key": "c", "label": "An offline state; the app must block the tap"}
+          ],
+          "answer": ["b"],
+          "explanation": "Optimistic updates show success early for speed, and the design must include undoing the change or reporting the failure when the server disagrees."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Choose one important screen, such as a search page or a submission form. List the states it needs and write one line describing what the user sees in each. Cover at least initial, loading, success, empty and error.",
+          "rubric": {"criteria": ["Names at least five distinct states", "Describes what the user sees or can do in each state", "Distinguishes empty from error"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why a visible change on the screen is not proof that an action succeeded.",
+          "rubric": {"criteria": ["Explains that the frontend can render a change before the server confirms it", "Mentions the app must handle failure afterwards, such as undoing an optimistic update"]}
+        }
+      ]
+    },
+    {
+      "objective": "memory",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could choose whether frontend information should be screen state, browser-saved, URL state or server-saved?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "A student wants to send a friend a link to an events page with city and category filters already applied. Which level of memory makes that possible?",
+          "options": [
+            {"key": "a", "label": "Screen state held inside the open page"},
+            {"key": "b", "label": "URL state, with the filters stored in the shareable address"},
+            {"key": "c", "label": "An unsaved form on the student's device"}
+          ],
+          "answer": ["b"],
+          "explanation": "Filters stored in the URL are rebuilt when anyone opens the link, so the exact view can be bookmarked and shared."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Take a form or feature where users enter real work. Write down every way the user could lose that work, then choose for each whether it needs submit-only saving, a draft button, auto-save or just a warning.",
+          "rubric": {"criteria": ["Identifies at least two ways work could be lost, such as refresh or device switch", "Assigns a protection that matches each risk", "Explains the choice rather than defaulting to auto-save for everything"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain the difference between temporary screen state and server-saved information, with one example of each.",
+          "rubric": {"criteria": ["Explains that screen state dies with the page while server-saved data follows the account", "Gives a correct example of each, such as unsaved form text versus a submitted registration"]}
+        }
+      ]
+    },
+    {
+      "objective": "consequence",
+      "items": [
+        {
+          "kind": "likert",
+          "seq": 1,
+          "prompt": "How confident are you that you could complete the button test for every clickable element on a screen you design?",
+          "scale": {"min": 1, "max": 5, "low_label": "Not yet", "high_label": "Very confident"}
+        },
+        {
+          "kind": "mcq",
+          "seq": 2,
+          "prompt": "Which is the stronger instruction to a coding agent?",
+          "options": [
+            {"key": "a", "label": "Build me a modern page for finding local activities."},
+            {"key": "b", "label": "Propose three layouts for the discovery page, compare their tradeoffs, recommend the simplest option, list the reusable components, and describe every state before writing code."},
+            {"key": "c", "label": "Add a form and a Submit button."}
+          ],
+          "answer": ["b"],
+          "explanation": "The strong instruction makes the agent compare options and define states before building; the weak ones make it invent the product."
+        },
+        {
+          "kind": "mini_exercise",
+          "seq": 3,
+          "prompt": "Pick one button in an app you use. Complete the sentence: 'When the user presses this button, the frontend should ___, the backend should ___, and the user should see ___.'",
+          "rubric": {"criteria": ["Names a frontend reaction, a backend job and a user-visible result", "Includes what the user sees if the action fails"]}
+        },
+        {
+          "kind": "self_explain",
+          "seq": 4,
+          "prompt": "In your own words, explain why asking an agent to compare three interface options beats asking it to build the first one immediately.",
+          "rubric": {"criteria": ["Explains that different layouts have different tradeoffs tied to the user's decision", "Notes that comparing first prevents premature code and surfaces a simpler MVP"]}
+        }
+      ]
+    }
+  ]
+}

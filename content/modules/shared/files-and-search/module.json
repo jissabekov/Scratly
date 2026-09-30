@@ -1,0 +1,304 @@
+{
+  "version": "1.0.0",
+  "slug": "files-and-search",
+  "seq": 8,
+  "title": "Files, Documents, Images, and Search: How Applications Find Information",
+  "description": "Not everything a product knows fits into rows and columns. Learn where files actually live, how a database record points at a file it cannot hold, and how an application chooses between filtering, keyword search, and semantic search to deliver the right information to an AI.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "three_forms",
+      "label": "Distinguish structured, semi-structured, and unstructured information and why each changes the architecture",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "store_split",
+      "label": "Explain how a database record about a file relates to the file itself in object storage",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "retrieval",
+      "label": "Match a retrieval question to the right tool: database filter, keyword search, or semantic search",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "rag_pipeline",
+      "label": "Trace the pipeline that turns an uploaded document into information an AI can answer from",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "When facts stop fitting in tables",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The report does not fit in a row",
+          "objective": "three_forms",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A nonprofit application tracks hundreds of community organizations. Name, city, category and active status fit a table perfectly. But each organization also has a 40-page annual report, photos, flyers and meeting recordings. You cannot create a column called annual_report_paragraph_1. The question has changed from how do I organize facts to how do I organize knowledge."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Three forms of information",
+          "objective": "three_forms",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "three-information-forms",
+              "alt": "Three kinds of information: a structured student record with named fields, a semi-structured JSON document whose fields can vary, and an unstructured PDF full of paragraphs and photos",
+              "caption": "The system knows the shape of the first, half-knows the second, and receives the third as a file.",
+              "steps": [
+                "Structured: student_id, name, county, graduation_year — the system knows exactly what each value means",
+                "Semi-structured: a JSON document whose fields can differ from record to record, like API payloads and logs",
+                "Unstructured: a PDF full of paragraphs, tables, photos and charts — it arrives as one file"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Which form is the file?",
+          "objective": "three_forms",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A scanned grant application arrives as one PDF. Which form of information is it?",
+              "options": [
+                { "key": "a", "label": "Structured, because the application received it as a file" },
+                { "key": "b", "label": "Unstructured, because the system receives one file and does not automatically understand the paragraphs inside" },
+                { "key": "c", "label": "Semi-structured, because PDFs travel through APIs like JSON" },
+                { "key": "d", "label": "Structured, because the document contains names and dates" }
+              ],
+              "answer_key": "b",
+              "explanation": "The system receives the PDF as a file. Names and dates exist inside it, but the application cannot address them as fields the way it can address a student's county. Until something extracts structure, the document is unstructured information.",
+              "objective": "three_forms"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Access is not understanding",
+          "objective": "three_forms",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Having access to a file is not the same thing as understanding its contents."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "Where the file actually lives",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "diagram",
+          "title": "Three systems, three jobs",
+          "objective": "store_split",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "storage-specialists",
+              "alt": "An application connected to three systems: a database holding structured facts, file storage holding the actual files, and a search index holding structures built for finding information",
+              "caption": "These systems are not competing with each other. Each is optimized for a different kind of work, and a real product may use all three at once.",
+              "steps": [
+                "Database: organization IDs, names, categories, permissions — facts the system can query",
+                "File storage: the actual PDFs, photos, videos and recordings",
+                "Search index: prepared structures that make information findable"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "worked_example",
+          "title": "Maya uploads a report",
+          "objective": "store_split",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "Maya uploads a report",
+              "steps": [
+                "Maya uploads tulsa-youth-sports-annual-report-2026.pdf.",
+                "The actual PDF goes into object storage at /files/organizations/381/reports/2026-report.pdf.",
+                "The database creates a document record: document_id 9127, organization_id 381, filename, document_type annual_report, uploaded_at.",
+                "The record also stores the storage_location pointing at the real file.",
+                "IDs, ownership, type and permissions live in the database; the bytes live in storage."
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "What did the database contribute?",
+          "objective": "store_split",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A user opens a document page and sees the PDF. What did the database contribute to that moment?",
+              "options": [
+                { "key": "a", "label": "The PDF bytes themselves, stored in a documents table" },
+                { "key": "b", "label": "The document's ID, owner, type and the location of the actual file in storage" },
+                { "key": "c", "label": "A copy of every paragraph, for fast reading" },
+                { "key": "d", "label": "Nothing — the file storage does all the work" }
+              ],
+              "answer_key": "b",
+              "explanation": "The database stores facts about the file: who it belongs to, what type it is, and where the bytes live. The record is a relationship that crosses systems, pointing outside the database to the object that holds the file itself.",
+              "objective": "store_split"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "What it is, versus the thing itself",
+          "objective": "store_split",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "The database helps the application know what the object is. Object storage holds the object itself."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "Finding it again",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "diagram",
+          "title": "Three questions, three tools",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "retrieval-tool-match",
+              "alt": "Three questions mapped to three retrieval tools: show active organizations in Tulsa goes to a database filter, find documents containing basketball goes to text search, and find programs for a teenager who enjoys sports goes to semantic search",
+              "caption": "Different retrieval problems require different tools. Fast retrieval also requires preparation: an index is work done before the search so the search can be quick.",
+              "steps": [
+                "\"Show active organizations in Tulsa\" → database filter: records whose fields match conditions",
+                "\"Find documents containing basketball\" → keyword search: scan the text of documents",
+                "\"Find programs for a teenager who enjoys sports\" → semantic search: match by meaning, not exact words",
+                "Pipelines combine them: filter by county and status first, then semantic-search within that smaller set"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "text",
+          "title": "When the words do not match",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A user searches for opportunities for teenagers who enjoy sports. A perfect document says it organizes basketball leagues for students ages 14 to 18. Almost no words overlap, yet the meaning matches. An embedding is a mathematical representation of meaning that lets a computer compare pieces of information by similarity. Searching on those representations is called semantic or vector search."
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Pick the tool",
+          "objective": "retrieval",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "The product needs to find organizations in Oklahoma County that are currently active. Which retrieval tool fits?",
+              "options": [
+                { "key": "a", "label": "Semantic search, because county and status are complicated ideas" },
+                { "key": "b", "label": "Keyword search over every stored document" },
+                { "key": "c", "label": "A database filter on the county and active fields" },
+                { "key": "d", "label": "Ask the AI model to read every organization record" }
+              ],
+              "answer_key": "c",
+              "explanation": "The question is about named fields with exact values, which is what a database filter is built for: precise, fast and predictable. Keyword and semantic search solve different problems — matching words inside documents and matching meaning — and would be slower and less precise here.",
+              "objective": "retrieval"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "diagram",
+          "title": "Upload a PDF, ask a question",
+          "objective": "rag_pipeline",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "ingest-and-answer-pipeline",
+              "alt": "A pipeline from an uploaded PDF through file storage, a document record, text extraction, chunking and indexing into a search system; later a user question triggers search and retrieval and the retrieved passages go to the AI, which generates an answer",
+              "caption": "Find first, generate second — that order is the whole idea behind retrieval-augmented generation, or RAG.",
+              "steps": [
+                "User uploads a PDF → file storage keeps the original",
+                "Database creates the document record",
+                "Text extraction reads the text out of the PDF",
+                "Chunking breaks the document into useful sections",
+                "Indexing prepares the sections for search",
+                "Later: a question triggers search and retrieval of the strongest passages",
+                "The AI receives the question plus the retrieved passages and generates the answer"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "check",
+          "title": "The wrong-answer mystery",
+          "objective": "rag_pipeline",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "The PDF answers the user's question on page 187, but the AI answers wrongly and the prompt looks fine. What is a likely cause?",
+              "options": [
+                { "key": "a", "label": "The AI model forgot how to read" },
+                { "key": "b", "label": "The page was never extracted, was chunked badly, or retrieval returned the wrong sections" },
+                { "key": "c", "label": "The database stored the PDF incorrectly" },
+                { "key": "d", "label": "The user asked in the wrong language" }
+              ],
+              "answer_key": "b",
+              "explanation": "A bad answer can be born long before the model: weak extraction, poor chunking, bad indexing or bad retrieval all deliver the wrong information to a perfectly fine model. Changing the prompt at the bottom of that pipeline may accomplish nothing.",
+              "objective": "rag_pipeline"
+            }
+          ]
+        },
+        {
+          "seq": 6,
+          "kind": "callout",
+          "title": "The right information at the right moment",
+          "objective": "rag_pipeline",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "An AI model does not need to know everything. The surrounding system needs to deliver the right information at the right moment."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

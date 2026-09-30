@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "slug": "invisible-conversation",
+  "forms": [
+    {
+      "form_id": 1,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "message",
+          "kind": "mcq",
+          "stem": "What actually leaves the device when a student presses Buy?",
+          "options": [
+            { "key": "a", "label": "The entire screen, copied to the server" },
+            { "key": "b", "label": "A small structured message with named fields such as ticketId, quantity and requestId" },
+            { "key": "c", "label": "The student's whole browsing history" },
+            { "key": "d", "label": "Nothing; the server watches the screen directly" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "The application builds a message; it does not ship the screen.",
+          "feedback_correct": "Correct. The application turns the action into a structured message called the payload.",
+          "feedback_wrong": "The screen never travels. The interface builds a structured payload with named fields the server can read, sends it across the network, and later renders whatever response returns.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "trust",
+          "kind": "mcq",
+          "stem": "Two students see '1 ticket remaining' and press Buy at the same moment. Who can decide which buyer gets it?",
+          "options": [
+            { "key": "a", "label": "Whichever browser loaded the page fastest" },
+            { "key": "b", "label": "Each browser decides for its own user" },
+            { "key": "c", "label": "A shared server that receives both requests and reserves the ticket once" },
+            { "key": "d", "label": "Nobody; the ticket goes to both" }
+          ],
+          "answer": ["c"],
+          "difficulty": 0.35,
+          "hint_text": "Each device knows only part of what is happening.",
+          "feedback_correct": "Correct. The shared server owns the truth and reserves the ticket for one request.",
+          "feedback_wrong": "Both browsers only believe the ticket is available; neither sees the other buyer. A shared system must own the truth, reserve the ticket once, and send a different answer to the second request.",
+          "slide_ref": 3,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "failure",
+          "kind": "mcq",
+          "stem": "A user presses Save and the screen instantly shows 'Saved', but the network request actually failed. What happened?",
+          "options": [
+            { "key": "a", "label": "It was saved anyway, because the screen said so" },
+            { "key": "b", "label": "The interface displayed success before the server confirmed it" },
+            { "key": "c", "label": "The server always confirms a save instantly" },
+            { "key": "d", "label": "The cache deleted the record" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "A changed button is not a confirmation.",
+          "feedback_correct": "Correct. The screen changing is only the interface reacting; success requires the server's response.",
+          "feedback_wrong": "The interface showed success on its own, before any confirmation arrived. The button changing does not prove the action succeeded, so honest products design a loading state and handle the failure when it comes back.",
+          "slide_ref": 10,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "message",
+          "kind": "select_all",
+          "stem": "Take the address https://api.stagepass.app/events/441/tickets/9082/reserve. Which parts does it contain? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The communication rules, where HTTPS also protects the message in transit" },
+            { "key": "b", "label": "A domain name whose network address is found through DNS" },
+            { "key": "c", "label": "A path naming a specific capability, here reserving ticket 9082" },
+            { "key": "d", "label": "The server's stored price for the ticket" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "An address describes how to talk, where to go, and which capability to use.",
+          "feedback_correct": "Correct. The URL carries the protocol rules, the domain and the path; the price lives in the server's database.",
+          "feedback_wrong": "A URL holds the communication rules, a domain DNS translates to a network address, and a path naming a capability. Data such as the price is not inside the address; the server reads it from its own storage.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "patterns",
+          "kind": "mcq",
+          "stem": "An AI image takes thirty seconds to generate. Which conversation pattern fits best?",
+          "options": [
+            { "key": "a", "label": "Keep one browser request open until the image is finished" },
+            { "key": "b", "label": "Create a job, return a job ID immediately, then poll the status or stream the result" },
+            { "key": "c", "label": "Send the same request twice so it finishes sooner" },
+            { "key": "d", "label": "Store nothing and hope the connection holds" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.45,
+          "hint_text": "Long work should not hold a request open forever.",
+          "feedback_correct": "Correct. A job lets the server accept the work instantly and report progress later.",
+          "feedback_wrong": "Long-running work is modelled as a job: the server returns a job ID immediately, does the work in the background, and the application polls the status or streams the result. Holding one request open risks timeouts.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 2,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "message",
+          "kind": "mcq",
+          "stem": "A request body reads '9082, 441, 1, 7719' with no field names. Why is that fragile?",
+          "options": [
+            { "key": "a", "label": "Numbers cannot travel over the internet" },
+            { "key": "b", "label": "Neither system can be sure which value is the ticket, the event, the quantity or the attempt; named fields create agreement" },
+            { "key": "c", "label": "The message is too short to be a request" },
+            { "key": "d", "label": "Servers automatically reject unnamed values" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Structure is what makes a message meaningful.",
+          "feedback_correct": "Correct. Named fields let both systems agree on what each value means.",
+          "feedback_wrong": "Bare values are ambiguous: is 1 a quantity, a ticket or an attempt? Named fields such as ticketId and requestId are the shared agreement that lets the server interpret the message correctly.",
+          "slide_ref": 7,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "trust",
+          "kind": "select_all",
+          "stem": "Which checks belong on the server when it receives a purchase request? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "Whether the ticket exists and is still available" },
+            { "key": "b", "label": "Whether the user is signed in and allowed to buy it" },
+            { "key": "c", "label": "Whether this exact request has already been processed" },
+            { "key": "d", "label": "Whether the Buy button looked convincing on the screen" }
+          ],
+          "answer": ["a", "b", "c"],
+          "difficulty": 0.45,
+          "hint_text": "The server trusts its own records, not the screen.",
+          "feedback_correct": "Correct. The server validates existence, availability, identity, permission and whether the request was already handled.",
+          "feedback_wrong": "The server must verify the ticket exists and is available, authenticate and authorize the user, and recognize a retried request. How the screen looked is irrelevant; the server reads its own stored truth.",
+          "slide_ref": 8,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "failure",
+          "kind": "mcq",
+          "stem": "Why does a purchase request carry a unique request ID such as purchase-attempt-7719?",
+          "options": [
+            { "key": "a", "label": "So the server can recognize a retried request and return the existing result instead of charging twice" },
+            { "key": "b", "label": "So the browser loads faster" },
+            { "key": "c", "label": "To encrypt the ticket price" },
+            { "key": "d", "label": "To identify the student's device model" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.4,
+          "hint_text": "Think about what happens when nothing seems to happen.",
+          "feedback_correct": "Correct. A repeated request ID is recognized as the same attempt, so the action is never performed twice.",
+          "feedback_wrong": "When a slow request makes a user click again, the server receives a duplicate. A unique request ID lets it spot the retry and return the same result; retrying the same action should not perform it twice.",
+          "slide_ref": 12,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "message",
+          "kind": "mcq",
+          "stem": "What is an endpoint?",
+          "options": [
+            { "key": "a", "label": "The physical location of the server" },
+            { "key": "b", "label": "A specific capability exposed at a particular path, such as /reserve or /messages" },
+            { "key": "c", "label": "The user's own device" },
+            { "key": "d", "label": "The cable carrying the request" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.35,
+          "hint_text": "It is not just where the server is, but which ability you are calling.",
+          "feedback_correct": "Correct. An endpoint names a particular capability, and clear paths like /tournaments/88/report-result reveal what a system can do.",
+          "feedback_wrong": "An endpoint is a capability at a path, not a machine or a cable. A vague one like /saveData hides what the system does; a clear one like /events/441/reserve announces the capability.",
+          "slide_ref": 6,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "patterns",
+          "kind": "mcq",
+          "stem": "How should a 'Maya is typing...' indicator in a chat app be delivered?",
+          "options": [
+            { "key": "a", "label": "Stored permanently like a message, so it can be reviewed later" },
+            { "key": "b", "label": "Sent over an ongoing live connection as a temporary event that expires quickly" },
+            { "key": "c", "label": "Pushed by reloading the whole page" },
+            { "key": "d", "label": "Polled by asking the server once per hour" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Nobody needs to retrieve that Maya typed for 1.8 seconds last Tuesday.",
+          "feedback_correct": "Correct. Typing indicators are temporary events on a live connection; messages are what get stored.",
+          "feedback_wrong": "A typing indicator is a temporary live event: sent over an ongoing connection and expired after a short timeout. Messages should be stored permanently; typing events should not.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    },
+    {
+      "form_id": 3,
+      "items": [
+        {
+          "seq": 1,
+          "objective": "message",
+          "kind": "mcq",
+          "stem": "What is the payload of a request?",
+          "options": [
+            { "key": "a", "label": "The layout of the screen that sent it" },
+            { "key": "b", "label": "The information carried inside the request, such as form answers, filters, identifiers or an image" },
+            { "key": "c", "label": "The server's database" },
+            { "key": "d", "label": "The domain name the request was sent to" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.3,
+          "hint_text": "It is the content of the message, not the address.",
+          "feedback_correct": "Correct. The payload is the information inside the request.",
+          "feedback_wrong": "The payload is what the request carries: form answers, search filters, an identifier, a file. The domain and path say where it goes; the payload says what it means.",
+          "slide_ref": 5,
+          "is_critical": true
+        },
+        {
+          "seq": 2,
+          "objective": "trust",
+          "kind": "mcq",
+          "stem": "What is the difference between authentication and authorization?",
+          "options": [
+            { "key": "a", "label": "Authentication checks who the user is; authorization checks what that user is allowed to do" },
+            { "key": "b", "label": "They are two names for the same check" },
+            { "key": "c", "label": "Authentication is the password field; authorization is the login button" },
+            { "key": "d", "label": "Authorization checks who the user is; authentication checks permissions" }
+          ],
+          "answer": ["a"],
+          "difficulty": 0.35,
+          "hint_text": "One reads the name tag; the other reads the permission.",
+          "feedback_correct": "Correct. Authentication is identity; authorization is permission.",
+          "feedback_wrong": "Authentication answers who is this user, and authorization answers may this user do this action. A signed-in student is authenticated but still not authorized to edit another team's score.",
+          "slide_ref": 9,
+          "is_critical": true
+        },
+        {
+          "seq": 3,
+          "objective": "failure",
+          "kind": "mcq",
+          "stem": "A signed-in student sends a request to delete another team's score. Which response fits?",
+          "options": [
+            { "key": "a", "label": "Unauthorized, because the user is not signed in" },
+            { "key": "b", "label": "Forbidden, because the user is identified but not allowed" },
+            { "key": "c", "label": "Empty, because nothing was deleted" },
+            { "key": "d", "label": "Success, because the request was well-formed" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.5,
+          "hint_text": "The user passed the name-tag check but failed the permission check.",
+          "feedback_correct": "Correct. Forbidden means authenticated but not authorized.",
+          "feedback_wrong": "The student is signed in, so authentication passed and Unauthorized does not fit. The action is not permitted, which is Forbidden: identified, but not allowed.",
+          "slide_ref": 11,
+          "is_critical": true
+        },
+        {
+          "seq": 4,
+          "objective": "message",
+          "kind": "select_all",
+          "stem": "Which statements about a request-response conversation are true? Select all that apply.",
+          "options": [
+            { "key": "a", "label": "The request is a structured message sent to another system" },
+            { "key": "b", "label": "The interface decides what to show based on the response" },
+            { "key": "c", "label": "The browser's copy of shared data is always the final truth" },
+            { "key": "d", "label": "A request always succeeds as long as the button works" }
+          ],
+          "answer": ["a", "b"],
+          "difficulty": 0.4,
+          "hint_text": "Think about who owns the truth and what can fail.",
+          "feedback_correct": "Correct. The request is a structured message, and the interface renders whatever the response describes.",
+          "feedback_wrong": "A request is a structured message and the interface shows what the response reports. The browser is never the final authority on shared data, and a working button does not make a request succeed.",
+          "slide_ref": 2,
+          "is_critical": true
+        },
+        {
+          "seq": 5,
+          "objective": "patterns",
+          "kind": "mcq",
+          "stem": "An app must load a playlist containing five thousand songs. Which conversation pattern fits best?",
+          "options": [
+            { "key": "a", "label": "Download all five thousand entries in one response" },
+            { "key": "b", "label": "Load the first page of songs, then request the next page as the user scrolls" },
+            { "key": "c", "label": "Stream every song's audio at once" },
+            { "key": "d", "label": "Create a background job and poll until it finishes" }
+          ],
+          "answer": ["b"],
+          "difficulty": 0.4,
+          "hint_text": "Retrieving unnecessary information makes the product slower and more expensive.",
+          "feedback_correct": "Correct. Pagination retrieves a large collection in smaller groups on demand.",
+          "feedback_wrong": "Pulling all five thousand at once is slow and wasteful. Pagination loads the first twenty or so and fetches the next group when the user reaches the bottom.",
+          "slide_ref": 13,
+          "is_critical": false
+        }
+      ]
+    }
+  ]
+}

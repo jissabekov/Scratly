@@ -1,0 +1,300 @@
+{
+  "version": "1.0.0",
+  "slug": "invisible-conversation",
+  "seq": 3,
+  "title": "The Invisible Conversation Behind Every Tap",
+  "description": "Every important action in an online product is a conversation between systems. Follow one request from tap to response, learn why servers never trust the screen, and see how products handle waiting, failure and trying again.",
+  "est_minutes": 40,
+  "objectives": [
+    {
+      "code": "message",
+      "label": "Describe a user action as a structured message: what leaves the device, where it is sent, and what comes back",
+      "is_critical": true,
+      "ordinal": 1
+    },
+    {
+      "code": "trust",
+      "label": "Explain why a server validates every request, and tell authentication apart from authorization",
+      "is_critical": true,
+      "ordinal": 2
+    },
+    {
+      "code": "failure",
+      "label": "Design for waiting, duplicates, conflicts and lost connections instead of trusting the screen",
+      "is_critical": true,
+      "ordinal": 3
+    },
+    {
+      "code": "patterns",
+      "label": "Match a feature to a communication pattern: one request, a command, an upload, a background job or live updates",
+      "is_critical": false,
+      "ordinal": 4
+    }
+  ],
+  "lessons": [
+    {
+      "seq": 1,
+      "title": "One ticket, two buyers",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "Two buyers, one ticket",
+          "objective": "trust",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Two students each see '1 ticket remaining' and press Buy at almost the same time. Both screens believe the ticket is available. Neither screen can decide, because each device knows only part of what is happening. A system both students talk to must decide."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "The conversation behind a tap",
+          "objective": "message",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "request-response-conversation",
+              "alt": "The path of one action from the interface through a network to a remote system and back to the interface",
+              "caption": "The screen is only the visible edge of this conversation.",
+              "steps": [
+                "The user does something",
+                "The interface turns the action into a message",
+                "The message travels through a network",
+                "A remote system receives it and checks whether it is valid",
+                "It reads data, changes data, or performs computation",
+                "It creates a response",
+                "The response travels back",
+                "The interface decides what to show"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Who decides?",
+          "objective": "trust",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "Both browsers show the last ticket as available and both buyers press Buy. Who decides which one gets it?",
+              "options": [
+                { "key": "a", "label": "Whichever screen loaded fastest" },
+                { "key": "b", "label": "Each browser keeps its own version of who won" },
+                { "key": "c", "label": "A shared server receives both requests, reserves the ticket once, and rejects the second" },
+                { "key": "d", "label": "The ticket is sold to both students" }
+              ],
+              "answer_key": "c",
+              "explanation": "When multiple users share or compete for the same information, the browser cannot be the final authority. The shared server owns the truth: it reserves the ticket for one request and sends a different answer back to the other.",
+              "objective": "trust"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "callout",
+          "title": "Every action is a conversation",
+          "objective": "message",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Every important action in an online product is a conversation between systems, and the product designer must define that conversation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 2,
+      "title": "What the message says, and what gets believed",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "A button does not send the screen",
+          "objective": "message",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Pressing Buy does not send the screen anywhere. The application builds a small structured message, called the payload, with named fields such as ticketId, eventId, quantity and requestId. Without names the server would receive 9082, 441, 1, 7719 and have to guess what each number means."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "Anatomy of an endpoint",
+          "objective": "message",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "anatomy-of-an-endpoint",
+              "alt": "A URL broken into its communication rules, its domain name, and a path naming a specific capability",
+              "caption": "https://api.stagepass.app/events/441/tickets/9082/reserve",
+              "steps": [
+                "https:// - the communication rules; HTTPS protects the message while it travels",
+                "api.stagepass.app - a human-readable domain; DNS finds the network address behind it",
+                "/events/441/tickets/9082/reserve - the path, naming the exact capability the app wants to use"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Reading a bare message",
+          "objective": "message",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A request arrives containing only '9082, 441, 1, 7719' with no field names. What is the problem?",
+              "options": [
+                { "key": "a", "label": "Nothing; numbers travel faster than names" },
+                { "key": "b", "label": "The server cannot tell which value is the ticket, the event, the quantity or the attempt; named fields let both systems agree" },
+                { "key": "c", "label": "The message is too long to send" },
+                { "key": "d", "label": "Servers ignore messages made of numbers" }
+              ],
+              "answer_key": "b",
+              "explanation": "Structure is what makes a message meaningful. Named fields such as ticketId and quantity let the sending and receiving systems agree on what each value means; bare numbers are just guesses.",
+              "objective": "message"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "worked_example",
+          "title": "What the ticket server verifies",
+          "objective": "trust",
+          "blocks": [
+            {
+              "type": "worked_example",
+              "title": "A request is not automatically trusted",
+              "steps": [
+                "Does this ticket exist?",
+                "Is it still available?",
+                "Is the event still active?",
+                "Is the user signed in?",
+                "Is this user allowed to buy it?",
+                "Has this exact request already been processed?",
+                "Does the server's stored price match the transaction?"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "callout",
+          "title": "Name tag versus permission",
+          "objective": "trust",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "Authentication checks the name tag. Authorization checks the permission."
+            },
+            {
+              "type": "text",
+              "text": "Hiding the Delete button is interface behavior, not security. The server must still reject unauthorized requests, even ones sent manually without any button."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "seq": 3,
+      "title": "Waiting, failing, and trying again",
+      "slides": [
+        {
+          "seq": 1,
+          "kind": "text",
+          "title": "The screen can lie",
+          "objective": "failure",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "A user presses Save and the interface immediately shows 'Saved'. But the network request failed. Was it saved? No. The button changed, and that does not prove the action succeeded. Confident screens can lie."
+            }
+          ]
+        },
+        {
+          "seq": 2,
+          "kind": "diagram",
+          "title": "How a request can end",
+          "objective": "failure",
+          "blocks": [
+            {
+              "type": "diagram",
+              "asset": "request-outcome-states",
+              "alt": "The states a request can end in, from loading and success through empty, errors, conflict, timeout and offline",
+              "caption": "Every important request needs a designed answer for each of these.",
+              "steps": [
+                "Loading - sent, no answer yet",
+                "Success - the server confirmed it",
+                "Empty - it worked, but there is nothing to show",
+                "Validation error - the request was missing or unacceptable",
+                "Unauthorized - the user is not signed in",
+                "Forbidden - the user is known but not allowed",
+                "Not found - the item does not exist",
+                "Conflict - the request clashes with the current state",
+                "Timeout or offline - no usable answer arrived"
+              ]
+            }
+          ]
+        },
+        {
+          "seq": 3,
+          "kind": "check",
+          "title": "Buy, wait, buy again",
+          "objective": "failure",
+          "blocks": [
+            {
+              "type": "check",
+              "question": "A student presses Buy, nothing seems to happen, and presses Buy again. How does the server avoid selling the same ticket twice?",
+              "options": [
+                { "key": "a", "label": "The second click is physically impossible" },
+                { "key": "b", "label": "Each request carries a unique request ID, so the server recognizes the retried request and returns the existing result" },
+                { "key": "c", "label": "The server refuses all repeated requests" },
+                { "key": "d", "label": "The student is charged twice and refunded later" }
+              ],
+              "answer_key": "b",
+              "explanation": "Retrying the same action should not perform it twice. A unique request ID lets the server recognize that purchase-attempt-7719 was already processed and return the same result. Disabling the button helps, but the server must guard too, because buttons cannot stop resent requests.",
+              "objective": "failure"
+            }
+          ]
+        },
+        {
+          "seq": 4,
+          "kind": "text",
+          "title": "Not every feature has the same conversation",
+          "objective": "patterns",
+          "blocks": [
+            {
+              "type": "text",
+              "text": "Opening an album is one request and one answer, often a page at a time rather than the whole library. Equipping an item is a command that changes shared state on the server. A video upload moves a large file with progress and a processing status. AI generation is a job you check by polling or receive by streaming. A typing indicator lives on an ongoing connection and is never stored."
+            }
+          ]
+        },
+        {
+          "seq": 5,
+          "kind": "callout",
+          "title": "The whole product",
+          "objective": "message",
+          "blocks": [
+            {
+              "type": "callout",
+              "tone": "info",
+              "title": "Punchline",
+              "text": "A web product is not several screens connected by buttons. It is several systems connected by carefully designed conversations."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
