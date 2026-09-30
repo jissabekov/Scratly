@@ -1687,6 +1687,34 @@ class TurnTransaction:
             payload["content"] = json.loads(content)
         return payload
 
+    async def asked_questions(self, limit: int = 12) -> list[dict[str, Any]]:
+        """The questions already asked this session, chronological tail slice.
+
+        Plan 07 W7.6: the writer receives this ledger so it can avoid re-asking
+        a settled topic and phrase acknowledgments against real prior wording —
+        the asked-vs-answered context that repeat-question bugs need.
+        """
+        assert self._session_id is not None
+        result = await self.session.execute(
+            text(
+                """
+                SELECT q.target_key, m.content
+                  FROM assessment.questions q
+                  JOIN conversation.turns t ON t.id = q.turn_id
+                  JOIN conversation.messages m ON m.id = t.assistant_message_id
+                 WHERE q.session_id = :session_id
+                 ORDER BY q.created_at DESC
+                 LIMIT :limit
+                """
+            ),
+            {"session_id": self._session_id, "limit": limit},
+        )
+        rows = [
+            {"target_key": r["target_key"], "text": r["content"]} for r in result.mappings().all()
+        ]
+        rows.reverse()
+        return rows
+
     async def public_profile(self) -> dict[str, Any]:
         """Teacher-facing numerics stay out; writer gets labels and statuses only."""
         assert self._session_id is not None

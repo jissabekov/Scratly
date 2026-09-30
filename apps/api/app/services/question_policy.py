@@ -82,6 +82,7 @@ BASE_VALUE = {
     "required_hard_variable": 0.18,
     "project_critical_unknown": 0.16,
     "project_discrimination": 0.14,
+    "contradiction": 0.12,
     "provisional_dimension": 0.10,
     "profile_validation": 0.05,
 }
@@ -126,6 +127,36 @@ class DiscoveryPhase(StrEnum):
 DEFAULT_MAX_TOPIC_DEPTH = 2
 ABSOLUTE_MAX_TOPIC_DEPTH = 3
 
+# Student-facing goal per target key (Plan 07): the single thing this turn may
+# learn, in vocabulary a 15-year-old parses — carried on the planner directive
+# so the writer aims at it instead of an abstract dimension name.
+COLLECT_HINTS: dict[str, str] = {
+    "topics": "what they keep spending free time on",
+    "work_mode": "how they like to do the work",
+    "motivation": "what makes the effort worth it to them",
+    "execution": "how they handle the hard or boring parts",
+    "execution:persistence": "what keeps them going after it stops being fun",
+    "execution:ambiguity_tolerance": "how they handle tasks with no clear instructions",
+    "execution:outreach_willingness": "whether they would show the work to people",
+    "execution:public_visibility": "whether they would let others see or use it",
+    "constraints": "what has to be true for the project to fit their life",
+    "constraints:geo": "where they are (city or region)",
+    "capability": "what they are already good at or get asked to help with",
+    "assets": "what tools, time, or support they already have",
+    "contradiction": "which of two things fits them better",
+    "profile_validation": "whether the summary sounds right",
+    "conversation_repair": "what they actually meant",
+    "social_intro": "a simple hello",
+}
+
+
+def collect_hint_for(key: str) -> str:
+    """Student-vocabulary goal for a target key, falling back to its family."""
+    if key in COLLECT_HINTS:
+        return COLLECT_HINTS[key]
+    family = key.split(":", 1)[0]
+    return COLLECT_HINTS.get(family, "what would help them next")
+
 
 @dataclass(frozen=True)
 class PlannerDecision:
@@ -134,6 +165,14 @@ class PlannerDecision:
     phase: DiscoveryPhase
     reason: str
     avoid_topics: tuple[str, ...] = ()
+    # Plan 07 directive fields: the writer consumes these verbatim; the planner
+    # owns every presentation-level decision (ack mode, closure beat, bridge
+    # seed, remaining probe budget) so the model never improvises structure.
+    closure: bool = False
+    acknowledgment: str = "auto"  # none | brief | repair | validate | auto
+    collect: str | None = None
+    bridge_hint: str | None = None
+    probes_left_on_key: int = 0
 
 
 def is_topic_rejection(text: str) -> bool:
@@ -166,6 +205,42 @@ def is_frustration(text: str) -> bool:
     )
 
 
+def _finalize(
+    decision: PlannerDecision,
+    *,
+    breadth_complete: bool,
+    last_turn_accepted: bool,
+    last_target_key: str | None,
+) -> PlannerDecision:
+    """Attach the writer-facing directive fields to a planner decision."""
+    ack = "auto"
+    if decision.action == PlannerAction.CLARIFY:
+        ack = "validate"
+    elif decision.reason in {"topic_rejected", "friction_detected"}:
+        ack = "repair"
+    elif decision.closure or decision.action in {
+        PlannerAction.BRIDGE,
+        PlannerAction.GATE,
+    }:
+        ack = "brief"
+    needs_bridge = decision.action != PlannerAction.FOLLOW_UP and bool(last_target_key)
+    depth_budget = ABSOLUTE_MAX_TOPIC_DEPTH + 1
+    if not breadth_complete:
+        depth_budget = ABSOLUTE_MAX_TOPIC_DEPTH if last_turn_accepted else DEFAULT_MAX_TOPIC_DEPTH
+    return PlannerDecision(
+        target=decision.target,
+        action=decision.action,
+        phase=decision.phase,
+        reason=decision.reason,
+        avoid_topics=decision.avoid_topics,
+        closure=decision.closure,
+        acknowledgment=ack,
+        collect=collect_hint_for(decision.target.key),
+        bridge_hint=collect_hint_for(decision.target.key) if needs_bridge else None,
+        probes_left_on_key=max(0, depth_budget - decision.target.asked_count),
+    )
+
+
 def plan_next(
     candidates: list[Target],
     *,
@@ -173,12 +248,16 @@ def plan_next(
     student_text: str,
     breadth_complete: bool = False,
     blocked_topics: tuple[str, ...] = (),
+    last_target_kind: str | None = None,
+    last_turn_accepted: bool = False,
 ) -> PlannerDecision | None:
     """Choose *what* happens next with hard breadth and saturation controls.
 
     Candidate ``key`` is the persisted topic identifier. A rejected topic is
     excluded immediately; the caller can persist that boundary in its trace.
-    During breadth, an exhausted branch can never beat a major unasked area.
+    During breadth, an exhausted branch can never beat a major unasked area —
+    unless the last ask on the current branch still yielded evidence, in which
+    case the budget extends to ABSOLUTE_MAX_TOPIC_DEPTH (one more probe).
     """
     if not candidates:
         return None
@@ -191,47 +270,84 @@ def plan_next(
     if not pool:
         pool = candidates
 
+    # A just-asked contradiction defers one turn (Plan 07): clarify once, let the
+    # conversation breathe, revisit if still open. The clarify-attempt lifecycle
+    # (max 2 → dismissed) is unchanged; this only prevents consecutive cross-
+    # examination while other probes exist.
+    if last_target_kind == "contradiction":
+        non_clarify = [c for c in pool if c.kind != "contradiction"]
+        if non_clarify:
+            pool = non_clarify
+
     major_uncovered = [c for c in pool if c.asked_count == 0]
     current = [c for c in pool if c.key == last_target_key]
     current_depth = max((c.asked_count for c in current), default=0)
+
+    def decided(decision: PlannerDecision) -> PlannerDecision:
+        return _finalize(
+            decision,
+            breadth_complete=breadth_complete,
+            last_turn_accepted=last_turn_accepted,
+            last_target_key=last_target_key,
+        )
 
     if rejected or frustrated:
         target = select_next(
             major_uncovered or [c for c in pool if c.key != last_target_key] or pool
         )
-        return PlannerDecision(
-            target=target,
-            action=PlannerAction.SWITCH,
-            phase=DiscoveryPhase.BREADTH,
-            reason="topic_rejected" if rejected else "friction_detected",
-            avoid_topics=tuple(sorted(blocked)),
+        return decided(
+            PlannerDecision(
+                target=target,
+                action=PlannerAction.SWITCH,
+                phase=DiscoveryPhase.BREADTH,
+                reason="topic_rejected" if rejected else "friction_detected",
+                avoid_topics=tuple(sorted(blocked)),
+            )
         )
 
     if classify_reply(student_text) == ReplySignal.INSUFFICIENT and major_uncovered:
         target = select_next(
             [c for c in major_uncovered if c.key != last_target_key] or major_uncovered
         )
-        return PlannerDecision(
-            target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "branch_yield_collapsed"
+        return decided(
+            PlannerDecision(
+                target,
+                PlannerAction.SWITCH,
+                DiscoveryPhase.BREADTH,
+                "branch_yield_collapsed",
+                closure=True,
+            )
         )
 
-    if last_target_key and current_depth >= 3:
+    if last_target_key and current_depth >= ABSOLUTE_MAX_TOPIC_DEPTH:
         switch_pool = [c for c in pool if c.key != last_target_key and not is_repetition_blocked(c)]
         if switch_pool:
             target = select_next(switch_pool)
-            return PlannerDecision(
-                target,
-                PlannerAction.SWITCH,
-                DiscoveryPhase.BREADTH if not breadth_complete else DiscoveryPhase.VERIFY,
-                "follow_up_exhausted",
+            return decided(
+                PlannerDecision(
+                    target,
+                    PlannerAction.SWITCH,
+                    DiscoveryPhase.BREADTH if not breadth_complete else DiscoveryPhase.VERIFY,
+                    "follow_up_exhausted",
+                    closure=True,
+                )
             )
 
-    if not breadth_complete and major_uncovered and current_depth >= DEFAULT_MAX_TOPIC_DEPTH:
+    # Semantic stay (Plan 07): a topic that is still yielding accepted evidence
+    # earns one extra probe during breadth before the budget forces a switch.
+    effective_budget = ABSOLUTE_MAX_TOPIC_DEPTH if last_turn_accepted else DEFAULT_MAX_TOPIC_DEPTH
+    if not breadth_complete and major_uncovered and current_depth >= effective_budget:
         target = select_next(
             [c for c in major_uncovered if c.key != last_target_key] or major_uncovered
         )
-        return PlannerDecision(
-            target, PlannerAction.SWITCH, DiscoveryPhase.BREADTH, "topic_budget_reached"
+        return decided(
+            PlannerDecision(
+                target,
+                PlannerAction.SWITCH,
+                DiscoveryPhase.BREADTH,
+                "topic_budget_reached",
+                closure=True,
+            )
         )
 
     # A fourth ask is invalid before breadth completes, regardless of score.
@@ -256,12 +372,14 @@ def plan_next(
         "execution:public_visibility",
     }:
         action, reason = PlannerAction.GATE, "hard_feasibility"
-    return PlannerDecision(
-        target,
-        action,
-        DiscoveryPhase.VERIFY if breadth_complete else DiscoveryPhase.BREADTH,
-        reason,
-        tuple(sorted(blocked)),
+    return decided(
+        PlannerDecision(
+            target,
+            action,
+            DiscoveryPhase.VERIFY if breadth_complete else DiscoveryPhase.BREADTH,
+            reason,
+            tuple(sorted(blocked)),
+        )
     )
 
 
@@ -420,8 +538,11 @@ def select_next(candidates: list[Target]) -> Target | None:
     if not candidates:
         return None
     repair = [c for c in candidates if c.kind == "conversation_repair"]
-    contradictions = [c for c in candidates if c.kind == "contradiction"]
-    pool = repair or contradictions or candidates
+    # Contradictions compete on decision value (their contradiction_resolution
+    # component + unknown-state uncertainty normally wins) instead of replacing
+    # the pool wholesale — an open conflict earns the next ask, not a hijack of
+    # the whole agenda (Plan 07). Repairs still preempt everything.
+    pool = repair or candidates
     eligible = [c for c in pool if not is_repetition_blocked(c)] or pool
     return min(
         eligible,
@@ -647,19 +768,24 @@ def should_emit_required(key: str, *, interests_ready: bool) -> bool:
 
 
 def contradiction_fallback(dimension_key: str, value_a: str | None, value_b: str | None) -> str:
-    """Seeded contradiction wording that names the concrete options."""
+    """Seeded contradiction wording that names the concrete options.
+
+    Value keys resolve through the elicitation option banks so raw snake_case
+    never reaches the student (Plan 07 W7.3).
+    """
+    from app.services.elicitation_policy import value_label_for
+
     label = dimension_key.replace("_", " ")
-    if value_a and value_b:
+    a = value_label_for(dimension_key, value_a)
+    b = value_label_for(dimension_key, value_b)
+    if a and b:
         return (
-            f"For {label}, do you lean more toward {value_a.replace('_', ' ')} "
-            f"or {value_b.replace('_', ' ')} — or both in different situations?"
+            f"Sounds like {label} could go either way — {a}, or {b}. "
+            "Which fits you better, or is it both depending on the situation?"
         )
-    if value_a:
-        return (
-            f"For {label}, is {value_a.replace('_', ' ')} still the preference "
-            f"you want to prioritize?"
-        )
-    return f"For {label}, which preference is closer to what you want now?"
+    if a:
+        return f"For {label}, is {a} still the thing that fits best?"
+    return f"For {label}, which of these fits you better right now?"
 
 
 _REQUIRED_FALLBACKS = {

@@ -91,3 +91,16 @@ ANCHORS = (
 )
 
 BY_KEY = {intent.key: intent for intent in ANCHORS}
+
+# Anchor intents indexed by the planner's target keys (dimension names), where a
+# sensible correspondence exists (Plan 07): the old BY_KEY.get(target_key)
+# lookup was dead config because intent keys are probe names, not dimensions.
+BY_TARGET = {
+    "topics": BY_KEY["voluntary_attention"],
+    "work_mode": BY_KEY["active_engagement"],
+    "motivation": BY_KEY["attraction_mechanism"],
+    "execution": BY_KEY["persistence_mechanism"],
+    "execution:persistence": BY_KEY["persistence_mechanism"],
+    "capability": BY_KEY["natural_competence"],
+    "assets": BY_KEY["natural_contribution"],
+}

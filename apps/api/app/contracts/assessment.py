@@ -148,7 +148,20 @@ class StudentProfileV1(StrictModel):
 
 
 class QuestionResponse(StrictModel):
-    question: Annotated[str, StringConstraints(min_length=1, max_length=500)]
+    # ARQ-style echo first: forces the model to ground the reply in what the
+    # student actually said before composing anything (Plan 07 W7.1).
+    student_point: Annotated[str, StringConstraints(max_length=160)] | None = None
+    acknowledgment: Annotated[str, StringConstraints(max_length=160)] | None = None
+    bridge: Annotated[str, StringConstraints(max_length=140)] | None = None
+    question: Annotated[str, StringConstraints(min_length=1, max_length=320)]
+
+    def compose(self) -> str:
+        """Assemble the student-visible text; ordering is receipt, bridge, ask."""
+        return " ".join(
+            part.strip()
+            for part in (self.acknowledgment, self.bridge, self.question)
+            if part and part.strip()
+        )
 
 
 class MemorySnapshotOutput(StrictModel):

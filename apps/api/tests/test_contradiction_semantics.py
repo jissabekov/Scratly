@@ -154,12 +154,17 @@ def test_question_gate_rejects_generic_contradiction():
         azure_succeeded=True,
     )
     assert gate["outcome"] == "seeded_override"
-    assert "discovery" in gate["question"].lower() or "mastery" in gate["question"].lower()
+    # Humanized labels, never raw value keys (W7.3).
+    assert "discovery_mastery" not in gate["question"]
+    assert "impact_usefulness" not in gate["question"]
+    assert "getting really good" in gate["question"].lower()
     assert "two different preferences" not in gate["question"].lower()
 
 
 def test_contradiction_fallback_names_options():
     text = contradiction_fallback("work_mode", "investigate", "build")
-    assert "investigate" in text
-    assert "build" in text
+    # Humanized value-key labels, not raw keys (W7.3).
+    assert "investigate" not in text
+    assert "figure out what's causing it" in text.lower()
+    assert "build something that might help" in text.lower()
     assert "two different preferences" not in text.lower()

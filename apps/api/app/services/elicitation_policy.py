@@ -120,6 +120,22 @@ def elicitation_dimension_family(dimension_key: str) -> str:
     return dimension_key.split(":", 1)[0]
 
 
+def value_label_for(dimension_key: str, value_key: str | None) -> str | None:
+    """Human label for a dimension value key, from the elicitation option banks.
+
+    Used by contradiction/clarify wording so raw ``snake_case`` value keys never
+    reach the student (Plan 07 W7.3). Returns None when ``value_key`` is None;
+    falls back to a de-underscored form when the key is not banked.
+    """
+    if value_key is None:
+        return None
+    for bank_key in (dimension_key, elicitation_dimension_family(dimension_key)):
+        for key, label in _OPTION_BANKS.get(bank_key, []):
+            if key == value_key:
+                return label
+    return value_key.replace("_", " ")
+
+
 def same_elicitation_dimension(left: str | None, right: str | None) -> bool:
     if not left or not right:
         return False

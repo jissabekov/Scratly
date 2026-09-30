@@ -350,11 +350,10 @@ class QuestionWriter:
     def __init__(self, llm):
         self.llm = llm
 
-    async def write(self, context) -> str:
-        result = await self.llm.structured(
-            "writer", "question_writer", "v3", QuestionResponse, context
+    async def write(self, context) -> QuestionResponse:
+        return await self.llm.structured(
+            "writer", "question_writer", "v4", QuestionResponse, context
         )
-        return result.question
 
 
 def _prompt(name: str, version: str) -> str:

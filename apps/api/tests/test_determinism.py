@@ -368,7 +368,7 @@ def test_question_quality_rejects_leaks_and_compound_questions():
 
 
 def test_prompt_context_serializes_curated_dataclasses():
-    target = Target("behavioral_anchor", "voluntary_attention", "x")
+    target = Target("behavioral_anchor", "topics", "x")
     context = ContextBuilder().question_writer(target, [], None, {})
     assert (
         json.loads(json.dumps(context, default=_json_default))["curated_intent"]["question_class"]

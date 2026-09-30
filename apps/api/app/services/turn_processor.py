@@ -22,12 +22,14 @@ from app.services.elicitation_policy import (
     elicitation_dimension_family,
     elicitation_target,
     should_offer_options,
+    value_label_for,
 )
 from app.services.location_policy import extract_geo_from_profile, infer_geo_from_text
 from app.services.memory_compactor import MemoryCompactor
 from app.services.opportunity_matcher import rank_opportunities
 from app.services.project_composer import ProjectComposer
 from app.services.question_policy import (
+    PlannerAction,
     ReplySignal,
     Target,
     classify_reply,
@@ -135,12 +137,38 @@ _SHORT_REPLY_WORDS = 12
 # dominated per-turn latency.
 EXTRACTOR_CONTEXT_MESSAGES = 12
 
-_TRANSITION_LINES = (
-    "Setting that aside — {question}",
-    "Different angle on the same thing: {question}",
-    "Before we keep going, one thing would help me: {question}",
-    "Let me ask that another way — {question}",
-)
+# Dedup rewrite transitions are keyed by planner action (Plan 07 W7.5): a
+# SWITCH must never claim "the same thing", a FOLLOW_UP must never announce a
+# topic change. Falls back to the generic bank when no decision is in scope.
+_TRANSITION_LINES: dict[str, tuple[str, ...]] = {
+    "follow_up": (
+        "Staying with that — {question}",
+        "One more on the same thing: {question}",
+        "To go a bit deeper — {question}",
+    ),
+    "bridge": (
+        "That connects to something else — {question}",
+        "Building on that: {question}",
+        "Related to what you said — {question}",
+    ),
+    "switch": (
+        "Different direction — {question}",
+        "Switching gears a bit: {question}",
+        "Something else would help me: {question}",
+    ),
+    "clarify": (
+        "One thing to untangle — {question}",
+        "Let me make sure I have this right: {question}",
+    ),
+    "gate": (
+        "One practical thing — {question}",
+        "To keep this realistic: {question}",
+    ),
+    "generic": (
+        "Before we keep going, one thing would help me: {question}",
+        "Let me ask that another way — {question}",
+    ),
+}
 
 _ABSTENTION_LINES = (
     (
@@ -190,9 +218,10 @@ def _near_duplicate_reason(content: str, recent: list[str]) -> str | None:
     return None
 
 
-def _transition_line(rotation: int, question: str) -> str:
-    """Deterministic varied lead-in that still asks exactly one question."""
-    return _TRANSITION_LINES[rotation % len(_TRANSITION_LINES)].format(question=question)
+def _transition_line(rotation: int, question: str, action: str | None = None) -> str:
+    """Deterministic varied lead-in matched to the planner action (Plan 07)."""
+    bank = _TRANSITION_LINES.get(action or "", _TRANSITION_LINES["generic"])
+    return bank[rotation % len(bank)].format(question=question)
 
 
 async def process_student_turn(
@@ -709,6 +738,8 @@ async def process_student_turn(
                 student_text=request.text,
                 breadth_complete=bool(stage_inputs.get("coverage_touched", 0) >= 0.8),
                 blocked_topics=blocked_topics,
+                last_target_kind=(last_q or {}).get("intent_key"),
+                last_turn_accepted=accepted_count > 0,
             )
         target = (
             social_target
@@ -821,17 +852,25 @@ async def process_student_turn(
         counters = await tx.session_counters()
         if thin.is_thin and not skip_evidence:
             pending_key = counters.get("elicitation_target_key")
-            if pending_key:
+            current_family = elicitation_dimension_family(target.key)
+            if target.key == "constraints:geo":
+                current_family = "constraints"
+            if target.kind == "profile_validation":
+                current_family = "profile"
+            if pending_key and pending_key == current_family:
+                # Same dimension as the pending elicitation: advance the counter.
                 elicit_key = pending_key
                 if elicit_key == "constraints:geo":
                     elicit_key = "constraints"
                 attempts = int(counters.get("elicitation_attempts_for_target") or 0) + 1
+            elif pending_key:
+                # Planner switched families (Plan 07 W7.4): a stale pending key
+                # must never fire option chips for a dimension the student is no
+                # longer discussing — restart the counter on the current family.
+                elicit_key = current_family
+                attempts = 1
             else:
-                elicit_key = elicitation_dimension_family(target.key)
-                if target.key == "constraints:geo":
-                    elicit_key = "constraints"
-                if target.kind == "profile_validation":
-                    elicit_key = "profile"
+                elicit_key = current_family
                 attempts = 1
             can_recover = target.kind in {
                 "required_hard_variable",
@@ -1048,9 +1087,13 @@ async def process_student_turn(
 
         recent = await tx.recent_messages()
         memory = await tx.memory()
+        asked_ledger = await tx.asked_questions()
         value_a = value_b = None
         if target.kind == "contradiction":
             value_a, value_b = await tx.contradiction_sides(target.key)
+            # The writer never sees raw value keys (Plan 07 W7.3).
+            value_a = value_label_for(target.key, value_a)
+            value_b = value_label_for(target.key, value_b)
 
         previous_assistant = None
         for msg in reversed(recent):
@@ -1108,6 +1151,8 @@ async def process_student_turn(
                     if target.kind == "contradiction"
                     else None,
                     previous_assistant_question=previous_assistant,
+                    asked_questions=asked_ledger,
+                    post_answer_pivot=assistant_prefix is not None,
                 )
                 if planner_decision:
                     writer_context["planner_decision"] = {
@@ -1116,20 +1161,39 @@ async def process_student_turn(
                         "reason": planner_decision.reason,
                         "avoid_topics": list(planner_decision.avoid_topics),
                         "phase": planner_decision.phase.value,
+                        "closure": planner_decision.closure,
+                        "acknowledgment": planner_decision.acknowledgment,
+                        "collect": planner_decision.collect,
+                        "bridge_hint": planner_decision.bridge_hint,
+                        "probes_left_on_key": planner_decision.probes_left_on_key,
                     }
                 if opening_mode:
                     writer_context["opening_mode"] = opening_mode
                 if target.kind == "elicitation":
                     writer_context["elicitation"] = build_elicitation_spec(target.key).model_dump()
-                question = await writer.write(writer_context)
+                response = await writer.write(writer_context)
+                # The directive owns message structure (Plan 07): an ack the
+                # planner did not ask for, or a bridge on a follow-up, is dropped
+                # rather than argued with.
+                if planner_decision:
+                    if planner_decision.acknowledgment == "none":
+                        response.acknowledgment = None
+                    if planner_decision.action == PlannerAction.FOLLOW_UP:
+                        response.bridge = None
+                question = response.compose() or target.fallback_template
                 write_run_id = getattr(llm, "last_llm_run_id", None) if llm else None
                 await trace.record(
                     "question_written",
                     "question_writer",
-                    "v2",
+                    "v4",
                     "Azure personalized the application-selected question target.",
                     "structured_writer_succeeded",
-                    outputs={"target_kind": target.kind},
+                    outputs={
+                        "target_kind": target.kind,
+                        "student_point": response.student_point,
+                        "has_acknowledgment": response.acknowledgment is not None,
+                        "has_bridge": response.bridge is not None,
+                    },
                     llm_run_id=write_run_id,
                 )
                 azure_succeeded = True
@@ -1246,11 +1310,13 @@ async def process_student_turn(
             elicitation_spec = build_elicitation_spec(elicit_key)
 
         # CAT item-exposure control: commit the ask ledger for the probe that
-        # actually went out. Offers, selections, and the terminal thanks line
-        # are not dimension probes and must not accrue exposure.
+        # actually went out. Offers, selections, abstention lines, and the
+        # terminal thanks line are not dimension probes and must not accrue
+        # exposure — a matching_unavailable turn replaced the planned probe with
+        # a canned line, so its target never actually asked anything (W7.7).
         if (
             stage != "complete"
-            and message_kind not in {"project_offer", "post_match_feedback"}
+            and message_kind not in {"project_offer", "post_match_feedback", "matching_unavailable"}
             and not matching_feedback_closed
         ):
             probe_dim = (
@@ -1275,16 +1341,26 @@ async def process_student_turn(
                 try:
                     retry_context = dict(writer_context)
                     retry_context["avoid_repeating"] = candidate_content
-                    retry_question = await writer.write(retry_context)
-                    if _near_duplicate_reason(retry_question, recent_replies) is None:
-                        question = retry_question
+                    retry_response = await writer.write(retry_context)
+                    if planner_decision:
+                        if planner_decision.acknowledgment == "none":
+                            retry_response.acknowledgment = None
+                        if planner_decision.action == PlannerAction.FOLLOW_UP:
+                            retry_response.bridge = None
+                    retry_text = retry_response.compose()
+                    if _near_duplicate_reason(retry_text, recent_replies) is None:
+                        question = retry_text
                         rewrite_mode = "writer_retry"
                         dup_reason = None
                 except Exception:
                     rewrite_mode = None
             if dup_reason:
                 assistant_prefix = None
-                question = _transition_line(len(recent_replies), target.fallback_template)
+                question = _transition_line(
+                    len(recent_replies),
+                    target.fallback_template,
+                    planner_decision.action.value if planner_decision else None,
+                )
             candidate_content = (
                 f"{assistant_prefix.rstrip()}\n\n{question}" if assistant_prefix else question
             )
@@ -1588,7 +1664,12 @@ async def _maybe_compact_memory(tx, context_builder, llm, trace) -> None:
         }
         for m in raw
     ]
-    uncompacted_tokens = sum(len(m.get("content") or "") // 4 for m in raw_dicts)
+    # W7.8: only post-boundary messages are uncompacted — counting the whole
+    # transcript made the token branch fire on every turn past ~6k total.
+    last_boundary = stats.get("last_boundary") or 0
+    uncompacted_tokens = sum(
+        len(m.get("content") or "") // 4 for m in raw_dicts if m["sequence"] > last_boundary
+    )
     if not compactor.due(stats["responses_since_snapshot"], uncompacted_tokens):
         return
     boundary = stats["max_sequence"]
